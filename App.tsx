@@ -91,6 +91,19 @@ const App: React.FC = () => {
     });
   }, []);
 
+  const handleUpdateActivity = useCallback((dayIndex: number, activityIndex: number, newActivity: any) => {
+    setItinerary(prev => {
+      if (!prev) return null;
+      const newDays = [...prev.days];
+      const day = { ...newDays[dayIndex] };
+      const newActivities = [...day.activities];
+      newActivities[activityIndex] = { ...newActivities[activityIndex], ...newActivity };
+      day.activities = newActivities;
+      newDays[dayIndex] = day;
+      return { ...prev, days: newDays };
+    });
+  }, []);
+
   const handleRemoveArrivalFlight = useCallback(() => {
     setItinerary(prev => {
       if (!prev) return null;
@@ -195,6 +208,7 @@ const App: React.FC = () => {
             onRemoveDay={handleRemoveDay}
             onReorderActivity={handleReorderActivity}
             onRemoveActivity={handleRemoveActivity}
+            onUpdateActivity={handleUpdateActivity}
             onRemoveArrivalFlight={handleRemoveArrivalFlight}
             onRemoveDepartureFlight={handleRemoveDepartureFlight}
             onRemoveHotel={handleRemoveHotel}

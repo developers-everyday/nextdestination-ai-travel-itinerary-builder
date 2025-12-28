@@ -24,6 +24,7 @@ interface Props {
   onRemoveDay: (day: number) => void;
   onReorderActivity: (dayIndex: number, oldIndex: number, newIndex: number) => void;
   onRemoveActivity: (dayIndex: number, activityIndex: number) => void;
+  onUpdateActivity: (dayIndex: number, activityIndex: number, data: any) => void;
   onRemoveArrivalFlight: () => void;
   onRemoveDepartureFlight: () => void;
   onRemoveHotel: (dayIndex: number) => void;
@@ -37,7 +38,7 @@ interface SortableItemProps {
   onRemove: (dayIndex: number, activityIndex: number) => void;
 }
 
-const SortableActivityItem = ({ id, item, index, dayIndex, onRemove }: SortableItemProps) => {
+const SortableActivityItem = ({ id, item, index, dayIndex, onRemove, onUpdate }: SortableItemProps & { onUpdate: (dayIndex: number, activityIndex: number, data: any) => void }) => {
   const {
     attributes,
     listeners,
@@ -46,6 +47,27 @@ const SortableActivityItem = ({ id, item, index, dayIndex, onRemove }: SortableI
     transition,
     isDragging
   } = useSortable({ id });
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(item.activity);
+  const [editDesc, setEditDesc] = useState(item.description);
+  const [editTime, setEditTime] = useState(item.time);
+
+  const handleSave = () => {
+    onUpdate(dayIndex, index, {
+      activity: editTitle,
+      description: editDesc,
+      time: editTime
+    });
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setEditTitle(item.activity);
+    setEditDesc(item.description);
+    setEditTime(item.time);
+    setIsEditing(false);
+  };
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -57,41 +79,84 @@ const SortableActivityItem = ({ id, item, index, dayIndex, onRemove }: SortableI
 
   return (
     <div ref={setNodeRef} style={style} className="mb-4">
-      <div className="border border-slate-200 rounded-xl p-5 bg-white hover:border-indigo-300 transition-all group shadow-sm hover:shadow-md relative">
-        {/* Delete Button (X) */}
-        <button
-          onClick={() => onRemove(dayIndex, index)}
-          className="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 z-20"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+      <div className={`border rounded-xl p-5 bg-white transition-all group shadow-sm hover:shadow-md relative ${isEditing ? 'border-indigo-500 ring-4 ring-indigo-500/10' : 'border-slate-200 hover:border-indigo-300'}`}>
+
+        {/* Delete Button (X) - Only show when not editing */}
+        {!isEditing && (
+          <button
+            onClick={() => onRemove(dayIndex, index)}
+            className="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 z-20"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
 
         <div className="flex justify-between items-start mb-3">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full">
 
-            {/* Drag Handle */}
-            <div {...listeners} {...attributes} className="cursor-grab touch-none text-slate-300 hover:text-indigo-600 mr-1 p-1 rounded hover:bg-slate-100 transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                <path fillRule="evenodd" d="M10 3a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM10 8.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM11.5 15.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" clipRule="evenodd" />
-              </svg>
-            </div>
+            {/* Drag Handle - Hide when editing */}
+            {!isEditing && (
+              <div {...listeners} {...attributes} className="cursor-grab touch-none text-slate-300 hover:text-indigo-600 mr-1 p-1 rounded hover:bg-slate-100 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                  <path fillRule="evenodd" d="M10 3a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM10 8.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM11.5 15.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" clipRule="evenodd" />
+                </svg>
+              </div>
+            )}
 
-            <span className="px-2 py-0.5 bg-slate-100 rounded text-[10px] font-black text-slate-500">{item.time}</span>
-            <h3 className="font-bold text-slate-800 text-sm max-w-[240px] truncate">{item.activity}</h3>
+            {isEditing ? (
+              <div className="flex-1 flex gap-2">
+                <input
+                  value={editTime}
+                  onChange={(e) => setEditTime(e.target.value)}
+                  className="w-20 px-2 py-1 bg-slate-50 border border-slate-200 rounded text-[10px] font-black text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                />
+                <input
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="flex-1 px-2 py-1 bg-slate-50 border border-slate-200 rounded font-bold text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  placeholder="Activity Name"
+                  autoFocus
+                />
+              </div>
+            ) : (
+              <>
+                <span className="px-2 py-0.5 bg-slate-100 rounded text-[10px] font-black text-slate-500">{item.time}</span>
+                <h3 className="font-bold text-slate-800 text-sm max-w-[240px] truncate">{item.activity}</h3>
+              </>
+            )}
           </div>
         </div>
-        <p className="text-xs text-slate-500 leading-relaxed mb-4 font-medium line-clamp-2 pl-8">{item.description}</p>
 
-        <div className="flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity pl-8">
+        {isEditing ? (
+          <textarea
+            value={editDesc}
+            onChange={(e) => setEditDesc(e.target.value)}
+            className="w-full px-2 py-2 bg-slate-50 border border-slate-200 rounded text-xs text-slate-600 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 min-h-[60px] mb-3 ml-8"
+            placeholder="Description"
+          />
+        ) : (
+          <p className="text-xs text-slate-500 leading-relaxed mb-4 font-medium line-clamp-2 pl-8">{item.description}</p>
+        )}
+
+        <div className={`flex items-center justify-between pl-8 ${isEditing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
           <div className="flex items-center gap-2">
             {/* Extra controls placeholer */}
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <button className="py-1 px-3 rounded-lg border border-slate-200 font-semibold text-slate-600 text-[10px] hover:bg-slate-50 transition-all">Edit</button>
-            <button className="py-1 px-3 rounded-lg border border-slate-200 font-semibold text-slate-600 text-[10px] hover:bg-slate-50 transition-all">Map Pin</button>
+          <div className="flex gap-2">
+            {isEditing ? (
+              <>
+                <button onClick={handleCancel} className="py-1 px-3 rounded-lg border border-slate-200 font-semibold text-slate-500 text-[10px] hover:bg-slate-50 transition-all">Cancel</button>
+                <button onClick={handleSave} className="py-1 px-3 rounded-lg bg-indigo-600 font-semibold text-white text-[10px] hover:bg-indigo-700 transition-all shadow-sm">Save Changes</button>
+              </>
+            ) : (
+              <>
+                <button onClick={() => setIsEditing(true)} className="py-1 px-3 rounded-lg border border-slate-200 font-semibold text-slate-600 text-[10px] hover:bg-slate-50 transition-all">Edit</button>
+                <button className="py-1 px-3 rounded-lg border border-slate-200 font-semibold text-slate-600 text-[10px] hover:bg-slate-50 transition-all">Map Pin</button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -105,6 +170,7 @@ const ItineraryBuilder: React.FC<Props> = ({
   onRemoveDay,
   onReorderActivity,
   onRemoveActivity,
+  onUpdateActivity,
   onRemoveArrivalFlight,
   onRemoveDepartureFlight,
   onRemoveHotel
@@ -308,6 +374,7 @@ const ItineraryBuilder: React.FC<Props> = ({
                     index={idx}
                     dayIndex={safeDayIndex}
                     onRemove={onRemoveActivity}
+                    onUpdate={onUpdateActivity}
                   />
                 ))}
               </SortableContext>
