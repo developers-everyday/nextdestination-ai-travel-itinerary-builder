@@ -61,6 +61,7 @@ export const getDemoItinerary = () => {
       {
         day: 1,
         theme: "Arrival & Romance",
+        hasHotel: true,
         activities: [
           { time: "10:00 AM", activity: "Check-in at Ritz Paris", location: "Place Vendôme", description: "Settle into your suite overlooking the square.", type: "hotel" },
           { time: "02:00 PM", activity: "Eiffel Tower Ascent", location: "Champ de Mars", description: "Skip-the-line access to the summit for panoramic views.", type: "activity" },
@@ -70,6 +71,7 @@ export const getDemoItinerary = () => {
       {
         day: 2,
         theme: "Art & History",
+        hasHotel: true,
         activities: [
           { time: "09:00 AM", activity: "Louvre Museum Private Tour", location: "Rue de Rivoli", description: "Expert-led tour focusing on the masterpieces.", type: "activity" },
           { time: "01:00 PM", activity: "Lunch at Le Train Bleu", location: "Gare de Lyon", description: "Iconic Belle Époque restaurant.", type: "activity" },
@@ -79,11 +81,14 @@ export const getDemoItinerary = () => {
       {
         day: 3,
         theme: "Fashion & Departure",
+        hasHotel: true,
         activities: [
           { time: "10:00 AM", activity: "Shopping at Galeries Lafayette", location: "Haussmann", description: "Personal shopper experience.", type: "activity" },
           { time: "01:00 PM", activity: "Lunch at L'Avenue", location: "Avenue Montaigne", description: "Chic dining spot for fashion week spotting.", type: "activity" }
         ]
       }
-    ]
+    ],
+    hasArrivalFlight: true,
+    hasDepartureFlight: true
   };
 };

@@ -64,6 +64,62 @@ const App: React.FC = () => {
     });
   }, []);
 
+  const handleRemoveActivity = useCallback((dayIndex: number, activityIndex: number) => {
+    setItinerary(prev => {
+      if (!prev) return null;
+      const newDays = [...prev.days];
+      const day = { ...newDays[dayIndex] };
+      const newActivities = [...day.activities];
+      newActivities.splice(activityIndex, 1);
+      day.activities = newActivities;
+      newDays[dayIndex] = day;
+      return { ...prev, days: newDays };
+    });
+  }, []);
+
+  const handleRemoveArrivalFlight = useCallback(() => {
+    setItinerary(prev => {
+      if (!prev) return null;
+      return { ...prev, hasArrivalFlight: false };
+    });
+  }, []);
+
+  const handleRemoveDepartureFlight = useCallback(() => {
+    setItinerary(prev => {
+      if (!prev) return null;
+      return { ...prev, hasDepartureFlight: false };
+    });
+  }, []);
+
+  const handleRemoveHotel = useCallback((dayIndex: number) => {
+    setItinerary(prev => {
+      if (!prev) return null;
+      const newDays = [...prev.days];
+      newDays[dayIndex] = { ...newDays[dayIndex], hasHotel: false };
+      return { ...prev, days: newDays };
+    });
+  }, []);
+
+  // Day reordering removed as per user request
+
+  const handleReorderActivity = useCallback((dayIndex: number, oldIndex: number, newIndex: number) => {
+    setItinerary(prev => {
+      if (!prev) return null;
+      const newDays = [...prev.days];
+      const day = { ...newDays[dayIndex] };
+      const newActivities = [...day.activities];
+
+      if (newIndex < 0 || newIndex >= newActivities.length) return prev;
+
+      const [movedActivity] = newActivities.splice(oldIndex, 1);
+      newActivities.splice(newIndex, 0, movedActivity);
+
+      day.activities = newActivities;
+      newDays[dayIndex] = day;
+      return { ...prev, days: newDays };
+    });
+  }, []);
+
   const handleOpenDemo = useCallback(() => {
     const demoData = getDemoItinerary();
     setItinerary(demoData as Itinerary);
@@ -123,6 +179,11 @@ const App: React.FC = () => {
             data={itinerary}
             onAddDay={handleAddDay}
             onRemoveDay={handleRemoveDay}
+            onReorderActivity={handleReorderActivity}
+            onRemoveActivity={handleRemoveActivity}
+            onRemoveArrivalFlight={handleRemoveArrivalFlight}
+            onRemoveDepartureFlight={handleRemoveDepartureFlight}
+            onRemoveHotel={handleRemoveHotel}
           />
         )}
 

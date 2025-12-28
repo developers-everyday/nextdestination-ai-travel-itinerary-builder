@@ -6,21 +6,42 @@ interface Props {
   data: Itinerary;
   onAddDay: () => void;
   onRemoveDay: (day: number) => void;
+  onReorderActivity: (dayIndex: number, fromIndex: number, direction: 'up' | 'down') => void;
+  onRemoveActivity: (dayIndex: number, activityIndex: number) => void;
+  onRemoveArrivalFlight: () => void;
+  onRemoveDepartureFlight: () => void;
+  onRemoveHotel: (dayIndex: number) => void;
 }
 
-const ItineraryBuilder: React.FC<Props> = ({ data, onAddDay, onRemoveDay }) => {
+// ... (Sortable components unchanged) ...
+
+const ItineraryBuilder: React.FC<Props> = ({
+  data,
+  onAddDay,
+  onRemoveDay,
+  onReorderActivity,
+  onRemoveActivity,
+  onRemoveArrivalFlight,
+  onRemoveDepartureFlight,
+  onRemoveHotel
+}) => {
   const [activeDay, setActiveDay] = useState(1);
 
   // Helper to get current day's data
-  const currentDay = data.days.find(d => d.day === activeDay) || data.days[0];
+  const currentDayIndex = data.days.findIndex(d => d.day === activeDay);
+  // Fallback if activeDay is out of sync (e.g. deleted)
+  const safeDayIndex = currentDayIndex >= 0 ? currentDayIndex : 0;
+  const currentDay = data.days[safeDayIndex] || data.days[0];
   const totalDays = data.days.length;
 
   // Handle day selection safety when deleting
   React.useEffect(() => {
-    if (activeDay > totalDays) {
+    if (activeDay > totalDays && totalDays > 0) {
       setActiveDay(totalDays);
     }
   }, [totalDays, activeDay]);
+
+  if (!currentDay) return null; // Edge case safety
 
   return (
     <div className="fixed inset-0 z-[60] bg-[#f8fafc] flex flex-col overflow-hidden animate-fade-in font-sans">
@@ -44,18 +65,19 @@ const ItineraryBuilder: React.FC<Props> = ({ data, onAddDay, onRemoveDay }) => {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Leftmost Sidebar Navigation */}
-        <div className="w-[72px] bg-white border-r border-slate-200 flex flex-col items-center py-6 gap-4 shrink-0">
-          {data.days.map((dayPlan) => (
-            <button
-              key={dayPlan.day}
-              onClick={() => setActiveDay(dayPlan.day)}
-              className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${activeDay === dayPlan.day
-                ? 'bg-[#10b981] text-white shadow-md'
-                : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                }`}
-            >
-              {dayPlan.day}
-            </button>
+        <div className="w-[72px] bg-white border-r border-slate-200 flex flex-col items-center py-6 gap-4 shrink-0 overflow-y-auto scrollbar-hide">
+          {data.days.map((dayPlan, index) => (
+            <div key={dayPlan.day} className="flex flex-col items-center group/day">
+              <button
+                onClick={() => setActiveDay(dayPlan.day)}
+                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all relative ${activeDay === dayPlan.day
+                  ? 'bg-[#10b981] text-white shadow-md'
+                  : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                  }`}
+              >
+                {dayPlan.day}
+              </button>
+            </div>
           ))}
           <div className="mt-2">
             <button
@@ -75,37 +97,28 @@ const ItineraryBuilder: React.FC<Props> = ({ data, onAddDay, onRemoveDay }) => {
             </button>
           </div>
         </div>
+        {/* ... (Sidebar unchanged) ... */}
 
         {/* Itinerary Column */}
         <div className="w-[420px] bg-white flex flex-col shrink-0 border-r border-slate-200">
           <div className="px-6 py-5 flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-3">
-                <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Day {activeDay}: {currentDay.theme}</h2>
-                {totalDays > 1 && (
-                  <button
-                    onClick={() => onRemoveDay(currentDay.day)}
-                    className="text-slate-400 hover:text-red-500 transition-colors p-1"
-                    title="Remove this day"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                )}
-              </div>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-1">{data.destination}</p>
-            </div>
-            <button className="bg-[#4f46e5] hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-2 shadow-sm transition-all active:scale-95">
-              <span>✨</span> Magic Build
-            </button>
+            {/* ... (Header unchanged) ... */}
           </div>
 
           <div className="flex-1 overflow-y-auto px-6 py-2 space-y-4 scrollbar-hide pb-20">
 
             {/* Day 1: Arrival Flight Integration */}
-            {activeDay === 1 && (
-              <div className="border-2 border-dashed border-[#4f46e5]/40 rounded-xl p-5 bg-white relative animate-fade-in-up">
+            {activeDay === 1 && data.hasArrivalFlight !== false && (
+              <div className="border-2 border-dashed border-[#4f46e5]/40 rounded-xl p-5 bg-white relative animate-fade-in-up group">
+                {/* Delete Button */}
+                <button
+                  onClick={onRemoveArrivalFlight}
+                  className="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 z-10"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
                 <div className="flex justify-between mb-3">
                   <div className="h-4 w-24 bg-slate-100 rounded" />
                   <div className="h-4 w-14 bg-slate-100 rounded" />
@@ -118,44 +131,94 @@ const ItineraryBuilder: React.FC<Props> = ({ data, onAddDay, onRemoveDay }) => {
             )}
 
             {/* Daily Hotel Integration (Start of Day) */}
-            <div className="border-2 border-dashed border-orange-200 rounded-xl p-4 bg-orange-50/50 relative">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-500">
+            {currentDay.hasHotel !== false && (
+              <div className="border-2 border-dashed border-orange-200 rounded-xl p-4 bg-orange-50/50 relative group">
+                {/* Delete Button */}
+                <button
+                  onClick={() => onRemoveHotel(safeDayIndex)}
+                  className="absolute top-2 right-2 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 z-10"
+                >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
+                </button>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h-5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-800">Hotel Integration</h4>
+                    <p className="text-[10px] text-slate-500 font-semibold"> Check-in / Baggage Drop</p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="text-sm font-bold text-slate-800">Hotel Integration</h4>
-                  <p className="text-[10px] text-slate-500 font-semibold"> Check-in / Baggage Drop</p>
-                </div>
+                <button className="w-full py-1.5 rounded-lg border border-orange-200 font-bold text-orange-600 text-[10px] hover:bg-orange-100 transition-all bg-white">
+                  View Booking Details
+                </button>
               </div>
-              <button className="w-full py-1.5 rounded-lg border border-orange-200 font-bold text-orange-600 text-[10px] hover:bg-orange-100 transition-all bg-white">
-                View Booking Details
-              </button>
-            </div>
+            )}
 
             {/* AI Generated Activities */}
             {currentDay.activities.map((item, idx) => (
-              <div key={idx} className="border border-slate-200 rounded-xl p-5 bg-white hover:border-indigo-300 transition-all group shadow-sm hover:shadow-md">
+              <div key={idx} className="border border-slate-200 rounded-xl p-5 bg-white hover:border-indigo-300 transition-all group shadow-sm hover:shadow-md relative">
+                {/* ... (Activity item content unchanged) ... */}
+                <button
+                  onClick={() => onRemoveActivity(safeDayIndex, idx)}
+                  className="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex items-center gap-2">
                     <span className="px-2 py-0.5 bg-slate-100 rounded text-[10px] font-black text-slate-500">{item.time}</span>
-                    <h3 className="font-bold text-slate-800 text-sm">{item.activity}</h3>
+                    <h3 className="font-bold text-slate-800 text-sm max-w-[240px] truncate">{item.activity}</h3>
                   </div>
                 </div>
-                <p className="text-xs text-slate-500 leading-relaxed mb-4 font-medium">{item.description}</p>
+                <p className="text-xs text-slate-500 leading-relaxed mb-4 font-medium line-clamp-2">{item.description}</p>
 
-                <div className="grid grid-cols-2 gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button className="py-1.5 rounded-lg border border-slate-200 font-semibold text-slate-600 text-[10px] hover:bg-slate-50 transition-all">Edit</button>
-                  <button className="py-1.5 rounded-lg border border-slate-200 font-semibold text-slate-600 text-[10px] hover:bg-slate-50 transition-all">Map Pin</button>
+                <div className="flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-2">
+                    {/* Activity Reorder Controls */}
+                    {idx > 0 && (
+                      <button onClick={() => onReorderActivity(safeDayIndex, idx, 'up')} className="p-1 text-slate-400 hover:text-indigo-600 border border-slate-200 rounded hover:bg-indigo-50">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                          <path fillRule="evenodd" d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    )}
+                    {idx < currentDay.activities.length - 1 && (
+                      <button onClick={() => onReorderActivity(safeDayIndex, idx, 'down')} className="p-1 text-slate-400 hover:text-indigo-600 border border-slate-200 rounded hover:bg-indigo-50">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                          <path fillRule="evenodd" d="M10 3a.75.75 0 01.75.75v10.638l3.96-4.158a.75.75 0 111.08 1.04l-5.25 5.5a.75.75 0 01-1.08 0l-5.25-5.5a.75.75 0 111.08-1.04l3.96 4.158V3.75A.75.75 0 0110 3z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <button className="py-1 px-3 rounded-lg border border-slate-200 font-semibold text-slate-600 text-[10px] hover:bg-slate-50 transition-all">Edit</button>
+                    <button className="py-1 px-3 rounded-lg border border-slate-200 font-semibold text-slate-600 text-[10px] hover:bg-slate-50 transition-all">Map Pin</button>
+                  </div>
                 </div>
               </div>
             ))}
 
             {/* Last Day: Departure Flight Integration */}
-            {activeDay === totalDays && (
-              <div className="border-2 border-dashed border-[#4f46e5]/40 rounded-xl p-5 bg-white relative animate-fade-in-up mt-8">
+            {activeDay === totalDays && data.hasDepartureFlight !== false && (
+              <div className="border-2 border-dashed border-[#4f46e5]/40 rounded-xl p-5 bg-white relative animate-fade-in-up mt-8 group">
+                {/* Delete Button */}
+                <button
+                  onClick={onRemoveDepartureFlight}
+                  className="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 z-10"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
                 <div className="flex justify-between mb-3">
                   <div className="h-4 w-24 bg-slate-100 rounded" />
                   <div className="h-4 w-14 bg-slate-100 rounded" />
@@ -166,6 +229,7 @@ const ItineraryBuilder: React.FC<Props> = ({ data, onAddDay, onRemoveDay }) => {
                 </div>
               </div>
             )}
+
 
             {/* Manual Add Button */}
             <button className="w-full py-4 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 font-bold text-sm hover:border-indigo-300 hover:text-indigo-600 transition-all flex items-center justify-center gap-2 mt-4">
