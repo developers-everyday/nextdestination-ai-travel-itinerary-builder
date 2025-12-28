@@ -27,6 +27,43 @@ const App: React.FC = () => {
     }
   }, []);
 
+  const handleAddDay = useCallback(() => {
+    setItinerary(prev => {
+      if (!prev) return null;
+      const newDayNum = prev.days.length + 1;
+      return {
+        ...prev,
+        days: [
+          ...prev.days,
+          {
+            day: newDayNum,
+            theme: "Free Day",
+            activities: []
+          }
+        ]
+      };
+    });
+  }, []);
+
+  const handleRemoveDay = useCallback((dayNum: number) => {
+    setItinerary(prev => {
+      if (!prev) return null;
+      if (prev.days.length <= 1) return prev; // Prevent deleting the last day
+
+      const newDays = prev.days
+        .filter(d => d.day !== dayNum)
+        .map((d, index) => ({
+          ...d,
+          day: index + 1 // Re-index days
+        }));
+
+      return {
+        ...prev,
+        days: newDays
+      };
+    });
+  }, []);
+
   const handleOpenDemo = useCallback(() => {
     const demoData = getDemoItinerary();
     setItinerary(demoData as Itinerary);
@@ -81,7 +118,13 @@ const App: React.FC = () => {
         )}
 
         {/* Full Screen Builder View */}
-        {itinerary && <ItineraryBuilder data={itinerary} />}
+        {itinerary && (
+          <ItineraryBuilder
+            data={itinerary}
+            onAddDay={handleAddDay}
+            onRemoveDay={handleRemoveDay}
+          />
+        )}
 
         {error && (
           <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] max-w-md w-full px-6">

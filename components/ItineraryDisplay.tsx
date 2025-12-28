@@ -4,14 +4,23 @@ import { Itinerary, ItineraryItem } from '../types';
 
 interface Props {
   data: Itinerary;
+  onAddDay: () => void;
+  onRemoveDay: (day: number) => void;
 }
 
-const ItineraryBuilder: React.FC<Props> = ({ data }) => {
+const ItineraryBuilder: React.FC<Props> = ({ data, onAddDay, onRemoveDay }) => {
   const [activeDay, setActiveDay] = useState(1);
 
   // Helper to get current day's data
   const currentDay = data.days.find(d => d.day === activeDay) || data.days[0];
   const totalDays = data.days.length;
+
+  // Handle day selection safety when deleting
+  React.useEffect(() => {
+    if (activeDay > totalDays) {
+      setActiveDay(totalDays);
+    }
+  }, [totalDays, activeDay]);
 
   return (
     <div className="fixed inset-0 z-[60] bg-[#f8fafc] flex flex-col overflow-hidden animate-fade-in font-sans">
@@ -41,13 +50,22 @@ const ItineraryBuilder: React.FC<Props> = ({ data }) => {
               key={dayPlan.day}
               onClick={() => setActiveDay(dayPlan.day)}
               className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${activeDay === dayPlan.day
-                  ? 'bg-[#10b981] text-white shadow-md'
-                  : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                ? 'bg-[#10b981] text-white shadow-md'
+                : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                 }`}
             >
               {dayPlan.day}
             </button>
           ))}
+          <div className="mt-2">
+            <button
+              onClick={onAddDay}
+              className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg transition-all bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-200"
+              title="Add Day"
+            >
+              +
+            </button>
+          </div>
           <div className="mt-auto mb-2">
             <button className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 hover:bg-indigo-100 transition-all border border-indigo-100 relative group">
               <span className="text-xl">🤖</span>
@@ -62,7 +80,20 @@ const ItineraryBuilder: React.FC<Props> = ({ data }) => {
         <div className="w-[420px] bg-white flex flex-col shrink-0 border-r border-slate-200">
           <div className="px-6 py-5 flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Day {activeDay}: {currentDay.theme}</h2>
+              <div className="flex items-center gap-3">
+                <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Day {activeDay}: {currentDay.theme}</h2>
+                {totalDays > 1 && (
+                  <button
+                    onClick={() => onRemoveDay(currentDay.day)}
+                    className="text-slate-400 hover:text-red-500 transition-colors p-1"
+                    title="Remove this day"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                )}
+              </div>
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-1">{data.destination}</p>
             </div>
             <button className="bg-[#4f46e5] hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-2 shadow-sm transition-all active:scale-95">
