@@ -21,6 +21,7 @@ import { Itinerary, ItineraryItem } from '../types';
 interface Props {
   data: Itinerary;
   onBackToHome: () => void;
+  onAddActivity: (dayIndex: number) => void;
   onAddDay: () => void;
   onRemoveDay: (day: number) => void;
   onReorderActivity: (dayIndex: number, oldIndex: number, newIndex: number) => void;
@@ -49,10 +50,15 @@ const SortableActivityItem = ({ id, item, index, dayIndex, onRemove, onUpdate }:
     isDragging
   } = useSortable({ id });
 
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(item.activity === "");
   const [editTitle, setEditTitle] = useState(item.activity);
   const [editDesc, setEditDesc] = useState(item.description);
   const [editTime, setEditTime] = useState(item.time);
+
+  // Search State
+  const [searchValue, setSearchValue] = useState("");
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const handleSave = () => {
     onUpdate(dayIndex, index, {
@@ -68,6 +74,41 @@ const SortableActivityItem = ({ id, item, index, dayIndex, onRemove, onUpdate }:
     setEditDesc(item.description);
     setEditTime(item.time);
     setIsEditing(false);
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      // Mock suggestions based on input (or random if empty)
+      const mockPlaces = [
+        "Eiffel Tower, Paris",
+        "Louvre Museum, Paris",
+        "Notre-Dame Cathedral, Paris",
+        "Arc de Triomphe, Paris",
+        "Sacré-Cœur, Paris"
+      ];
+      // Filter if needed, or just show all for demo
+      setSuggestions(mockPlaces);
+      setShowSuggestions(true);
+    }
+  };
+
+  const handleSelectSuggestion = (place: string) => {
+    // Update the item description or adding it as location if we had a field. 
+    // For now, let's append to description or just log it. 
+    // Actually, updating the activity title might be what the user expects if it's empty, or description.
+    // Let's append to description to show effect.
+    const newDesc = editDesc ? `${editDesc} \nLocation: ${place}` : `Location: ${place}`;
+    setEditDesc(newDesc);
+
+    // Also likely want to save this update immediately or just rely on the user clicking save?
+    // User is in "view" mode (not editing) usually when clicking this search icon (since it's parallel to Edit button).
+    // So we should probably trigger an update immediately.
+    onUpdate(dayIndex, index, {
+      description: newDesc
+    });
+
+    setSearchValue("");
+    setShowSuggestions(false);
   };
 
   const style = {
@@ -141,9 +182,48 @@ const SortableActivityItem = ({ id, item, index, dayIndex, onRemove, onUpdate }:
           <p className="text-xs text-slate-500 leading-relaxed mb-4 font-medium line-clamp-2 pl-8">{item.description}</p>
         )}
 
-        <div className={`flex items-center justify-between pl-8 ${isEditing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
-          <div className="flex items-center gap-2">
-            {/* Extra controls placeholer */}
+        <div className={`flex items-center justify-between ${isEditing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
+          <div className="flex items-center gap-2 relative">
+            {/* Search Input Container */}
+            <div className="flex items-center group/search bg-transparent hover:bg-slate-100 transition-all rounded-lg p-1 relative">
+              <div
+                className="flex items-center gap-2 cursor-pointer"
+                onClick={(e) => {
+                  /* Ensure clicking icon focuses input if not already doing so */
+                  const input = (e.currentTarget.nextElementSibling as HTMLInputElement);
+                  input?.focus();
+                }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400 group-hover/search:text-indigo-600 transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+
+              <input
+                type="text"
+                placeholder="Find location..."
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
+                className="w-0 group-hover/search:w-40 focus:w-40 bg-transparent border-none outline-none text-xs text-slate-600 font-medium placeholder:text-slate-400 transition-all px-0 group-hover/search:px-2 focus:px-2"
+                onKeyDown={handleSearchKeyDown}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)} // Delay to allow click on suggestion
+              />
+
+              {/* Suggestions Dropdown */}
+              {showSuggestions && (
+                <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-slate-200 rounded-lg shadow-xl z-[60] overflow-hidden">
+                  {suggestions.map((place, idx) => (
+                    <div
+                      key={idx}
+                      className="px-3 py-2 text-xs text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 cursor-pointer transition-colors font-medium"
+                      onClick={() => handleSelectSuggestion(place)}
+                    >
+                      {place}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="flex gap-2">
@@ -168,6 +248,7 @@ const SortableActivityItem = ({ id, item, index, dayIndex, onRemove, onUpdate }:
 const ItineraryBuilder: React.FC<Props> = ({
   data,
   onBackToHome,
+  onAddActivity,
   onAddDay,
   onRemoveDay,
   onReorderActivity,
@@ -417,7 +498,10 @@ const ItineraryBuilder: React.FC<Props> = ({
             )}
 
             {/* Manual Add Button */}
-            <button className="w-full py-4 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 font-bold text-sm hover:border-indigo-300 hover:text-indigo-600 transition-all flex items-center justify-center gap-2 mt-4">
+            <button
+              onClick={() => onAddActivity(safeDayIndex)}
+              className="w-full py-4 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 font-bold text-sm hover:border-indigo-300 hover:text-indigo-600 transition-all flex items-center justify-center gap-2 mt-4"
+            >
               + Add Manual Item
             </button>
           </div>

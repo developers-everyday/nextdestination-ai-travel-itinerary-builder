@@ -205,7 +205,26 @@ const App: React.FC = () => {
           <ItineraryBuilder
             data={itinerary}
             onBackToHome={() => setItinerary(null)}
-            onAddDay={handleAddDay}
+            onAddActivity={(dayIndex) => {
+              setItinerary(prev => {
+                if (!prev) return null;
+                const newDays = [...prev.days];
+                const day = { ...newDays[dayIndex] };
+                day.activities = [
+                  ...day.activities,
+                  {
+                    id: Math.random().toString(36).substr(2, 9),
+                    time: "09:00",
+                    activity: "", // Empty activity triggers auto-focus in SortableActivityItem
+                    description: "",
+                    location: "",
+                    type: "activity"
+                  }
+                ];
+                newDays[dayIndex] = day;
+                return { ...prev, days: newDays };
+              });
+            }} onAddDay={handleAddDay}
             onRemoveDay={handleRemoveDay}
             onReorderActivity={handleReorderActivity}
             onRemoveActivity={handleRemoveActivity}
