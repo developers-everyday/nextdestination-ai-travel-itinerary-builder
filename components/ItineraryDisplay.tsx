@@ -20,6 +20,7 @@ import { Itinerary, ItineraryItem } from '../types';
 
 interface Props {
   data: Itinerary;
+  onBackToHome: () => void;
   onAddDay: () => void;
   onRemoveDay: (day: number) => void;
   onReorderActivity: (dayIndex: number, oldIndex: number, newIndex: number) => void;
@@ -166,6 +167,7 @@ const SortableActivityItem = ({ id, item, index, dayIndex, onRemove, onUpdate }:
 
 const ItineraryBuilder: React.FC<Props> = ({
   data,
+  onBackToHome,
   onAddDay,
   onRemoveDay,
   onReorderActivity,
@@ -225,7 +227,18 @@ const ItineraryBuilder: React.FC<Props> = ({
   return (
     <div className="fixed inset-0 z-[60] bg-[#f8fafc] flex flex-col overflow-hidden animate-fade-in font-sans">
       {/* Top Header Bar */}
-      <div className="h-14 bg-[#1e293b] flex items-center justify-end px-6 shrink-0 shadow-sm">
+      <div className="h-14 bg-[#1e293b] flex items-center justify-between px-6 shrink-0 shadow-sm">
+        <button
+          onClick={onBackToHome}
+          className="text-slate-400 hover:text-white transition-colors p-2 hover:bg-slate-700/50 rounded-lg flex items-center gap-2 group"
+          title="Back to Home"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+          </svg>
+          <span className="text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity -ml-2 group-hover:ml-0 duration-300">Home</span>
+        </button>
+
         <div className="flex items-center gap-3">
           <div className="relative group">
             <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
@@ -457,8 +470,10 @@ const ItineraryBuilder: React.FC<Props> = ({
 
             {/* Smart Pack CTA */}
             <button className="bg-white px-5 py-3 rounded-full shadow-2xl flex items-center gap-2 border border-slate-200 group hover:shadow-indigo-100 transition-all active:scale-95">
-              <span className="text-lg">✨</span>
-              <span className="font-bold text-indigo-600 text-sm tracking-tight">Smart Pack</span>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-indigo-600" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+              </svg>
+              <span className="font-bold text-indigo-600 text-sm tracking-tight">Simulate Trip</span>
             </button>
           </div>
         </div>

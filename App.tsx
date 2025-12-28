@@ -204,6 +204,7 @@ const App: React.FC = () => {
         {itinerary && (
           <ItineraryBuilder
             data={itinerary}
+            onBackToHome={() => setItinerary(null)}
             onAddDay={handleAddDay}
             onRemoveDay={handleRemoveDay}
             onReorderActivity={handleReorderActivity}
