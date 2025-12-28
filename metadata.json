@@ -1,0 +1,7 @@
+{
+  "name": "NextDestination.ai - Travel Itinerary Builder",
+  "description": "A travel planning application that uses AI to craft personalized, high-end itineraries for globetrotters.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
