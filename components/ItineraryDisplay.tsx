@@ -1,19 +1,103 @@
-
 import React, { useState } from 'react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Itinerary, ItineraryItem } from '../types';
 
 interface Props {
   data: Itinerary;
   onAddDay: () => void;
   onRemoveDay: (day: number) => void;
-  onReorderActivity: (dayIndex: number, fromIndex: number, direction: 'up' | 'down') => void;
+  onReorderActivity: (dayIndex: number, oldIndex: number, newIndex: number) => void;
   onRemoveActivity: (dayIndex: number, activityIndex: number) => void;
   onRemoveArrivalFlight: () => void;
   onRemoveDepartureFlight: () => void;
   onRemoveHotel: (dayIndex: number) => void;
 }
 
-// ... (Sortable components unchanged) ...
+interface SortableItemProps {
+  id: string;
+  item: ItineraryItem;
+  index: number;
+  dayIndex: number;
+  onRemove: (dayIndex: number, activityIndex: number) => void;
+}
+
+const SortableActivityItem = ({ id, item, index, dayIndex, onRemove }: SortableItemProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : 'auto',
+    opacity: isDragging ? 0.3 : 1,
+    position: 'relative' as 'relative',
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="mb-4">
+      <div className="border border-slate-200 rounded-xl p-5 bg-white hover:border-indigo-300 transition-all group shadow-sm hover:shadow-md relative">
+        {/* Delete Button (X) */}
+        <button
+          onClick={() => onRemove(dayIndex, index)}
+          className="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 z-20"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <div className="flex justify-between items-start mb-3">
+          <div className="flex items-center gap-2">
+
+            {/* Drag Handle */}
+            <div {...listeners} {...attributes} className="cursor-grab touch-none text-slate-300 hover:text-indigo-600 mr-1 p-1 rounded hover:bg-slate-100 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                <path fillRule="evenodd" d="M10 3a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM10 8.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM11.5 15.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" clipRule="evenodd" />
+              </svg>
+            </div>
+
+            <span className="px-2 py-0.5 bg-slate-100 rounded text-[10px] font-black text-slate-500">{item.time}</span>
+            <h3 className="font-bold text-slate-800 text-sm max-w-[240px] truncate">{item.activity}</h3>
+          </div>
+        </div>
+        <p className="text-xs text-slate-500 leading-relaxed mb-4 font-medium line-clamp-2 pl-8">{item.description}</p>
+
+        <div className="flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity pl-8">
+          <div className="flex items-center gap-2">
+            {/* Extra controls placeholer */}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <button className="py-1 px-3 rounded-lg border border-slate-200 font-semibold text-slate-600 text-[10px] hover:bg-slate-50 transition-all">Edit</button>
+            <button className="py-1 px-3 rounded-lg border border-slate-200 font-semibold text-slate-600 text-[10px] hover:bg-slate-50 transition-all">Map Pin</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const ItineraryBuilder: React.FC<Props> = ({
   data,
@@ -27,12 +111,38 @@ const ItineraryBuilder: React.FC<Props> = ({
 }) => {
   const [activeDay, setActiveDay] = useState(1);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   // Helper to get current day's data
   const currentDayIndex = data.days.findIndex(d => d.day === activeDay);
   // Fallback if activeDay is out of sync (e.g. deleted)
   const safeDayIndex = currentDayIndex >= 0 ? currentDayIndex : 0;
   const currentDay = data.days[safeDayIndex] || data.days[0];
   const totalDays = data.days.length;
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (active.id !== over?.id) {
+      if (!currentDay) return;
+
+      const oldIndex = currentDay.activities.findIndex((item, idx) => (item.id || `item-${idx}`) === active.id);
+      const newIndex = currentDay.activities.findIndex((item, idx) => (item.id || `item-${idx}`) === over?.id);
+
+      if (oldIndex !== -1 && newIndex !== -1) {
+        onReorderActivity(safeDayIndex, oldIndex, newIndex);
+      }
+    }
+  };
 
   // Handle day selection safety when deleting
   React.useEffect(() => {
@@ -42,6 +152,9 @@ const ItineraryBuilder: React.FC<Props> = ({
   }, [totalDays, activeDay]);
 
   if (!currentDay) return null; // Edge case safety
+
+  // Ensure unique IDs
+  const activityIds = currentDay.activities.map((item, idx) => item.id || `item-${idx}`);
 
   return (
     <div className="fixed inset-0 z-[60] bg-[#f8fafc] flex flex-col overflow-hidden animate-fade-in font-sans">
@@ -97,19 +210,37 @@ const ItineraryBuilder: React.FC<Props> = ({
             </button>
           </div>
         </div>
-        {/* ... (Sidebar unchanged) ... */}
 
         {/* Itinerary Column */}
         <div className="w-[420px] bg-white flex flex-col shrink-0 border-r border-slate-200">
           <div className="px-6 py-5 flex items-center justify-between">
-            {/* ... (Header unchanged) ... */}
+            <div>
+              <div className="flex items-center gap-3">
+                <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Day {currentDay.day}: {currentDay.theme}</h2>
+                {totalDays > 1 && (
+                  <button
+                    onClick={() => onRemoveDay(currentDay.day)}
+                    className="text-slate-400 hover:text-red-500 transition-colors p-1"
+                    title="Remove this day"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-1">{data.destination}</p>
+            </div>
+            <button className="bg-[#4f46e5] hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-2 shadow-sm transition-all active:scale-95">
+              <span>✨</span> Magic Build
+            </button>
           </div>
 
           <div className="flex-1 overflow-y-auto px-6 py-2 space-y-4 scrollbar-hide pb-20">
 
             {/* Day 1: Arrival Flight Integration */}
             {activeDay === 1 && data.hasArrivalFlight !== false && (
-              <div className="border-2 border-dashed border-[#4f46e5]/40 rounded-xl p-5 bg-white relative animate-fade-in-up group">
+              <div className="border-2 border-dashed border-[#4f46e5]/40 rounded-xl p-5 bg-white relative animate-fade-in-up group mb-4">
                 {/* Delete Button */}
                 <button
                   onClick={onRemoveArrivalFlight}
@@ -132,7 +263,7 @@ const ItineraryBuilder: React.FC<Props> = ({
 
             {/* Daily Hotel Integration (Start of Day) */}
             {currentDay.hasHotel !== false && (
-              <div className="border-2 border-dashed border-orange-200 rounded-xl p-4 bg-orange-50/50 relative group">
+              <div className="border-2 border-dashed border-orange-200 rounded-xl p-4 bg-orange-50/50 relative group mb-4">
                 {/* Delete Button */}
                 <button
                   onClick={() => onRemoveHotel(safeDayIndex)}
@@ -159,53 +290,28 @@ const ItineraryBuilder: React.FC<Props> = ({
               </div>
             )}
 
-            {/* AI Generated Activities */}
-            {currentDay.activities.map((item, idx) => (
-              <div key={idx} className="border border-slate-200 rounded-xl p-5 bg-white hover:border-indigo-300 transition-all group shadow-sm hover:shadow-md relative">
-                {/* ... (Activity item content unchanged) ... */}
-                <button
-                  onClick={() => onRemoveActivity(safeDayIndex, idx)}
-                  className="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-
-                <div className="flex justify-between items-start mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 bg-slate-100 rounded text-[10px] font-black text-slate-500">{item.time}</span>
-                    <h3 className="font-bold text-slate-800 text-sm max-w-[240px] truncate">{item.activity}</h3>
-                  </div>
-                </div>
-                <p className="text-xs text-slate-500 leading-relaxed mb-4 font-medium line-clamp-2">{item.description}</p>
-
-                <div className="flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="flex items-center gap-2">
-                    {/* Activity Reorder Controls */}
-                    {idx > 0 && (
-                      <button onClick={() => onReorderActivity(safeDayIndex, idx, 'up')} className="p-1 text-slate-400 hover:text-indigo-600 border border-slate-200 rounded hover:bg-indigo-50">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
-                          <path fillRule="evenodd" d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z" clipRule="evenodd" />
-                        </svg>
-                      </button>
-                    )}
-                    {idx < currentDay.activities.length - 1 && (
-                      <button onClick={() => onReorderActivity(safeDayIndex, idx, 'down')} className="p-1 text-slate-400 hover:text-indigo-600 border border-slate-200 rounded hover:bg-indigo-50">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
-                          <path fillRule="evenodd" d="M10 3a.75.75 0 01.75.75v10.638l3.96-4.158a.75.75 0 111.08 1.04l-5.25 5.5a.75.75 0 01-1.08 0l-5.25-5.5a.75.75 0 111.08-1.04l3.96 4.158V3.75A.75.75 0 0110 3z" clipRule="evenodd" />
-                        </svg>
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <button className="py-1 px-3 rounded-lg border border-slate-200 font-semibold text-slate-600 text-[10px] hover:bg-slate-50 transition-all">Edit</button>
-                    <button className="py-1 px-3 rounded-lg border border-slate-200 font-semibold text-slate-600 text-[10px] hover:bg-slate-50 transition-all">Map Pin</button>
-                  </div>
-                </div>
-              </div>
-            ))}
+            {/* AI Generated Activities (Drag & Drop Context) */}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={activityIds}
+                strategy={verticalListSortingStrategy}
+              >
+                {currentDay.activities.map((item, idx) => (
+                  <SortableActivityItem
+                    key={item.id || `item-${idx}`}
+                    id={item.id || `item-${idx}`}
+                    item={item}
+                    index={idx}
+                    dayIndex={safeDayIndex}
+                    onRemove={onRemoveActivity}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
 
             {/* Last Day: Departure Flight Integration */}
             {activeDay === totalDays && data.hasDepartureFlight !== false && (
@@ -229,7 +335,6 @@ const ItineraryBuilder: React.FC<Props> = ({
                 </div>
               </div>
             )}
-
 
             {/* Manual Add Button */}
             <button className="w-full py-4 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 font-bold text-sm hover:border-indigo-300 hover:text-indigo-600 transition-all flex items-center justify-center gap-2 mt-4">

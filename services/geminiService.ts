@@ -47,7 +47,20 @@ export const generateQuickItinerary = async (destination: string) => {
       }
     });
 
-    return JSON.parse(response.text);
+    const data = JSON.parse(response.text);
+
+    // Inject IDs for drag-and-drop
+    if (data.days) {
+      data.days.forEach((day: any) => {
+        if (day.activities) {
+          day.activities.forEach((activity: any) => {
+            activity.id = Math.random().toString(36).substr(2, 9);
+          });
+        }
+      });
+    }
+
+    return data;
   } catch (error) {
     console.error("Gemini API Error:", error);
     throw error;
@@ -63,9 +76,9 @@ export const getDemoItinerary = () => {
         theme: "Arrival & Romance",
         hasHotel: true,
         activities: [
-          { time: "10:00 AM", activity: "Check-in at Ritz Paris", location: "Place Vendôme", description: "Settle into your suite overlooking the square.", type: "hotel" },
-          { time: "02:00 PM", activity: "Eiffel Tower Ascent", location: "Champ de Mars", description: "Skip-the-line access to the summit for panoramic views.", type: "activity" },
-          { time: "07:00 PM", activity: "Seine Dinner Cruise", location: "Port de la Bourdonnais", description: "3-course gourmet dinner while gliding past illuminated monuments.", type: "activity" }
+          { id: 'a1', time: "10:00 AM", activity: "Check-in at Ritz Paris", location: "Place Vendôme", description: "Settle into your suite overlooking the square.", type: "hotel" },
+          { id: 'a2', time: "02:00 PM", activity: "Eiffel Tower Ascent", location: "Champ de Mars", description: "Skip-the-line access to the summit for panoramic views.", type: "activity" },
+          { id: 'a3', time: "07:00 PM", activity: "Seine Dinner Cruise", location: "Port de la Bourdonnais", description: "3-course gourmet dinner while gliding past illuminated monuments.", type: "activity" }
         ]
       },
       {
@@ -73,9 +86,9 @@ export const getDemoItinerary = () => {
         theme: "Art & History",
         hasHotel: true,
         activities: [
-          { time: "09:00 AM", activity: "Louvre Museum Private Tour", location: "Rue de Rivoli", description: "Expert-led tour focusing on the masterpieces.", type: "activity" },
-          { time: "01:00 PM", activity: "Lunch at Le Train Bleu", location: "Gare de Lyon", description: "Iconic Belle Époque restaurant.", type: "activity" },
-          { time: "03:00 PM", activity: "Montmartre Walking Tour", location: "Montmartre", description: "Explore the artistic history and Sacré-Cœur.", type: "activity" }
+          { id: 'b1', time: "09:00 AM", activity: "Louvre Museum Private Tour", location: "Rue de Rivoli", description: "Expert-led tour focusing on the masterpieces.", type: "activity" },
+          { id: 'b2', time: "01:00 PM", activity: "Lunch at Le Train Bleu", location: "Gare de Lyon", description: "Iconic Belle Époque restaurant.", type: "activity" },
+          { id: 'b3', time: "03:00 PM", activity: "Montmartre Walking Tour", location: "Montmartre", description: "Explore the artistic history and Sacré-Cœur.", type: "activity" }
         ]
       },
       {
@@ -83,8 +96,8 @@ export const getDemoItinerary = () => {
         theme: "Fashion & Departure",
         hasHotel: true,
         activities: [
-          { time: "10:00 AM", activity: "Shopping at Galeries Lafayette", location: "Haussmann", description: "Personal shopper experience.", type: "activity" },
-          { time: "01:00 PM", activity: "Lunch at L'Avenue", location: "Avenue Montaigne", description: "Chic dining spot for fashion week spotting.", type: "activity" }
+          { id: 'c1', time: "10:00 AM", activity: "Shopping at Galeries Lafayette", location: "Haussmann", description: "Personal shopper experience.", type: "activity" },
+          { id: 'c2', time: "01:00 PM", activity: "Lunch at L'Avenue", location: "Avenue Montaigne", description: "Chic dining spot for fashion week spotting.", type: "activity" }
         ]
       }
     ],

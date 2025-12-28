@@ -4,6 +4,7 @@ export interface ItineraryItem {
   location: string;
   description: string;
   type?: 'activity' | 'flight' | 'hotel';
+  id?: string;
 }
 
 export interface DayPlan {

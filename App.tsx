@@ -12,14 +12,28 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Helper to ensure all activities have IDs
+  const sanitizeItinerary = (data: Itinerary): Itinerary => {
+    return {
+      ...data,
+      days: data.days.map(day => ({
+        ...day,
+        activities: day.activities.map(act => ({
+          ...act,
+          id: act.id || Math.random().toString(36).substr(2, 9)
+        }))
+      }))
+    };
+  };
+
   const handleSearch = useCallback(async (destination: string) => {
     setIsLoading(true);
     setError(null);
     setItinerary(null);
 
     try {
-      const data = await generateQuickItinerary(destination);
-      setItinerary(data);
+      const rawData = await generateQuickItinerary(destination);
+      setItinerary(sanitizeItinerary(rawData));
     } catch (err) {
       setError("We couldn't generate an itinerary for that destination right now. Please try again.");
     } finally {
@@ -122,7 +136,7 @@ const App: React.FC = () => {
 
   const handleOpenDemo = useCallback(() => {
     const demoData = getDemoItinerary();
-    setItinerary(demoData as Itinerary);
+    setItinerary(sanitizeItinerary(demoData as Itinerary));
   }, []);
 
   const communityItineraries = [
