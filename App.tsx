@@ -6,6 +6,7 @@ import Hero from './components/Hero';
 import Features from './components/Features';
 import ItineraryBuilder from './components/ItineraryDisplay';
 import CommunityPage from './components/CommunityPage';
+import { HowItWorks, ContactUs, SiteMap, TermsOfUse, PrivacyPolicy, CookieConsent, AccessibilityStatement } from './components/FooterPages';
 import { generateQuickItinerary, getDemoItinerary } from './services/geminiService';
 import { Itinerary } from './types';
 
@@ -305,17 +306,20 @@ const App: React.FC = () => {
                   </p>
                 </div>
                 <div>
-                  <h4 className="font-black text-slate-900 mb-6 uppercase tracking-widest text-xs">Product</h4>
+                  <h4 className="font-black text-slate-900 mb-6 uppercase tracking-widest text-xs">Explore & Support</h4>
                   <ul className="space-y-4 text-slate-500 font-bold text-sm">
-                    <li><a href="#" className="hover:text-indigo-600 transition-colors">AI Builder</a></li>
-                    <li><a href="#" className="hover:text-indigo-600 transition-colors">Map Sync</a></li>
+                    <li><a href="/how-it-works" className="hover:text-indigo-600 transition-colors">How the site works</a></li>
+                    <li><a href="/sitemap" className="hover:text-indigo-600 transition-colors">Site Map</a></li>
+                    <li><a href="/contact" className="hover:text-indigo-600 transition-colors">Contact us</a></li>
                   </ul>
                 </div>
                 <div>
-                  <h4 className="font-black text-slate-900 mb-6 uppercase tracking-widest text-xs">Company</h4>
+                  <h4 className="font-black text-slate-900 mb-6 uppercase tracking-widest text-xs">Legal & Privacy</h4>
                   <ul className="space-y-4 text-slate-500 font-bold text-sm">
-                    <li><a href="#" className="hover:text-indigo-600 transition-colors">About Us</a></li>
-                    <li><a href="#" className="hover:text-indigo-600 transition-colors">Contact</a></li>
+                    <li><a href="/terms" className="hover:text-indigo-600 transition-colors">Terms of Use</a></li>
+                    <li><a href="/privacy" className="hover:text-indigo-600 transition-colors">Privacy and Cookies Statement</a></li>
+                    <li><a href="/cookie-consent" className="hover:text-indigo-600 transition-colors">Cookie consent</a></li>
+                    <li><a href="/accessibility" className="hover:text-indigo-600 transition-colors">Accessibility Statement</a></li>
                   </ul>
                 </div>
               </div>
@@ -369,6 +373,13 @@ const App: React.FC = () => {
           </main>
         </div>
       } />
+      <Route path="/how-it-works" element={<><Navbar onOpenBuilder={handleOpenDemo} /><HowItWorks /></>} />
+      <Route path="/contact" element={<><Navbar onOpenBuilder={handleOpenDemo} /><ContactUs /></>} />
+      <Route path="/sitemap" element={<><Navbar onOpenBuilder={handleOpenDemo} /><SiteMap /></>} />
+      <Route path="/terms" element={<><Navbar onOpenBuilder={handleOpenDemo} /><TermsOfUse /></>} />
+      <Route path="/privacy" element={<><Navbar onOpenBuilder={handleOpenDemo} /><PrivacyPolicy /></>} />
+      <Route path="/cookie-consent" element={<><Navbar onOpenBuilder={handleOpenDemo} /><CookieConsent /></>} />
+      <Route path="/accessibility" element={<><Navbar onOpenBuilder={handleOpenDemo} /><AccessibilityStatement /></>} />
     </Routes>
   );
 };
