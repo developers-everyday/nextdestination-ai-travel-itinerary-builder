@@ -81,27 +81,35 @@ const FlightDetailsPanel: React.FC<FlightDetailsPanelProps> = ({ onBack, onSelec
                             </div>
                         </div>
                     </div>
+
                 </div>
 
-                {/* Trip Type Toggle */}
-                <div className="flex bg-slate-100 p-1 rounded-lg w-fit">
-                    <button
-                        onClick={() => setTripType('oneway')}
-                        className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${tripType === 'oneway'
-                            ? 'bg-white text-indigo-600 shadow-sm'
-                            : 'text-slate-500 hover:text-slate-700'
-                            }`}
-                    >
-                        One Way
-                    </button>
-                    <button
-                        onClick={() => setTripType('roundtrip')}
-                        className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${tripType === 'roundtrip'
-                            ? 'bg-white text-indigo-600 shadow-sm'
-                            : 'text-slate-500 hover:text-slate-700'
-                            }`}
-                    >
-                        Round Trip
+                {/* Trip Type Toggle and Filter */}
+                <div className="flex items-center gap-4">
+                    <div className="flex bg-slate-100 p-1 rounded-lg w-fit">
+                        <button
+                            onClick={() => setTripType('oneway')}
+                            className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${tripType === 'oneway'
+                                ? 'bg-white text-indigo-600 shadow-sm'
+                                : 'text-slate-500 hover:text-slate-700'
+                                }`}
+                        >
+                            One Way
+                        </button>
+                        <button
+                            onClick={() => setTripType('roundtrip')}
+                            className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${tripType === 'roundtrip'
+                                ? 'bg-white text-indigo-600 shadow-sm'
+                                : 'text-slate-500 hover:text-slate-700'
+                                }`}
+                        >
+                            Round Trip
+                        </button>
+                    </div>
+                    <button className="p-2 hover:bg-slate-100 rounded-full text-slate-500 hover:text-indigo-600 transition-colors" title="Filter Results">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                        </svg>
                     </button>
                 </div>
             </div>

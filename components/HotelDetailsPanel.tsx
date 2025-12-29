@@ -40,49 +40,57 @@ const HotelDetailsPanel: React.FC<HotelDetailsPanelProps> = ({ onBack, onSelect,
             {/* Split Content */}
             <div className="flex-1 flex overflow-hidden">
                 {/* Left Panel: List */}
-                <div className="w-[55%] overflow-y-auto p-4 space-y-6 border-r border-slate-200 shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-10 scrollbar-hide">
-                    <div className="flex justify-between items-center mb-2">
+                <div className="w-full lg:w-[55%] overflow-y-auto p-4 border-r border-slate-200 shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-10 scrollbar-hide">
+                    <div className="flex justify-between items-center mb-4">
                         <h3 className="text-sm font-bold text-slate-800">{MOCK_HOTELS.length} places to stay</h3>
+                        <button className="p-2 hover:bg-slate-100 rounded-full text-slate-500 hover:text-indigo-600 transition-colors" title="Filter Results">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                            </svg>
+                        </button>
                     </div>
 
-                    {MOCK_HOTELS.map((hotel) => (
-                        <div
-                            key={hotel.id}
-                            className={`group cursor-pointer transition-all duration-300 ${hoveredHotelId === hotel.id ? 'transform scale-[1.02]' : ''}`}
-                            onMouseEnter={() => setHoveredHotelId(hotel.id)}
-                            onMouseLeave={() => setHoveredHotelId(null)}
-                        >
-                            <div className="relative aspect-[4/3] rounded-xl overflow-hidden mb-3">
-                                <img src={hotel.image} alt={hotel.name} className="w-full h-full object-cover" />
-                                <button className="absolute top-3 right-3 p-1.5 rounded-full bg-black/10 hover:bg-white text-white hover:text-red-500 transition-all backdrop-blur-sm">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                                    </svg>
-                                </button>
-                                <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-bold text-slate-800 shadow-sm uppercase tracking-wider">
-                                    Guest Favourite
-                                </div>
-                            </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <div className="flex items-center justify-between w-full">
-                                        <h3 className="font-bold text-slate-800 text-base">{hotel.name}</h3>
-                                        <div className="flex items-center gap-1">
-                                            <span className="text-xs font-bold">★ {hotel.rating}</span>
+                        {MOCK_HOTELS.map((hotel) => (
+                            <div
+                                key={hotel.id}
+                                className={`group cursor-pointer transition-all duration-300 ${hoveredHotelId === hotel.id ? 'transform scale-[1.02]' : ''}`}
+                                onMouseEnter={() => setHoveredHotelId(hotel.id)}
+                                onMouseLeave={() => setHoveredHotelId(null)}
+                            >
+                                <div className="relative aspect-[4/3] rounded-xl overflow-hidden mb-3">
+                                    <img src={hotel.image} alt={hotel.name} className="w-full h-full object-cover" />
+                                    <button className="absolute top-3 right-3 p-1.5 rounded-full bg-black/10 hover:bg-white text-white hover:text-red-500 transition-all backdrop-blur-sm">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                        </svg>
+                                    </button>
+                                    <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-bold text-slate-800 shadow-sm uppercase tracking-wider">
+                                        Guest Favourite
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <div className="flex items-center justify-between w-full">
+                                            <h3 className="font-bold text-slate-800 text-base">{hotel.name}</h3>
+                                            <div className="flex items-center gap-1">
+                                                <span className="text-xs font-bold">★ {hotel.rating}</span>
+                                            </div>
+                                        </div>
+                                        <p className="text-sm text-slate-500 mt-0.5">{hotel.location}</p>
+                                        <p className="text-sm text-slate-500 mt-0.5">1 bed • 2 guests</p>
+
+                                        <div className="mt-2 flex items-baseline gap-1">
+                                            <span className="font-bold text-slate-900 text-lg">{hotel.price}</span>
+                                            <span className="text-slate-500 text-sm"> total</span>
                                         </div>
                                     </div>
-                                    <p className="text-sm text-slate-500 mt-0.5">{hotel.location}</p>
-                                    <p className="text-sm text-slate-500 mt-0.5">1 bed • 2 guests</p>
-
-                                    <div className="mt-2 flex items-baseline gap-1">
-                                        <span className="font-bold text-slate-900 text-lg">{hotel.price}</span>
-                                        <span className="text-slate-500 text-sm"> total</span>
-                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
 
                     <div className="py-8 text-center text-xs text-slate-400">
                         End of results
@@ -117,8 +125,8 @@ const HotelDetailsPanel: React.FC<HotelDetailsPanelProps> = ({ onBack, onSelect,
                         >
                             <button
                                 className={`px-3 py-1.5 rounded-full font-bold text-xs shadow-md transition-all ${hoveredHotelId === hotel.id
-                                        ? 'bg-slate-900 text-white scale-110 shadow-xl'
-                                        : 'bg-white text-slate-900 hover:scale-105'
+                                    ? 'bg-slate-900 text-white scale-110 shadow-xl'
+                                    : 'bg-white text-slate-900 hover:scale-105'
                                     }`}
                             >
                                 {hotel.price}
