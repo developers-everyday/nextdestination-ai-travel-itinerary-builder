@@ -17,6 +17,10 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Itinerary, ItineraryItem } from '../types';
+import FlightSearchPanel from './FlightSearchPanel';
+import FlightDetailsPanel from './FlightDetailsPanel';
+import HotelSearchPanel from './HotelSearchPanel';
+import HotelDetailsPanel from './HotelDetailsPanel';
 
 interface Props {
   data: Itinerary;
@@ -259,6 +263,41 @@ const ItineraryBuilder: React.FC<Props> = ({
   onRemoveHotel
 }) => {
   const [activeDay, setActiveDay] = useState(1);
+  const [rightPanelMode, setRightPanelMode] = useState<'MAP' | 'FLIGHT_SEARCH' | 'HOTEL_SEARCH' | 'FLIGHT_DETAILS' | 'HOTEL_DETAILS'>('MAP');
+
+  const [searchData, setSearchData] = useState<any>(null);
+
+  // Inline Search State
+  const [arrivalFrom, setArrivalFrom] = useState("");
+  const [arrivalTo, setArrivalTo] = useState("");
+  const [arrivalTravelers, setArrivalTravelers] = useState(1);
+  const [arrivalDate, setArrivalDate] = useState("");
+  const [departureFrom, setDepartureFrom] = useState("");
+  const [departureTo, setDepartureTo] = useState("");
+  const [departureTravelers, setDepartureTravelers] = useState(1);
+  const [departureDate, setDepartureDate] = useState("");
+
+  const handleFlightSearch = (data: any) => {
+    setSearchData(data);
+    setRightPanelMode('FLIGHT_DETAILS');
+  };
+
+  const handleHotelSearch = (data: any) => {
+    setSearchData(data);
+    setRightPanelMode('HOTEL_DETAILS');
+  };
+
+  const handleSelectFlight = (flight: any) => {
+    console.log("Selected flight:", flight);
+    // Ideally update state here
+    setRightPanelMode('MAP');
+  };
+
+  const handleSelectHotel = (hotel: any) => {
+    console.log("Selected hotel:", hotel);
+    // Ideally update state here
+    setRightPanelMode('MAP');
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -410,14 +449,60 @@ const ItineraryBuilder: React.FC<Props> = ({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
-                <div className="flex justify-between mb-3">
-                  <div className="h-4 w-24 bg-slate-100 rounded" />
-                  <div className="h-4 w-14 bg-slate-100 rounded" />
+                <div className="flex flex-col gap-3 mb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider w-8 shrink-0">From</span>
+                    <input
+                      type="text"
+                      value={arrivalFrom}
+                      onChange={(e) => setArrivalFrom(e.target.value)}
+                      placeholder="Origin"
+                      className="flex-1 bg-transparent border-b border-slate-200 py-1 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all placeholder:font-normal placeholder:text-slate-300"
+                    />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider w-8 shrink-0">To</span>
+                    <input
+                      type="text"
+                      value={arrivalTo}
+                      onChange={(e) => setArrivalTo(e.target.value)}
+                      placeholder="Destination"
+                      className="flex-1 bg-transparent border-b border-slate-200 py-1 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all placeholder:font-normal placeholder:text-slate-300"
+                    />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 flex-1">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider w-8 shrink-0">Pax</span>
+                      <input
+                        type="number"
+                        min="1"
+                        value={arrivalTravelers}
+                        onChange={(e) => setArrivalTravelers(parseInt(e.target.value))}
+                        className="w-12 bg-transparent border-b border-slate-200 py-1 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 flex-[1.5]">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Date</span>
+                      <input
+                        type="date"
+                        value={arrivalDate}
+                        onChange={(e) => setArrivalDate(e.target.value)}
+                        className="flex-1 bg-transparent border-b border-slate-200 py-1 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="h-4 w-40 bg-slate-100 rounded mb-6" />
-                <div className="bg-[#eff6ff] rounded-lg py-2.5 text-center">
-                  <span className="text-[#3b82f6] font-mono text-[11px] font-bold uppercase tracking-wider">Flight Arrival</span>
-                </div>
+                <button
+                  onClick={() => handleFlightSearch({ from: arrivalFrom, to: arrivalTo, passengers: arrivalTravelers, date: arrivalDate })}
+                  className="w-full bg-[#eff6ff] hover:bg-blue-50 transition-colors rounded-lg py-2.5 text-center group/btn"
+                >
+                  <span className="text-[#3b82f6] font-mono text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 group-hover/btn:scale-105 transition-transform">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    Search Flights
+                  </span>
+                </button>
               </div>
             )}
 
@@ -444,9 +529,17 @@ const ItineraryBuilder: React.FC<Props> = ({
                     <p className="text-[10px] text-slate-500 font-semibold"> Check-in / Baggage Drop</p>
                   </div>
                 </div>
-                <button className="w-full py-1.5 rounded-lg border border-orange-200 font-bold text-orange-600 text-[10px] hover:bg-orange-100 transition-all bg-white">
-                  View Booking Details
-                </button>
+                <div className="flex gap-2">
+                  <button className="w-full py-1.5 rounded-lg border border-orange-200 font-bold text-orange-600 text-[10px] hover:bg-orange-100 transition-all bg-white">
+                    View Booking Details
+                  </button>
+                  <button
+                    onClick={() => setRightPanelMode('HOTEL_SEARCH')}
+                    className="w-full py-1.5 rounded-lg bg-orange-500 font-bold text-white text-[10px] hover:bg-orange-600 transition-all shadow-sm"
+                  >
+                    Search Hotels
+                  </button>
+                </div>
               </div>
             )}
 
@@ -486,14 +579,60 @@ const ItineraryBuilder: React.FC<Props> = ({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
-                <div className="flex justify-between mb-3">
-                  <div className="h-4 w-24 bg-slate-100 rounded" />
-                  <div className="h-4 w-14 bg-slate-100 rounded" />
+                <div className="flex flex-col gap-3 mb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider w-8 shrink-0">From</span>
+                    <input
+                      type="text"
+                      value={departureFrom}
+                      onChange={(e) => setDepartureFrom(e.target.value)}
+                      placeholder="Origin"
+                      className="flex-1 bg-transparent border-b border-slate-200 py-1 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all placeholder:font-normal placeholder:text-slate-300"
+                    />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider w-8 shrink-0">To</span>
+                    <input
+                      type="text"
+                      value={departureTo}
+                      onChange={(e) => setDepartureTo(e.target.value)}
+                      placeholder="Destination"
+                      className="flex-1 bg-transparent border-b border-slate-200 py-1 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all placeholder:font-normal placeholder:text-slate-300"
+                    />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 flex-1">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider w-8 shrink-0">Pax</span>
+                      <input
+                        type="number"
+                        min="1"
+                        value={departureTravelers}
+                        onChange={(e) => setDepartureTravelers(parseInt(e.target.value))}
+                        className="w-12 bg-transparent border-b border-slate-200 py-1 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 flex-[1.5]">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Date</span>
+                      <input
+                        type="date"
+                        value={departureDate}
+                        onChange={(e) => setDepartureDate(e.target.value)}
+                        className="flex-1 bg-transparent border-b border-slate-200 py-1 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="h-4 w-40 bg-slate-100 rounded mb-6" />
-                <div className="bg-[#eff6ff] rounded-lg py-2.5 text-center">
-                  <span className="text-[#3b82f6] font-mono text-[11px] font-bold uppercase tracking-wider">Flight Departure</span>
-                </div>
+                <button
+                  onClick={() => handleFlightSearch({ from: departureFrom, to: departureTo, passengers: departureTravelers, date: departureDate })}
+                  className="w-full bg-[#eff6ff] hover:bg-blue-50 transition-colors rounded-lg py-2.5 text-center group/btn"
+                >
+                  <span className="text-[#3b82f6] font-mono text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 group-hover/btn:scale-105 transition-transform">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    Search Flights
+                  </span>
+                </button>
               </div>
             )}
 
@@ -507,59 +646,93 @@ const ItineraryBuilder: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* Map View Area */}
-        <div className="flex-1 bg-[#e2e8f0] relative overflow-hidden">
-          {/* Map Text Overlay */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <h1 className="text-7xl font-black text-slate-400/30 tracking-tight leading-none text-center uppercase">
-              Integrated Map View
-            </h1>
-          </div>
+        {/* Right Panel Area: Map or Search */}
+        <div className="flex-1 bg-[#e2e8f0] relative overflow-hidden flex flex-col">
+          {rightPanelMode === 'MAP' && (
+            <>
+              {/* Map Text Overlay */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <h1 className="text-7xl font-black text-slate-400/30 tracking-tight leading-none text-center uppercase">
+                  Integrated Map View
+                </h1>
+              </div>
 
-          {/* Search Box */}
-          <div className="absolute top-6 left-8 right-8 z-20">
-            <div className="bg-white/95 backdrop-blur-md p-1.5 rounded-xl shadow-xl shadow-slate-300/40 flex items-center gap-3 border border-slate-200">
-              <button
-                className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-indigo-600 transition-colors"
-                onClick={() => console.log("Start voice search")}
-                title="Voice Search"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
-                </svg>
-              </button>
-              <input
-                type="text"
-                placeholder="Search places..."
-                className="flex-1 bg-transparent border-none outline-none px-2 text-base font-medium text-slate-700 placeholder:text-slate-400"
-              />
-            </div>
-          </div>
+              {/* Search Box */}
+              <div className="absolute top-6 left-8 right-8 z-20">
+                <div className="bg-white/95 backdrop-blur-md p-1.5 rounded-xl shadow-xl shadow-slate-300/40 flex items-center gap-3 border border-slate-200">
+                  <button
+                    className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-indigo-600 transition-colors"
+                    onClick={() => console.log("Start voice search")}
+                    title="Voice Search"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                  <input
+                    type="text"
+                    placeholder="Search places..."
+                    className="flex-1 bg-transparent border-none outline-none px-2 text-base font-medium text-slate-700 placeholder:text-slate-400"
+                  />
+                </div>
+              </div>
 
-          {/* Bottom Toolbar & Action */}
-          <div className="absolute bottom-6 right-6 flex flex-col items-end gap-3 z-20">
-            {/* Mini Toolbar */}
-            <div className="bg-[#1e293b] w-10 h-28 rounded-2xl flex flex-col items-center justify-between py-3 shadow-xl">
-              <button className="text-slate-400 hover:text-white flex flex-col gap-0.5">
-                <div className="w-1 h-1 bg-current rounded-full" />
-                <div className="w-1 h-1 bg-current rounded-full" />
-              </button>
-              <button className="text-slate-400 hover:text-white transition-colors">✨</button>
-              <button className="text-slate-400 hover:text-white transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                </svg>
-              </button>
-            </div>
+              {/* Bottom Toolbar & Action */}
+              <div className="absolute bottom-6 right-6 flex flex-col items-end gap-3 z-20">
+                {/* Mini Toolbar */}
+                <div className="bg-[#1e293b] w-10 h-28 rounded-2xl flex flex-col items-center justify-between py-3 shadow-xl">
+                  <button className="text-slate-400 hover:text-white flex flex-col gap-0.5">
+                    <div className="w-1 h-1 bg-current rounded-full" />
+                    <div className="w-1 h-1 bg-current rounded-full" />
+                  </button>
+                  <button className="text-slate-400 hover:text-white transition-colors">✨</button>
+                  <button className="text-slate-400 hover:text-white transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                    </svg>
+                  </button>
+                </div>
 
-            {/* Smart Pack CTA */}
-            <button className="bg-white px-5 py-3 rounded-full shadow-2xl flex items-center gap-2 border border-slate-200 group hover:shadow-indigo-100 transition-all active:scale-95">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-indigo-600" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
-              </svg>
-              <span className="font-bold text-indigo-600 text-sm tracking-tight">Simulate Trip</span>
-            </button>
-          </div>
+                {/* Smart Pack CTA */}
+                <button className="bg-white px-5 py-3 rounded-full shadow-2xl flex items-center gap-2 border border-slate-200 group hover:shadow-indigo-100 transition-all active:scale-95">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-indigo-600" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                  </svg>
+                  <span className="font-bold text-indigo-600 text-sm tracking-tight">Simulate Trip</span>
+                </button>
+              </div>
+            </>
+          )}
+
+          {rightPanelMode === 'FLIGHT_SEARCH' && (
+            <FlightSearchPanel
+              onSearch={handleFlightSearch}
+              onCancel={() => setRightPanelMode('MAP')}
+            />
+          )}
+
+          {rightPanelMode === 'FLIGHT_DETAILS' && (
+            <FlightDetailsPanel
+              searchData={searchData}
+              onBack={() => setRightPanelMode('MAP')}
+              onSelect={handleSelectFlight}
+            />
+          )}
+
+          {rightPanelMode === 'HOTEL_SEARCH' && (
+            <HotelSearchPanel
+              onSearch={handleHotelSearch}
+              onCancel={() => setRightPanelMode('MAP')}
+            />
+          )}
+
+          {rightPanelMode === 'HOTEL_DETAILS' && (
+            <HotelDetailsPanel
+              searchData={searchData}
+              onBack={() => setRightPanelMode('HOTEL_SEARCH')}
+              onSelect={handleSelectHotel}
+            />
+          )}
         </div>
       </div>
     </div>
