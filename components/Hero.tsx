@@ -48,7 +48,7 @@ const Hero: React.FC<HeroProps> = ({ onSearch }) => {
             </span>
           </h1>
           <p className="text-xl md:text-2xl text-slate-600 max-w-3xl mx-auto font-medium leading-relaxed">
-            Create custom itineraries tailored to your style. Learn from traveler's experiences and let AI be your assistant for an unforgettable trip.
+            Travel planning shouldn’t be complicated. We’re here to make it effortless for every traveler.
           </p>
         </div>
 
