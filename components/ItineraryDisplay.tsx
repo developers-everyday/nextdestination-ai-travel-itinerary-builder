@@ -264,6 +264,7 @@ const ItineraryBuilder: React.FC<Props> = ({
 }) => {
   const [activeDay, setActiveDay] = useState(1);
   const [rightPanelMode, setRightPanelMode] = useState<'MAP' | 'FLIGHT_SEARCH' | 'HOTEL_SEARCH' | 'FLIGHT_DETAILS' | 'HOTEL_DETAILS'>('MAP');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const [searchData, setSearchData] = useState<any>(null);
 
@@ -354,16 +355,28 @@ const ItineraryBuilder: React.FC<Props> = ({
     <div className="fixed inset-0 z-[60] bg-[#f8fafc] flex flex-col overflow-hidden animate-fade-in font-sans">
       {/* Top Header Bar */}
       <div className="h-14 bg-[#1e293b] flex items-center justify-between px-6 shrink-0 shadow-sm">
-        <button
-          onClick={onBackToHome}
-          className="text-slate-400 hover:text-white transition-colors p-2 hover:bg-slate-700/50 rounded-lg flex items-center gap-2 group"
-          title="Back to Home"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-          </svg>
-          <span className="text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity -ml-2 group-hover:ml-0 duration-300">Home</span>
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className={`text-slate-400 hover:text-white transition-colors p-2 hover:bg-slate-700/50 rounded-lg ${!isSidebarOpen ? 'bg-slate-700/50 text-white' : ''}`}
+            title={isSidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+
+          <button
+            onClick={onBackToHome}
+            className="text-slate-400 hover:text-white transition-colors p-2 hover:bg-slate-700/50 rounded-lg flex items-center gap-2 group"
+            title="Back to Home"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+            </svg>
+            <span className="text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity -ml-2 group-hover:ml-0 duration-300">Home</span>
+          </button>
+        </div>
 
         <div className="flex items-center gap-3">
           <div className="relative group">
@@ -381,322 +394,327 @@ const ItineraryBuilder: React.FC<Props> = ({
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Leftmost Sidebar Navigation */}
-        <div className="w-[72px] bg-white border-r border-slate-200 flex flex-col items-center py-6 gap-4 shrink-0 overflow-y-auto scrollbar-hide">
-          {data.days.map((dayPlan, index) => (
-            <div key={dayPlan.day} className="flex flex-col items-center group/day">
-              <button
-                onClick={() => setActiveDay(dayPlan.day)}
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all relative ${activeDay === dayPlan.day
-                  ? 'bg-[#10b981] text-white shadow-md'
-                  : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                  }`}
-              >
-                {dayPlan.day}
-              </button>
-            </div>
-          ))}
-          <div className="mt-2">
-            <button
-              onClick={onAddDay}
-              className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg transition-all bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-200"
-              title="Add Day"
-            >
-              +
-            </button>
-          </div>
-          <div className="mt-auto mb-2">
-            <button className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 hover:bg-indigo-100 transition-all border border-indigo-100 relative group">
-              <span className="text-xl">🤖</span>
-              <div className="absolute left-full ml-3 px-2 py-1 bg-slate-900 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 transition-opacity">
-                AI Assistant
-              </div>
-            </button>
-          </div>
-        </div>
-
-        {/* Itinerary Column */}
-        <div className="w-[420px] bg-white flex flex-col shrink-0 border-r border-slate-200">
-          <div className="px-6 py-5 flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-3">
-                <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Day {currentDay.day}: {currentDay.theme}</h2>
-                {totalDays > 1 && (
+      <div className="flex flex-1 overflow-hidden relative">
+        {/* Sidebar Container */}
+        {isSidebarOpen && (
+          <>
+            {/* Leftmost Sidebar Navigation */}
+            <div className="w-[72px] bg-white border-r border-slate-200 flex flex-col items-center py-6 gap-4 shrink-0 overflow-y-auto scrollbar-hide">
+              {data.days.map((dayPlan, index) => (
+                <div key={dayPlan.day} className="flex flex-col items-center group/day">
                   <button
-                    onClick={() => onRemoveDay(currentDay.day)}
-                    className="text-slate-400 hover:text-red-500 transition-colors p-1"
-                    title="Remove this day"
+                    onClick={() => setActiveDay(dayPlan.day)}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all relative ${activeDay === dayPlan.day
+                      ? 'bg-[#10b981] text-white shadow-md'
+                      : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                      }`}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
+                    {dayPlan.day}
                   </button>
+                </div>
+              ))}
+              <div className="mt-2">
+                <button
+                  onClick={onAddDay}
+                  className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg transition-all bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-200"
+                  title="Add Day"
+                >
+                  +
+                </button>
+              </div>
+              <div className="mt-auto mb-2">
+                <button className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 hover:bg-indigo-100 transition-all border border-indigo-100 relative group">
+                  <span className="text-xl">🤖</span>
+                  <div className="absolute left-full ml-3 px-2 py-1 bg-slate-900 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 transition-opacity">
+                    AI Assistant
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Itinerary Column */}
+            <div className="w-[420px] bg-white flex flex-col shrink-0 border-r border-slate-200">
+              <div className="px-6 py-5 flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Day {currentDay.day}: {currentDay.theme}</h2>
+                    {totalDays > 1 && (
+                      <button
+                        onClick={() => onRemoveDay(currentDay.day)}
+                        className="text-slate-400 hover:text-red-500 transition-colors p-1"
+                        title="Remove this day"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-1">{data.destination}</p>
+                </div>
+                <button className="bg-[#4f46e5] hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-2 shadow-sm transition-all active:scale-95">
+                  <span>✨</span> Magic Build
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-6 py-2 space-y-4 scrollbar-hide pb-20">
+
+                {/* Day 1: Arrival Flight Integration */}
+                {activeDay === 1 && data.hasArrivalFlight !== false && (
+                  <div className="border-2 border-dashed border-[#4f46e5]/40 rounded-xl p-5 bg-white relative animate-fade-in-up group mb-4">
+                    {/* Delete Button */}
+                    <button
+                      onClick={onRemoveArrivalFlight}
+                      className="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 z-10"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                    <div className="flex flex-col gap-3 mb-4">
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider w-8 shrink-0">From</span>
+                        <input
+                          type="text"
+                          value={arrivalFrom}
+                          onChange={(e) => setArrivalFrom(e.target.value)}
+                          placeholder="Origin"
+                          className="flex-1 bg-transparent border-b border-slate-200 py-1 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all placeholder:font-normal placeholder:text-slate-300"
+                        />
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider w-8 shrink-0">To</span>
+                        <input
+                          type="text"
+                          value={arrivalTo}
+                          onChange={(e) => setArrivalTo(e.target.value)}
+                          placeholder="Destination"
+                          className="flex-1 bg-transparent border-b border-slate-200 py-1 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all placeholder:font-normal placeholder:text-slate-300"
+                        />
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 flex-1">
+                          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider w-8 shrink-0">Pax</span>
+                          <input
+                            type="number"
+                            min="1"
+                            value={arrivalTravelers}
+                            onChange={(e) => setArrivalTravelers(parseInt(e.target.value))}
+                            className="w-12 bg-transparent border-b border-slate-200 py-1 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2 flex-[1.5]">
+                          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Date</span>
+                          <input
+                            type="date"
+                            value={arrivalDate}
+                            onChange={(e) => setArrivalDate(e.target.value)}
+                            className="flex-1 bg-transparent border-b border-slate-200 py-1 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleFlightSearch({ from: arrivalFrom, to: arrivalTo, passengers: arrivalTravelers, date: arrivalDate })}
+                      className="w-full bg-[#eff6ff] hover:bg-blue-50 transition-colors rounded-lg py-2.5 text-center group/btn"
+                    >
+                      <span className="text-[#3b82f6] font-mono text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 group-hover/btn:scale-105 transition-transform">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        Search Flights
+                      </span>
+                    </button>
+                  </div>
                 )}
-              </div>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-1">{data.destination}</p>
-            </div>
-            <button className="bg-[#4f46e5] hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-2 shadow-sm transition-all active:scale-95">
-              <span>✨</span> Magic Build
-            </button>
-          </div>
 
-          <div className="flex-1 overflow-y-auto px-6 py-2 space-y-4 scrollbar-hide pb-20">
+                {/* Daily Hotel Integration (Airbnb Style) */}
+                {currentDay.hasHotel !== false && (
+                  <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 relative group mb-4 hover:shadow-md transition-shadow">
+                    {/* Delete Button */}
+                    <button
+                      onClick={() => onRemoveHotel(safeDayIndex)}
+                      className="absolute top-3 right-3 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 z-10"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
 
-            {/* Day 1: Arrival Flight Integration */}
-            {activeDay === 1 && data.hasArrivalFlight !== false && (
-              <div className="border-2 border-dashed border-[#4f46e5]/40 rounded-xl p-5 bg-white relative animate-fade-in-up group mb-4">
-                {/* Delete Button */}
-                <button
-                  onClick={onRemoveArrivalFlight}
-                  className="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 z-10"
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-8 h-8 rounded-full bg-[#ff385c]/10 flex items-center justify-center text-[#ff385c]">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+                        </svg>
+                      </div>
+                      <h4 className="text-sm font-bold text-slate-800">Where to stay?</h4>
+                    </div>
+
+                    <div className="flex flex-col gap-3">
+                      {/* Where */}
+                      <div className="relative">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">Where</label>
+                        <input
+                          type="text"
+                          placeholder="City, Hotel, etc."
+                          value={hotelLocation}
+                          onChange={(e) => setHotelLocation(e.target.value)}
+                          className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-[#ff385c] focus:ring-1 focus:ring-[#ff385c] transition-all placeholder:font-normal placeholder:text-slate-400"
+                        />
+                      </div>
+
+                      <div className="flex gap-3">
+                        {/* When */}
+                        <div className="relative flex-1">
+                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">Check-in</label>
+                          <input
+                            type="date"
+                            value={hotelCheckIn}
+                            onChange={(e) => setHotelCheckIn(e.target.value)}
+                            className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-700 outline-none focus:border-[#ff385c] focus:ring-1 focus:ring-[#ff385c] transition-all"
+                          />
+                        </div>
+                        <div className="relative flex-1">
+                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">Check-out</label>
+                          <input
+                            type="date"
+                            value={hotelCheckOut}
+                            onChange={(e) => setHotelCheckOut(e.target.value)}
+                            className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-700 outline-none focus:border-[#ff385c] focus:ring-1 focus:ring-[#ff385c] transition-all"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Who */}
+                      <div className="relative">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">Who</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={hotelGuests}
+                          onChange={(e) => setHotelGuests(parseInt(e.target.value))}
+                          className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-[#ff385c] focus:ring-1 focus:ring-[#ff385c] transition-all"
+                        />
+                        <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-medium pointer-events-none">Guests</span>
+                      </div>
+
+                      <button
+                        onClick={() => handleHotelSearch({ location: hotelLocation, checkIn: hotelCheckIn, checkOut: hotelCheckOut, guests: hotelGuests })}
+                        className="w-full mt-2 bg-gradient-to-r from-[#ff385c] to-[#bd1e59] hover:from-[#d93250] hover:to-[#a0184a] text-white font-bold py-3 rounded-lg shadow-md shadow-rose-200 transition-all active:scale-95 flex items-center justify-center gap-2"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        Search Hotels
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* AI Generated Activities (Drag & Drop Context) */}
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-                <div className="flex flex-col gap-3 mb-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider w-8 shrink-0">From</span>
-                    <input
-                      type="text"
-                      value={arrivalFrom}
-                      onChange={(e) => setArrivalFrom(e.target.value)}
-                      placeholder="Origin"
-                      className="flex-1 bg-transparent border-b border-slate-200 py-1 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all placeholder:font-normal placeholder:text-slate-300"
-                    />
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider w-8 shrink-0">To</span>
-                    <input
-                      type="text"
-                      value={arrivalTo}
-                      onChange={(e) => setArrivalTo(e.target.value)}
-                      placeholder="Destination"
-                      className="flex-1 bg-transparent border-b border-slate-200 py-1 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all placeholder:font-normal placeholder:text-slate-300"
-                    />
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 flex-1">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider w-8 shrink-0">Pax</span>
-                      <input
-                        type="number"
-                        min="1"
-                        value={arrivalTravelers}
-                        onChange={(e) => setArrivalTravelers(parseInt(e.target.value))}
-                        className="w-12 bg-transparent border-b border-slate-200 py-1 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all"
-                      />
-                    </div>
-                    <div className="flex items-center gap-2 flex-[1.5]">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Date</span>
-                      <input
-                        type="date"
-                        value={arrivalDate}
-                        onChange={(e) => setArrivalDate(e.target.value)}
-                        className="flex-1 bg-transparent border-b border-slate-200 py-1 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <button
-                  onClick={() => handleFlightSearch({ from: arrivalFrom, to: arrivalTo, passengers: arrivalTravelers, date: arrivalDate })}
-                  className="w-full bg-[#eff6ff] hover:bg-blue-50 transition-colors rounded-lg py-2.5 text-center group/btn"
-                >
-                  <span className="text-[#3b82f6] font-mono text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 group-hover/btn:scale-105 transition-transform">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    Search Flights
-                  </span>
-                </button>
-              </div>
-            )}
-
-            {/* Daily Hotel Integration (Airbnb Style) */}
-            {currentDay.hasHotel !== false && (
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 relative group mb-4 hover:shadow-md transition-shadow">
-                {/* Delete Button */}
-                <button
-                  onClick={() => onRemoveHotel(safeDayIndex)}
-                  className="absolute top-3 right-3 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 z-10"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-8 h-8 rounded-full bg-[#ff385c]/10 flex items-center justify-center text-[#ff385c]">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-                    </svg>
-                  </div>
-                  <h4 className="text-sm font-bold text-slate-800">Where to stay?</h4>
-                </div>
-
-                <div className="flex flex-col gap-3">
-                  {/* Where */}
-                  <div className="relative">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">Where</label>
-                    <input
-                      type="text"
-                      placeholder="City, Hotel, etc."
-                      value={hotelLocation}
-                      onChange={(e) => setHotelLocation(e.target.value)}
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-[#ff385c] focus:ring-1 focus:ring-[#ff385c] transition-all placeholder:font-normal placeholder:text-slate-400"
-                    />
-                  </div>
-
-                  <div className="flex gap-3">
-                    {/* When */}
-                    <div className="relative flex-1">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">Check-in</label>
-                      <input
-                        type="date"
-                        value={hotelCheckIn}
-                        onChange={(e) => setHotelCheckIn(e.target.value)}
-                        className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-700 outline-none focus:border-[#ff385c] focus:ring-1 focus:ring-[#ff385c] transition-all"
-                      />
-                    </div>
-                    <div className="relative flex-1">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">Check-out</label>
-                      <input
-                        type="date"
-                        value={hotelCheckOut}
-                        onChange={(e) => setHotelCheckOut(e.target.value)}
-                        className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-700 outline-none focus:border-[#ff385c] focus:ring-1 focus:ring-[#ff385c] transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Who */}
-                  <div className="relative">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">Who</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={hotelGuests}
-                      onChange={(e) => setHotelGuests(parseInt(e.target.value))}
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-[#ff385c] focus:ring-1 focus:ring-[#ff385c] transition-all"
-                    />
-                    <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-medium pointer-events-none">Guests</span>
-                  </div>
-
-                  <button
-                    onClick={() => handleHotelSearch({ location: hotelLocation, checkIn: hotelCheckIn, checkOut: hotelCheckOut, guests: hotelGuests })}
-                    className="w-full mt-2 bg-gradient-to-r from-[#ff385c] to-[#bd1e59] hover:from-[#d93250] hover:to-[#a0184a] text-white font-bold py-3 rounded-lg shadow-md shadow-rose-200 transition-all active:scale-95 flex items-center justify-center gap-2"
+                  <SortableContext
+                    items={activityIds}
+                    strategy={verticalListSortingStrategy}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    Search Hotels
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* AI Generated Activities (Drag & Drop Context) */}
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                items={activityIds}
-                strategy={verticalListSortingStrategy}
-              >
-                {currentDay.activities.map((item, idx) => (
-                  <SortableActivityItem
-                    key={item.id || `item-${idx}`}
-                    id={item.id || `item-${idx}`}
-                    item={item}
-                    index={idx}
-                    dayIndex={safeDayIndex}
-                    onRemove={onRemoveActivity}
-                    onUpdate={onUpdateActivity}
-                  />
-                ))}
-              </SortableContext>
-            </DndContext>
-
-            {/* Last Day: Departure Flight Integration */}
-            {activeDay === totalDays && data.hasDepartureFlight !== false && (
-              <div className="border-2 border-dashed border-[#4f46e5]/40 rounded-xl p-5 bg-white relative animate-fade-in-up mt-8 group">
-                {/* Delete Button */}
-                <button
-                  onClick={onRemoveDepartureFlight}
-                  className="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 z-10"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-                <div className="flex flex-col gap-3 mb-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider w-8 shrink-0">From</span>
-                    <input
-                      type="text"
-                      value={departureFrom}
-                      onChange={(e) => setDepartureFrom(e.target.value)}
-                      placeholder="Origin"
-                      className="flex-1 bg-transparent border-b border-slate-200 py-1 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all placeholder:font-normal placeholder:text-slate-300"
-                    />
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider w-8 shrink-0">To</span>
-                    <input
-                      type="text"
-                      value={departureTo}
-                      onChange={(e) => setDepartureTo(e.target.value)}
-                      placeholder="Destination"
-                      className="flex-1 bg-transparent border-b border-slate-200 py-1 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all placeholder:font-normal placeholder:text-slate-300"
-                    />
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 flex-1">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider w-8 shrink-0">Pax</span>
-                      <input
-                        type="number"
-                        min="1"
-                        value={departureTravelers}
-                        onChange={(e) => setDepartureTravelers(parseInt(e.target.value))}
-                        className="w-12 bg-transparent border-b border-slate-200 py-1 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all"
+                    {currentDay.activities.map((item, idx) => (
+                      <SortableActivityItem
+                        key={item.id || `item-${idx}`}
+                        id={item.id || `item-${idx}`}
+                        item={item}
+                        index={idx}
+                        dayIndex={safeDayIndex}
+                        onRemove={onRemoveActivity}
+                        onUpdate={onUpdateActivity}
                       />
+                    ))}
+                  </SortableContext>
+                </DndContext>
+
+                {/* Last Day: Departure Flight Integration */}
+                {activeDay === totalDays && data.hasDepartureFlight !== false && (
+                  <div className="border-2 border-dashed border-[#4f46e5]/40 rounded-xl p-5 bg-white relative animate-fade-in-up mt-8 group">
+                    {/* Delete Button */}
+                    <button
+                      onClick={onRemoveDepartureFlight}
+                      className="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 z-10"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                    <div className="flex flex-col gap-3 mb-4">
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider w-8 shrink-0">From</span>
+                        <input
+                          type="text"
+                          value={departureFrom}
+                          onChange={(e) => setDepartureFrom(e.target.value)}
+                          placeholder="Origin"
+                          className="flex-1 bg-transparent border-b border-slate-200 py-1 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all placeholder:font-normal placeholder:text-slate-300"
+                        />
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider w-8 shrink-0">To</span>
+                        <input
+                          type="text"
+                          value={departureTo}
+                          onChange={(e) => setDepartureTo(e.target.value)}
+                          placeholder="Destination"
+                          className="flex-1 bg-transparent border-b border-slate-200 py-1 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all placeholder:font-normal placeholder:text-slate-300"
+                        />
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 flex-1">
+                          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider w-8 shrink-0">Pax</span>
+                          <input
+                            type="number"
+                            min="1"
+                            value={departureTravelers}
+                            onChange={(e) => setDepartureTravelers(parseInt(e.target.value))}
+                            className="w-12 bg-transparent border-b border-slate-200 py-1 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2 flex-[1.5]">
+                          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Date</span>
+                          <input
+                            type="date"
+                            value={departureDate}
+                            onChange={(e) => setDepartureDate(e.target.value)}
+                            className="flex-1 bg-transparent border-b border-slate-200 py-1 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all"
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-[1.5]">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Date</span>
-                      <input
-                        type="date"
-                        value={departureDate}
-                        onChange={(e) => setDepartureDate(e.target.value)}
-                        className="flex-1 bg-transparent border-b border-slate-200 py-1 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all"
-                      />
-                    </div>
+                    <button
+                      onClick={() => handleFlightSearch({ from: departureFrom, to: departureTo, passengers: departureTravelers, date: departureDate })}
+                      className="w-full bg-[#eff6ff] hover:bg-blue-50 transition-colors rounded-lg py-2.5 text-center group/btn"
+                    >
+                      <span className="text-[#3b82f6] font-mono text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 group-hover/btn:scale-105 transition-transform">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        Search Flights
+                      </span>
+                    </button>
                   </div>
-                </div>
+                )}
+
+                {/* Manual Add Button */}
                 <button
-                  onClick={() => handleFlightSearch({ from: departureFrom, to: departureTo, passengers: departureTravelers, date: departureDate })}
-                  className="w-full bg-[#eff6ff] hover:bg-blue-50 transition-colors rounded-lg py-2.5 text-center group/btn"
+                  onClick={() => onAddActivity(safeDayIndex)}
+                  className="w-full py-4 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 font-bold text-sm hover:border-indigo-300 hover:text-indigo-600 transition-all flex items-center justify-center gap-2 mt-4"
                 >
-                  <span className="text-[#3b82f6] font-mono text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 group-hover/btn:scale-105 transition-transform">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    Search Flights
-                  </span>
+                  + Add Manual Item
                 </button>
               </div>
-            )}
-
-            {/* Manual Add Button */}
-            <button
-              onClick={() => onAddActivity(safeDayIndex)}
-              className="w-full py-4 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 font-bold text-sm hover:border-indigo-300 hover:text-indigo-600 transition-all flex items-center justify-center gap-2 mt-4"
-            >
-              + Add Manual Item
-            </button>
-          </div>
-        </div>
+            </div>
+          </>
+        )}
 
         {/* Right Panel Area: Map or Search */}
         <div className="flex-1 bg-[#e2e8f0] relative overflow-hidden flex flex-col">
@@ -787,7 +805,7 @@ const ItineraryBuilder: React.FC<Props> = ({
           )}
         </div>
       </div>
-    </div>
+    </div >
   );
 };
 
