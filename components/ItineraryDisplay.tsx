@@ -277,6 +277,12 @@ const ItineraryBuilder: React.FC<Props> = ({
   const [departureTravelers, setDepartureTravelers] = useState(1);
   const [departureDate, setDepartureDate] = useState("");
 
+  // Hotel Search State
+  const [hotelLocation, setHotelLocation] = useState("");
+  const [hotelCheckIn, setHotelCheckIn] = useState("");
+  const [hotelCheckOut, setHotelCheckOut] = useState("");
+  const [hotelGuests, setHotelGuests] = useState(1);
+
   const handleFlightSearch = (data: any) => {
     setSearchData(data);
     setRightPanelMode('FLIGHT_DETAILS');
@@ -506,37 +512,83 @@ const ItineraryBuilder: React.FC<Props> = ({
               </div>
             )}
 
-            {/* Daily Hotel Integration (Start of Day) */}
+            {/* Daily Hotel Integration (Airbnb Style) */}
             {currentDay.hasHotel !== false && (
-              <div className="border-2 border-dashed border-orange-200 rounded-xl p-4 bg-orange-50/50 relative group mb-4">
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 relative group mb-4 hover:shadow-md transition-shadow">
                 {/* Delete Button */}
                 <button
                   onClick={() => onRemoveHotel(safeDayIndex)}
-                  className="absolute top-2 right-2 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 z-10"
+                  className="absolute top-3 right-3 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 z-10"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h-5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-8 h-8 rounded-full bg-[#ff385c]/10 flex items-center justify-center text-[#ff385c]">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
                     </svg>
                   </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-800">Hotel Integration</h4>
-                    <p className="text-[10px] text-slate-500 font-semibold"> Check-in / Baggage Drop</p>
-                  </div>
+                  <h4 className="text-sm font-bold text-slate-800">Where to stay?</h4>
                 </div>
-                <div className="flex gap-2">
-                  <button className="w-full py-1.5 rounded-lg border border-orange-200 font-bold text-orange-600 text-[10px] hover:bg-orange-100 transition-all bg-white">
-                    View Booking Details
-                  </button>
+
+                <div className="flex flex-col gap-3">
+                  {/* Where */}
+                  <div className="relative">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">Where</label>
+                    <input
+                      type="text"
+                      placeholder="City, Hotel, etc."
+                      value={hotelLocation}
+                      onChange={(e) => setHotelLocation(e.target.value)}
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-[#ff385c] focus:ring-1 focus:ring-[#ff385c] transition-all placeholder:font-normal placeholder:text-slate-400"
+                    />
+                  </div>
+
+                  <div className="flex gap-3">
+                    {/* When */}
+                    <div className="relative flex-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">Check-in</label>
+                      <input
+                        type="date"
+                        value={hotelCheckIn}
+                        onChange={(e) => setHotelCheckIn(e.target.value)}
+                        className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-700 outline-none focus:border-[#ff385c] focus:ring-1 focus:ring-[#ff385c] transition-all"
+                      />
+                    </div>
+                    <div className="relative flex-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">Check-out</label>
+                      <input
+                        type="date"
+                        value={hotelCheckOut}
+                        onChange={(e) => setHotelCheckOut(e.target.value)}
+                        className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-700 outline-none focus:border-[#ff385c] focus:ring-1 focus:ring-[#ff385c] transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Who */}
+                  <div className="relative">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">Who</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={hotelGuests}
+                      onChange={(e) => setHotelGuests(parseInt(e.target.value))}
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-[#ff385c] focus:ring-1 focus:ring-[#ff385c] transition-all"
+                    />
+                    <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-medium pointer-events-none">Guests</span>
+                  </div>
+
                   <button
-                    onClick={() => setRightPanelMode('HOTEL_SEARCH')}
-                    className="w-full py-1.5 rounded-lg bg-orange-500 font-bold text-white text-[10px] hover:bg-orange-600 transition-all shadow-sm"
+                    onClick={() => handleHotelSearch({ location: hotelLocation, checkIn: hotelCheckIn, checkOut: hotelCheckOut, guests: hotelGuests })}
+                    className="w-full mt-2 bg-gradient-to-r from-[#ff385c] to-[#bd1e59] hover:from-[#d93250] hover:to-[#a0184a] text-white font-bold py-3 rounded-lg shadow-md shadow-rose-200 transition-all active:scale-95 flex items-center justify-center gap-2"
                   >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
                     Search Hotels
                   </button>
                 </div>
