@@ -17,6 +17,8 @@ const FlightDetailsPanel: React.FC<FlightDetailsPanelProps> = ({ onBack, onSelec
     const [tripType, setTripType] = React.useState<'oneway' | 'roundtrip'>('oneway');
     const [selectedOutbound, setSelectedOutbound] = React.useState<number | null>(null);
     const [selectedReturn, setSelectedReturn] = React.useState<number | null>(null);
+    const [departureDate, setDepartureDate] = React.useState(searchData?.date || '');
+    const [returnDate, setReturnDate] = React.useState('');
 
     const handleFlightSelect = (flightId: number, leg: 'outbound' | 'return') => {
         if (leg === 'outbound') {
@@ -51,11 +53,33 @@ const FlightDetailsPanel: React.FC<FlightDetailsPanelProps> = ({ onBack, onSelec
                             <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
                     </button>
-                    <div>
+                    <div className="flex-1">
                         <h2 className="text-lg font-bold text-slate-800 leading-tight">Select Flight</h2>
-                        <p className="text-xs text-slate-500 font-medium">
-                            {searchData?.from || 'Origin'} <span className="text-slate-300 mx-1">→</span> {searchData?.to || 'Destination'} • {searchData?.passengers || 1} Traveler(s)
-                        </p>
+                        <div className="flex flex-col gap-1 mt-1">
+                            <p className="text-xs text-slate-500 font-medium">
+                                {searchData?.from || 'Origin'} <span className="text-slate-300 mx-1">→</span> {searchData?.to || 'Destination'} • {searchData?.passengers || 1} Traveler(s)
+                            </p>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="date"
+                                    value={departureDate}
+                                    onChange={(e) => setDepartureDate(e.target.value)}
+                                    className="bg-transparent border-b border-slate-200 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all w-24"
+                                />
+                                {tripType === 'roundtrip' && (
+                                    <>
+                                        <span className="text-slate-300 text-xs">&</span>
+                                        <input
+                                            type="date"
+                                            value={returnDate}
+                                            onChange={(e) => setReturnDate(e.target.value)}
+                                            className="bg-transparent border-b border-slate-200 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all w-24"
+                                            placeholder="Return Date"
+                                        />
+                                    </>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
 
