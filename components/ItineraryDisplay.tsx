@@ -351,14 +351,16 @@ const ItineraryBuilder: React.FC<Props> = ({
   // Ensure unique IDs
   const activityIds = currentDay.activities.map((item, idx) => item.id || `item-${idx}`);
 
+  const [mobileView, setMobileView] = useState<'LIST' | 'MAP'>('LIST');
+
   return (
     <div className="fixed inset-0 z-[60] bg-[#f8fafc] flex flex-col overflow-hidden animate-fade-in font-sans">
       {/* Top Header Bar */}
-      <div className="h-14 bg-[#1e293b] flex items-center justify-between px-6 shrink-0 shadow-sm">
+      <div className="h-14 bg-[#1e293b] flex items-center justify-between px-6 shrink-0 shadow-sm z-20 relative">
         <div className="flex items-center gap-4">
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className={`text-slate-400 hover:text-white transition-colors p-2 hover:bg-slate-700/50 rounded-lg ${!isSidebarOpen ? 'bg-slate-700/50 text-white' : ''}`}
+            className={`hidden md:block text-slate-400 hover:text-white transition-colors p-2 hover:bg-slate-700/50 rounded-lg ${!isSidebarOpen ? 'bg-slate-700/50 text-white' : ''}`}
             title={isSidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -374,7 +376,7 @@ const ItineraryBuilder: React.FC<Props> = ({
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
             </svg>
-            <span className="text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity -ml-2 group-hover:ml-0 duration-300">Home</span>
+            <span className="text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity -ml-2 group-hover:ml-0 duration-300 hidden md:inline">Home</span>
           </button>
         </div>
 
@@ -387,24 +389,31 @@ const ItineraryBuilder: React.FC<Props> = ({
             </div>
             <input
               type="text"
-              placeholder="Search / Start Planning"
-              className="bg-[#2d3748] text-slate-200 text-sm font-medium pl-9 pr-4 py-1.5 rounded-lg border-none outline-none focus:ring-1 focus:ring-indigo-500 transition-all w-60"
+              placeholder="Search / Planning"
+              className="bg-[#2d3748] text-slate-200 text-sm font-medium pl-9 pr-4 py-1.5 rounded-lg border-none outline-none focus:ring-1 focus:ring-indigo-500 transition-all w-32 md:w-60 focus:w-40 md:focus:w-64"
             />
           </div>
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden relative">
+      <div className="flex flex-col md:flex-row flex-1 overflow-hidden relative">
         {/* Sidebar Container */}
         {isSidebarOpen && (
           <>
-            {/* Leftmost Sidebar Navigation */}
-            <div className="w-[72px] bg-white border-r border-slate-200 flex flex-col items-center py-6 gap-4 shrink-0 overflow-y-auto scrollbar-hide">
+            {/* Leftmost Sidebar Navigation - Responsive */}
+            <div className={`
+              bg-white border-r border-slate-200
+              flex md:flex-col items-center
+              shrink-0 overflow-auto scrollbar-hide
+              order-1 md:order-none
+              w-full h-14 border-b md:border-b-0 md:w-[72px] md:h-full md:py-6 gap-2 md:gap-4 px-4 md:px-0
+              ${mobileView === 'MAP' ? 'hidden md:flex' : 'flex'}
+            `}>
               {data.days.map((dayPlan, index) => (
-                <div key={dayPlan.day} className="flex flex-col items-center group/day">
+                <div key={dayPlan.day} className="flex flex-col items-center group/day shrink-0">
                   <button
                     onClick={() => setActiveDay(dayPlan.day)}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all relative ${activeDay === dayPlan.day
+                    className={`w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all relative ${activeDay === dayPlan.day
                       ? 'bg-[#10b981] text-white shadow-md'
                       : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                       }`}
@@ -413,28 +422,33 @@ const ItineraryBuilder: React.FC<Props> = ({
                   </button>
                 </div>
               ))}
-              <div className="mt-2">
+              <div className="md:mt-2 shrink-0">
                 <button
                   onClick={onAddDay}
-                  className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg transition-all bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-200"
+                  className="w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center font-bold text-lg transition-all bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-200"
                   title="Add Day"
                 >
                   +
                 </button>
               </div>
-              <div className="mt-auto mb-2">
-                <button className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 hover:bg-indigo-100 transition-all border border-indigo-100 relative group">
+              <div className="ml-auto md:ml-0 md:mt-auto md:mb-2 shrink-0">
+                <button className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 hover:bg-indigo-100 transition-all border border-indigo-100 relative group">
                   <span className="text-xl">🤖</span>
-                  <div className="absolute left-full ml-3 px-2 py-1 bg-slate-900 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 transition-opacity">
+                  <div className="absolute left-full ml-3 px-2 py-1 bg-slate-900 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 transition-opacity hidden md:block">
                     AI Assistant
                   </div>
                 </button>
               </div>
             </div>
 
-            {/* Itinerary Column */}
-            <div className="w-[420px] bg-white flex flex-col shrink-0 border-r border-slate-200">
-              <div className="px-6 py-5 flex items-center justify-between">
+            {/* Itinerary Column - Responsive Visibility */}
+            <div className={`
+              bg-white flex flex-col shrink-0 border-r border-slate-200
+              w-full md:w-[420px] order-2 md:order-none
+              ${mobileView === 'MAP' ? 'hidden md:flex' : 'flex'}
+              flex-1 md:flex-none h-full overflow-hidden
+            `}>
+              <div className="px-6 py-5 flex items-center justify-between shrink-0">
                 <div>
                   <div className="flex items-center gap-3">
                     <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Day {currentDay.day}: {currentDay.theme}</h2>
@@ -453,11 +467,11 @@ const ItineraryBuilder: React.FC<Props> = ({
                   <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-1">{data.destination}</p>
                 </div>
                 <button className="bg-[#4f46e5] hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-2 shadow-sm transition-all active:scale-95">
-                  <span>✨</span> Magic Build
+                  <span className="hidden sm:inline">✨</span> Magic Build
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto px-6 py-2 space-y-4 scrollbar-hide pb-20">
+              <div className="flex-1 overflow-y-auto px-6 py-2 space-y-4 scrollbar-hide pb-24 md:pb-20">
 
                 {/* Day 1: Arrival Flight Integration */}
                 {activeDay === 1 && data.hasArrivalFlight !== false && (
@@ -716,8 +730,12 @@ const ItineraryBuilder: React.FC<Props> = ({
           </>
         )}
 
-        {/* Right Panel Area: Map or Search */}
-        <div className="flex-1 bg-[#e2e8f0] relative overflow-hidden flex flex-col">
+        {/* Right Panel Area: Map or Search - Responsive Visibility */}
+        <div className={`
+          bg-[#e2e8f0] relative flex-col
+          ${mobileView === 'LIST' ? 'hidden md:flex' : 'flex'}
+          flex-1 h-full overflow-hidden
+        `}>
           {rightPanelMode === 'MAP' && (
             <>
               {/* Map Text Overlay */}
@@ -805,6 +823,31 @@ const ItineraryBuilder: React.FC<Props> = ({
           )}
         </div>
       </div>
+
+      {/* Mobile Toggle Button (FAB) */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 md:hidden z-[70]">
+        <button
+          onClick={() => setMobileView(prev => prev === 'LIST' ? 'MAP' : 'LIST')}
+          className="bg-[#1e293b] text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 font-bold text-sm hover:scale-105 transition-transform active:scale-95 border border-slate-600"
+        >
+          {mobileView === 'LIST' ? (
+            <>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+              </svg>
+              View Map
+            </>
+          ) : (
+            <>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+              </svg>
+              View List
+            </>
+          )}
+        </button>
+      </div>
+
     </div >
   );
 };
