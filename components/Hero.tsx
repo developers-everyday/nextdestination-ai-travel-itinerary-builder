@@ -14,72 +14,104 @@ const Hero: React.FC<HeroProps> = ({ onSearch }) => {
   };
 
   return (
-    <div className="relative h-[95vh] min-h-[750px] w-full flex items-center justify-center overflow-hidden">
-      {/* Background Image with Overlay */}
-      <div className="absolute inset-0">
-        <img 
-          src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&q=80&w=2000" 
-          alt="Breathtaking mountain lake" 
-          className="w-full h-full object-cover scale-105"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/20 to-slate-50" />
+    <div className="relative w-full bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 pt-32 pb-24 overflow-hidden">
+      {/* Subtle Background Pattern */}
+      <div className="absolute inset-0 opacity-[0.03]">
+        <div className="absolute inset-0" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%234f46e5' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+        }}></div>
       </div>
 
-      <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
-        <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white font-semibold text-sm animate-fade-in">
-          <span className="flex h-2 w-2 rounded-full bg-indigo-400 animate-pulse"></span>
-          Now powered by Gemini 3.0
+      {/* Floating Gradient Orbs */}
+      <div className="absolute top-20 right-20 w-96 h-96 bg-indigo-200/20 rounded-full blur-3xl animate-float"></div>
+      <div className="absolute bottom-20 left-20 w-80 h-80 bg-purple-200/20 rounded-full blur-3xl" style={{ animation: 'float 6s ease-in-out infinite' }}></div>
+
+      <div className="relative z-10 max-w-6xl mx-auto px-6">
+        {/* Badge */}
+        <div className="flex justify-center mb-8">
+          <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 font-bold text-sm">
+            <span className="flex h-2 w-2 rounded-full bg-indigo-500 animate-pulse"></span>
+            Powered by Gemini AI
+          </div>
         </div>
-        <h1 className="text-6xl md:text-8xl font-black text-white mb-8 tracking-tight drop-shadow-2xl">
-          Your World, <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300">Customized by AI</span>
-        </h1>
-        <p className="text-xl md:text-2xl text-white/95 mb-12 max-w-3xl mx-auto font-medium leading-relaxed drop-shadow-md">
-          Don't settle for generic trips. Generate a 100% custom itinerary that syncs with your preferences and navigates with integrated maps.
-        </p>
+
+        {/* Main Heading */}
+        <div className="text-center mb-8">
+          <h1 className="text-6xl md:text-7xl lg:text-8xl font-black text-slate-900 mb-6 tracking-tight leading-none">
+            Plan Your Perfect
+            <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600">
+              Journey
+            </span>
+          </h1>
+          <p className="text-xl md:text-2xl text-slate-600 max-w-3xl mx-auto font-medium leading-relaxed">
+            AI-powered itineraries tailored to your style. Explore destinations, discover hidden gems, and travel smarter.
+          </p>
+        </div>
 
         {/* Search Bar */}
-        <form 
+        <form
           onSubmit={handleSubmit}
-          className="max-w-4xl mx-auto bg-white/90 backdrop-blur-xl p-3 rounded-3xl shadow-2xl flex flex-col md:flex-row gap-3 border border-white/50"
+          className="max-w-3xl mx-auto mb-12"
         >
-          <div className="flex-1 flex items-center px-5 py-4 gap-4 bg-white/50 rounded-2xl border border-slate-100 transition-all focus-within:ring-2 focus-within:ring-indigo-500/20">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <input 
-              type="text" 
-              placeholder="Dream destination (e.g. Amalfi Coast, Tokyo...)" 
-              className="w-full bg-transparent outline-none text-slate-900 font-bold text-lg placeholder:text-slate-400"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
+          <div className="bg-white p-2 rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-200/50 hover:shadow-2xl hover:shadow-indigo-200/30 transition-all duration-300">
+            <div className="flex flex-col md:flex-row gap-2">
+              <div className="flex-1 flex items-center px-6 py-4 gap-4 bg-slate-50/50 rounded-2xl">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Where do you want to go? (e.g., Paris, Tokyo, Bali...)"
+                  className="w-full bg-transparent outline-none text-slate-900 font-semibold text-lg placeholder:text-slate-400"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+              </div>
+              <button
+                type="submit"
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-10 py-5 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-3 shadow-lg shadow-indigo-300/50 group active:scale-95"
+              >
+                Generate Plan
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </button>
+            </div>
           </div>
-          <button 
-            type="submit"
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-10 py-5 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-3 shadow-xl shadow-indigo-200 group active:scale-95"
-          >
-            Create My Plan
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-            </svg>
-          </button>
         </form>
 
-        <div className="mt-10 flex flex-wrap justify-center gap-10 text-white/80 font-semibold tracking-wide uppercase text-xs">
-          <span className="flex items-center gap-2 group cursor-default">
-            <div className="w-2 h-2 rounded-full bg-indigo-400 group-hover:scale-150 transition-transform" /> 
-            AI Customization
-          </span>
-          <span className="flex items-center gap-2 group cursor-default">
-            <div className="w-2 h-2 rounded-full bg-purple-400 group-hover:scale-150 transition-transform" /> 
-            Integrated Maps
-          </span>
-          <span className="flex items-center gap-2 group cursor-default">
-            <div className="w-2 h-2 rounded-full bg-pink-400 group-hover:scale-150 transition-transform" /> 
-            Community Insights
-          </span>
+        {/* Feature Pills */}
+        <div className="flex flex-wrap justify-center gap-4 mb-8">
+          <div className="flex items-center gap-2 px-5 py-3 bg-white rounded-2xl shadow-md border border-slate-100 group hover:border-indigo-200 hover:shadow-lg transition-all">
+            <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+            <span className="text-slate-700 font-bold text-sm">Custom itineraries</span>
+          </div>
+          <div className="flex items-center gap-2 px-5 py-3 bg-white rounded-2xl shadow-md border border-slate-100 group hover:border-purple-200 hover:shadow-lg transition-all">
+            <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+            <span className="text-slate-700 font-bold text-sm">Community-driven</span>
+          </div>
+          <div className="flex items-center gap-2 px-5 py-3 bg-white rounded-2xl shadow-md border border-slate-100 group hover:border-pink-200 hover:shadow-lg transition-all">
+            <div className="w-2 h-2 rounded-full bg-pink-500"></div>
+            <span className="text-slate-700 font-bold text-sm">Powered by AI</span>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto pt-8 border-t border-slate-200">
+          <div className="text-center">
+            <div className="text-3xl font-black text-slate-900 mb-1">10K+</div>
+            <div className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Trips Planned</div>
+          </div>
+          <div className="text-center">
+            <div className="text-3xl font-black text-slate-900 mb-1">150+</div>
+            <div className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Destinations</div>
+          </div>
+          <div className="text-center">
+            <div className="text-3xl font-black text-slate-900 mb-1">98%</div>
+            <div className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Satisfaction</div>
+          </div>
         </div>
       </div>
     </div>

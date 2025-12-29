@@ -1,9 +1,11 @@
 
 import React, { useState, useCallback } from 'react';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import Features from './components/Features';
 import ItineraryBuilder from './components/ItineraryDisplay';
+import CommunityPage from './components/CommunityPage';
 import { generateQuickItinerary, getDemoItinerary } from './services/geminiService';
 import { Itinerary } from './types';
 
@@ -180,73 +182,33 @@ const App: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 selection:bg-indigo-100">
-      {!itinerary && <Navbar onOpenBuilder={handleOpenDemo} />}
-
-      <main>
-        {!itinerary && (
-          <>
+    <Routes>
+      {/* Home Page Route */}
+      <Route path="/" element={
+        <div className="min-h-screen bg-slate-50 selection:bg-indigo-100">
+          <Navbar onOpenBuilder={handleOpenDemo} />
+          <main>
             <Hero onSearch={handleSearch} />
             <Features />
-          </>
-        )}
 
-        {/* Dynamic AI Loading Overlay */}
-        {isLoading && (
-          <div className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center p-6 text-center animate-fade-in">
-            <div className="w-24 h-24 border-[10px] border-indigo-50 border-t-indigo-600 rounded-full animate-spin mb-10"></div>
-            <h2 className="text-5xl font-black text-slate-900 tracking-tight mb-4">Initializing Your Journey...</h2>
-            <p className="text-xl text-slate-500 font-semibold max-w-lg">Our AI is synchronizing global travel data and optimizing your personal route.</p>
-          </div>
-        )}
+            {/* Dynamic AI Loading Overlay */}
+            {isLoading && (
+              <div className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center p-6 text-center animate-fade-in">
+                <div className="w-24 h-24 border-[10px] border-indigo-50 border-t-indigo-600 rounded-full animate-spin mb-10"></div>
+                <h2 className="text-5xl font-black text-slate-900 tracking-tight mb-4">Initializing Your Journey...</h2>
+                <p className="text-xl text-slate-500 font-semibold max-w-lg">Our AI is synchronizing global travel data and optimizing your personal route.</p>
+              </div>
+            )}
 
-        {/* Full Screen Builder View */}
-        {itinerary && (
-          <ItineraryBuilder
-            data={itinerary}
-            onBackToHome={() => setItinerary(null)}
-            onAddActivity={(dayIndex) => {
-              setItinerary(prev => {
-                if (!prev) return null;
-                const newDays = [...prev.days];
-                const day = { ...newDays[dayIndex] };
-                day.activities = [
-                  ...day.activities,
-                  {
-                    id: Math.random().toString(36).substr(2, 9),
-                    time: "09:00",
-                    activity: "", // Empty activity triggers auto-focus in SortableActivityItem
-                    description: "",
-                    location: "",
-                    type: "activity"
-                  }
-                ];
-                newDays[dayIndex] = day;
-                return { ...prev, days: newDays };
-              });
-            }} onAddDay={handleAddDay}
-            onRemoveDay={handleRemoveDay}
-            onReorderActivity={handleReorderActivity}
-            onRemoveActivity={handleRemoveActivity}
-            onUpdateActivity={handleUpdateActivity}
-            onRemoveArrivalFlight={handleRemoveArrivalFlight}
-            onRemoveDepartureFlight={handleRemoveDepartureFlight}
-            onRemoveHotel={handleRemoveHotel}
-          />
-        )}
-
-        {error && (
-          <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] max-w-md w-full px-6">
-            <div className="bg-red-50 border border-red-100 p-6 rounded-[2rem] text-center shadow-2xl animate-bounce">
-              <p className="text-red-900 font-bold text-lg mb-1">System Error</p>
-              <p className="text-red-700 font-medium text-sm">{error}</p>
-              <button onClick={() => setError(null)} className="mt-4 text-xs font-black text-red-900 uppercase tracking-widest border-b-2 border-red-200 hover:border-red-900 transition-all">Dismiss</button>
-            </div>
-          </div>
-        )}
-
-        {!itinerary && (
-          <>
+            {error && (
+              <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] max-w-md w-full px-6">
+                <div className="bg-red-50 border border-red-100 p-6 rounded-[2rem] text-center shadow-2xl animate-bounce">
+                  <p className="text-red-900 font-bold text-lg mb-1">System Error</p>
+                  <p className="text-red-700 font-medium text-sm">{error}</p>
+                  <button onClick={() => setError(null)} className="mt-4 text-xs font-black text-red-900 uppercase tracking-widest border-b-2 border-red-200 hover:border-red-900 transition-all">Dismiss</button>
+                </div>
+              </div>
+            )}
             {/* Community Inspiration Section */}
             <section className="py-32 bg-slate-900 text-white overflow-hidden relative">
               <div className="absolute top-0 right-0 w-1/3 h-full bg-indigo-600/10 blur-[120px] pointer-events-none" />
@@ -259,7 +221,10 @@ const App: React.FC = () => {
                       Explore successful itineraries shared by the community and let our AI customize them to fit your exact dates and budget.
                     </p>
                   </div>
-                  <button className="bg-white text-slate-900 px-10 py-5 rounded-2xl font-black text-lg hover:bg-indigo-50 transition-all shadow-2xl active:scale-95 shrink-0">
+                  <button
+                    onClick={() => window.location.href = '/community'}
+                    className="bg-white text-slate-900 px-10 py-5 rounded-2xl font-black text-lg hover:bg-indigo-50 transition-all shadow-2xl active:scale-95 shrink-0"
+                  >
                     Explore the Community
                   </button>
                 </div>
@@ -324,46 +289,174 @@ const App: React.FC = () => {
                 </div>
               </div>
             </section>
-          </>
-        )}
-      </main>
 
-      {!itinerary && (
-        <footer className="bg-slate-50 py-20 border-t border-slate-200">
-          <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-16 mb-20">
-            <div className="md:col-span-2">
-              <div className="flex items-center gap-2 mb-8">
-                <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-xl shadow-indigo-100">N</div>
-                <span className="font-black text-2xl text-slate-900 tracking-tighter">NextDestination<span className="text-indigo-600">.ai</span></span>
+            <footer className="bg-slate-50 py-20 border-t border-slate-200">
+              <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-16 mb-20">
+                <div className="md:col-span-2">
+                  <div className="flex items-center gap-2 mb-8">
+                    <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-xl shadow-indigo-100">N</div>
+                    <span className="font-black text-2xl text-slate-900 tracking-tighter">NextDestination<span className="text-indigo-600">.ai</span></span>
+                  </div>
+                  <p className="text-slate-500 font-medium text-lg leading-relaxed max-w-sm mb-8">
+                    Revolutionizing travel through hyper-personalization. Our mission is to make luxury planning accessible to every globetrotter.
+                  </p>
+                </div>
+                <div>
+                  <h4 className="font-black text-slate-900 mb-6 uppercase tracking-widest text-xs">Product</h4>
+                  <ul className="space-y-4 text-slate-500 font-bold text-sm">
+                    <li><a href="#" className="hover:text-indigo-600 transition-colors">AI Builder</a></li>
+                    <li><a href="#" className="hover:text-indigo-600 transition-colors">Map Sync</a></li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-black text-slate-900 mb-6 uppercase tracking-widest text-xs">Company</h4>
+                  <ul className="space-y-4 text-slate-500 font-bold text-sm">
+                    <li><a href="#" className="hover:text-indigo-600 transition-colors">About Us</a></li>
+                    <li><a href="#" className="hover:text-indigo-600 transition-colors">Contact</a></li>
+                  </ul>
+                </div>
               </div>
-              <p className="text-slate-500 font-medium text-lg leading-relaxed max-w-sm mb-8">
-                Revolutionizing travel through hyper-personalization. Our mission is to make luxury planning accessible to every globetrotter.
-              </p>
-            </div>
-            <div>
-              <h4 className="font-black text-slate-900 mb-6 uppercase tracking-widest text-xs">Product</h4>
-              <ul className="space-y-4 text-slate-500 font-bold text-sm">
-                <li><a href="#" className="hover:text-indigo-600 transition-colors">AI Builder</a></li>
-                <li><a href="#" className="hover:text-indigo-600 transition-colors">Map Sync</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-black text-slate-900 mb-6 uppercase tracking-widest text-xs">Company</h4>
-              <ul className="space-y-4 text-slate-500 font-bold text-sm">
-                <li><a href="#" className="hover:text-indigo-600 transition-colors">About Us</a></li>
-                <li><a href="#" className="hover:text-indigo-600 transition-colors">Contact</a></li>
-              </ul>
-            </div>
-          </div>
-          <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-8 pt-10 border-t border-slate-200/50">
-            <div className="text-slate-400 font-bold text-sm">
-              © 2025 NextDestination Technologies. All rights reserved.
-            </div>
-          </div>
-        </footer>
-      )}
-    </div>
+              <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-8 pt-10 border-t border-slate-200/50">
+                <div className="text-slate-400 font-bold text-sm">
+                  © 2025 NextDestination Technologies. All rights reserved.
+                </div>
+              </div>
+            </footer>
+          </main>
+        </div>
+      } />
+
+      {/* Community Page Route */}
+      <Route path="/community" element={<CommunityPage />} />
+
+      {/* Builder Page Route */}
+      <Route path="/builder" element={
+        <div className="min-h-screen bg-slate-50 selection:bg-indigo-100">
+          <main>
+            {isLoading && (
+              <div className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center p-6 text-center animate-fade-in">
+                <div className="w-24 h-24 border-[10px] border-indigo-50 border-t-indigo-600 rounded-full animate-spin mb-10"></div>
+                <h2 className="text-5xl font-black text-slate-900 tracking-tight mb-4">Initializing Your Journey...</h2>
+                <p className="text-xl text-slate-500 font-semibold max-w-lg">Our AI is synchronizing global travel data and optimizing your personal route.</p>
+              </div>
+            )}
+
+            <BuilderPageContent
+              itinerary={itinerary}
+              setItinerary={setItinerary}
+              handleAddDay={handleAddDay}
+              handleRemoveDay={handleRemoveDay}
+              handleReorderActivity={handleReorderActivity}
+              handleRemoveActivity={handleRemoveActivity}
+              handleUpdateActivity={handleUpdateActivity}
+              handleRemoveArrivalFlight={handleRemoveArrivalFlight}
+              handleRemoveDepartureFlight={handleRemoveDepartureFlight}
+              handleRemoveHotel={handleRemoveHotel}
+            />
+
+            {error && (
+              <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] max-w-md w-full px-6">
+                <div className="bg-red-50 border border-red-100 p-6 rounded-[2rem] text-center shadow-2xl animate-bounce">
+                  <p className="text-red-900 font-bold text-lg mb-1">System Error</p>
+                  <p className="text-red-700 font-medium text-sm">{error}</p>
+                  <button onClick={() => setError(null)} className="mt-4 text-xs font-black text-red-900 uppercase tracking-widest border-b-2 border-red-200 hover:border-red-900 transition-all">Dismiss</button>
+                </div>
+              </div>
+            )}
+          </main>
+        </div>
+      } />
+    </Routes>
   );
+};
+
+// Builder Page Content Component
+interface BuilderPageContentProps {
+  itinerary: Itinerary | null;
+  setItinerary: React.Dispatch<React.SetStateAction<Itinerary | null>>;
+  handleAddDay: () => void;
+  handleRemoveDay: (dayNum: number) => void;
+  handleReorderActivity: (dayIndex: number, oldIndex: number, newIndex: number) => void;
+  handleRemoveActivity: (dayIndex: number, activityIndex: number) => void;
+  handleUpdateActivity: (dayIndex: number, activityIndex: number, newActivity: any) => void;
+  handleRemoveArrivalFlight: () => void;
+  handleRemoveDepartureFlight: () => void;
+  handleRemoveHotel: (dayIndex: number) => void;
+}
+
+const BuilderPageContent: React.FC<BuilderPageContentProps> = ({
+  itinerary,
+  setItinerary,
+  handleAddDay,
+  handleRemoveDay,
+  handleReorderActivity,
+  handleRemoveActivity,
+  handleUpdateActivity,
+  handleRemoveArrivalFlight,
+  handleRemoveDepartureFlight,
+  handleRemoveHotel
+}) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Check if we have an itinerary from navigation state (from community page)
+  React.useEffect(() => {
+    if (location.state?.itinerary && !itinerary) {
+      setItinerary(location.state.itinerary);
+    }
+  }, [location.state, itinerary, setItinerary]);
+
+  if (!itinerary && !location.state?.itinerary) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-3xl font-black text-slate-900 mb-4">No itinerary loaded</h2>
+          <p className="text-slate-600 font-medium mb-8">Start by creating a new itinerary or exploring the community.</p>
+          <button
+            onClick={() => navigate('/')}
+            className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-indigo-700 transition-all"
+          >
+            Go to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return itinerary ? (
+    <ItineraryBuilder
+      data={itinerary}
+      onBackToHome={() => navigate('/')}
+      onAddActivity={(dayIndex) => {
+        setItinerary(prev => {
+          if (!prev) return null;
+          const newDays = [...prev.days];
+          const day = { ...newDays[dayIndex] };
+          day.activities = [
+            ...day.activities,
+            {
+              id: Math.random().toString(36).substr(2, 9),
+              time: "09:00",
+              activity: "",
+              description: "",
+              location: "",
+              type: "activity"
+            }
+          ];
+          newDays[dayIndex] = day;
+          return { ...prev, days: newDays };
+        });
+      }}
+      onAddDay={handleAddDay}
+      onRemoveDay={handleRemoveDay}
+      onReorderActivity={handleReorderActivity}
+      onRemoveActivity={handleRemoveActivity}
+      onUpdateActivity={handleUpdateActivity}
+      onRemoveArrivalFlight={handleRemoveArrivalFlight}
+      onRemoveDepartureFlight={handleRemoveDepartureFlight}
+      onRemoveHotel={handleRemoveHotel}
+    />
+  ) : null;
 };
 
 export default App;
