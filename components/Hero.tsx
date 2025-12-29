@@ -41,10 +41,10 @@ const Hero: React.FC<HeroProps> = ({ onSearch }) => {
         {/* Main Heading */}
         <div className="text-center mb-8">
           <h1 className="text-6xl md:text-7xl lg:text-8xl font-black text-slate-900 mb-6 tracking-tight leading-none">
-            Every Journey is
+            Planning Your
             <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600">
-              Unique
+              Next Destination?
             </span>
           </h1>
           <p className="text-xl md:text-2xl text-slate-600 max-w-3xl mx-auto font-medium leading-relaxed">
