@@ -30,22 +30,25 @@ const Hero: React.FC<HeroProps> = ({ onSearch }) => {
         {/* Badge */}
         <div className="flex justify-center mb-8">
           <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 font-bold text-sm">
-            <span className="flex h-2 w-2 rounded-full bg-indigo-500 animate-pulse"></span>
-            Powered by Gemini AI
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Your Journey, Your Way
           </div>
         </div>
 
         {/* Main Heading */}
         <div className="text-center mb-8">
           <h1 className="text-6xl md:text-7xl lg:text-8xl font-black text-slate-900 mb-6 tracking-tight leading-none">
-            Plan Your Perfect
+            Every Journey is
             <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600">
-              Journey
+              Unique
             </span>
           </h1>
           <p className="text-xl md:text-2xl text-slate-600 max-w-3xl mx-auto font-medium leading-relaxed">
-            AI-powered itineraries tailored to your style. Explore destinations, discover hidden gems, and travel smarter.
+            Create custom itineraries tailored to your style. Learn from traveler's experiences and let AI be your assistant for an unforgettable trip.
           </p>
         </div>
 
@@ -84,17 +87,26 @@ const Hero: React.FC<HeroProps> = ({ onSearch }) => {
 
         {/* Feature Pills */}
         <div className="flex flex-wrap justify-center gap-4 mb-8">
-          <div className="flex items-center gap-2 px-5 py-3 bg-white rounded-2xl shadow-md border border-slate-100 group hover:border-indigo-200 hover:shadow-lg transition-all">
-            <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
-            <span className="text-slate-700 font-bold text-sm">Custom itineraries</span>
+          <div className="flex flex-col items-center gap-2 px-6 py-4 bg-white rounded-2xl shadow-md border border-slate-100 group hover:border-indigo-300 hover:shadow-xl transition-all">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+              <span className="text-slate-900 font-black text-base">Custom Itineraries</span>
+            </div>
+            <span className="text-slate-500 text-xs font-medium">Because every journey is unique</span>
           </div>
-          <div className="flex items-center gap-2 px-5 py-3 bg-white rounded-2xl shadow-md border border-slate-100 group hover:border-purple-200 hover:shadow-lg transition-all">
-            <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-            <span className="text-slate-700 font-bold text-sm">Community-driven</span>
+          <div className="flex flex-col items-center gap-2 px-6 py-4 bg-white rounded-2xl shadow-md border border-slate-100 group hover:border-purple-300 hover:shadow-xl transition-all">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+              <span className="text-slate-900 font-black text-base">Community-Driven</span>
+            </div>
+            <span className="text-slate-500 text-xs font-medium">Learning from people's experience</span>
           </div>
-          <div className="flex items-center gap-2 px-5 py-3 bg-white rounded-2xl shadow-md border border-slate-100 group hover:border-pink-200 hover:shadow-lg transition-all">
-            <div className="w-2 h-2 rounded-full bg-pink-500"></div>
-            <span className="text-slate-700 font-bold text-sm">Powered by AI</span>
+          <div className="flex flex-col items-center gap-2 px-6 py-4 bg-white rounded-2xl shadow-md border border-slate-100 group hover:border-pink-300 hover:shadow-xl transition-all">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-pink-500"></div>
+              <span className="text-slate-900 font-black text-base">Powered by AI</span>
+            </div>
+            <span className="text-slate-500 text-xs font-medium">An assistant to make your trip unforgettable</span>
           </div>
         </div>
 

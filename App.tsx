@@ -298,7 +298,7 @@ const App: React.FC = () => {
                     <span className="font-black text-2xl text-slate-900 tracking-tighter">NextDestination<span className="text-indigo-600">.ai</span></span>
                   </div>
                   <p className="text-slate-500 font-medium text-lg leading-relaxed max-w-sm mb-8">
-                    Revolutionizing travel through hyper-personalization. Our mission is to make luxury planning accessible to every globetrotter.
+                    Revolutionizing travel through hyper-personalization. Our mission is to make Travel Planning Easy and accessible to every globetrotter.
                   </p>
                 </div>
                 <div>
