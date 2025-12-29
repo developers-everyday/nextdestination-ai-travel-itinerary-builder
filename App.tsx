@@ -277,11 +277,14 @@ const App: React.FC = () => {
               <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-purple-50 rounded-full blur-3xl opacity-50" />
 
               <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
-                <h2 className="text-6xl md:text-7xl font-black text-slate-900 mb-10 tracking-tighter leading-tight">Your Next Adventure is One Prompt Away.</h2>
-                <p className="text-2xl text-slate-600 mb-14 font-medium leading-relaxed">Stop staring at empty maps. Let NextDestination.ai bridge the gap between imagination and a perfectly planned reality.</p>
+                <h2 className="text-6xl md:text-7xl font-black text-slate-900 mb-10 tracking-tighter leading-tight">Plan Your Perfect Trip in Minutes.</h2>
+                <p className="text-2xl text-slate-600 mb-14 font-medium leading-relaxed">No more scattered tabs and endless research. Build your complete itinerary with everything you need.</p>
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-                  <button className="bg-indigo-600 text-white px-12 py-6 rounded-[2rem] text-xl font-black shadow-[0_20px_50px_rgba(79,70,229,0.3)] hover:bg-indigo-700 hover:-translate-y-1 transition-all w-full sm:w-auto active:translate-y-0">
-                    Start My AI Journey
+                  <button
+                    onClick={() => window.location.href = '/builder'}
+                    className="bg-indigo-600 text-white px-12 py-6 rounded-[2rem] text-xl font-black shadow-[0_20px_50px_rgba(79,70,229,0.3)] hover:bg-indigo-700 hover:-translate-y-1 transition-all w-full sm:w-auto active:translate-y-0"
+                  >
+                    Create My Itinerary
                   </button>
                   <button className="bg-slate-50 text-slate-900 px-12 py-6 rounded-[2rem] text-xl font-black hover:bg-slate-100 transition-all w-full sm:w-auto border border-slate-200">
                     View Demo
@@ -298,7 +301,7 @@ const App: React.FC = () => {
                     <span className="font-black text-2xl text-slate-900 tracking-tighter">NextDestination<span className="text-indigo-600">.ai</span></span>
                   </div>
                   <p className="text-slate-500 font-medium text-lg leading-relaxed max-w-sm mb-8">
-                    Revolutionizing travel through hyper-personalization. Our mission is to make Travel Planning Easy and accessible to every globetrotter.
+                    Travel planning shouldn’t be complicated. We’re here to make it effortless for every traveler.
                   </p>
                 </div>
                 <div>

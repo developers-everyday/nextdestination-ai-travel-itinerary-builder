@@ -121,8 +121,8 @@ const Hero: React.FC<HeroProps> = ({ onSearch }) => {
             <div className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Destinations</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-black text-slate-900 mb-1">98%</div>
-            <div className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Satisfaction</div>
+            <div className="text-3xl font-black text-slate-900 mb-1">2K+</div>
+            <div className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Active Planners</div>
           </div>
         </div>
       </div>
