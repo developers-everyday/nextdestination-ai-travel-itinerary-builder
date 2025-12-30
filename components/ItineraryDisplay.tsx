@@ -34,6 +34,7 @@ interface Props {
   onRemoveArrivalFlight: () => void;
   onRemoveDepartureFlight: () => void;
   onRemoveHotel: (dayIndex: number) => void;
+  onUpdateDay: (dayIndex: number, data: any) => void;
 }
 
 interface SortableItemProps {
@@ -260,7 +261,8 @@ const ItineraryBuilder: React.FC<Props> = ({
   onUpdateActivity,
   onRemoveArrivalFlight,
   onRemoveDepartureFlight,
-  onRemoveHotel
+  onRemoveHotel,
+  onUpdateDay
 }) => {
   const [activeDay, setActiveDay] = useState(1);
   const [rightPanelMode, setRightPanelMode] = useState<'MAP' | 'FLIGHT_SEARCH' | 'HOTEL_SEARCH' | 'FLIGHT_DETAILS' | 'HOTEL_DETAILS'>('MAP');
@@ -451,7 +453,18 @@ const ItineraryBuilder: React.FC<Props> = ({
               <div className="px-6 py-5 flex items-center justify-between shrink-0">
                 <div>
                   <div className="flex items-center gap-3">
-                    <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Day {currentDay.day}: {currentDay.theme}</h2>
+                    <div className="flex items-center gap-2 group/theme">
+                      <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Day {currentDay.day}:</h2>
+                      <input
+                        type="text"
+                        value={currentDay.theme}
+                        onChange={(e) => onUpdateDay(safeDayIndex, { theme: e.target.value })}
+                        className="text-2xl font-bold text-slate-800 tracking-tight bg-transparent border-b border-transparent hover:border-slate-300 focus:border-indigo-500 outline-none transition-all w-full max-w-sm"
+                      />
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-300 group-hover/theme:text-slate-400 opacity-0 group-hover/theme:opacity-100 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </div>
                     {totalDays > 1 && (
                       <button
                         onClick={() => onRemoveDay(currentDay.day)}
@@ -475,16 +488,26 @@ const ItineraryBuilder: React.FC<Props> = ({
 
                 {/* Day 1: Arrival Flight Integration */}
                 {activeDay === 1 && data.hasArrivalFlight !== false && (
-                  <div className="border-2 border-dashed border-[#4f46e5]/40 rounded-xl p-5 bg-white relative animate-fade-in-up group mb-4">
+                  <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 relative group mb-4 hover:shadow-md transition-shadow">
                     {/* Delete Button */}
                     <button
                       onClick={onRemoveArrivalFlight}
-                      className="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 z-10"
+                      className="absolute top-3 right-3 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 z-10"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     </button>
+
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 transform rotate-45" viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                        </svg>
+                      </div>
+                      <h4 className="text-sm font-bold text-slate-800">Arrival Flight</h4>
+                    </div>
+
                     <div className="flex flex-col gap-3 mb-4">
                       <div className="flex items-center gap-3">
                         <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider w-8 shrink-0">From</span>
@@ -651,16 +674,26 @@ const ItineraryBuilder: React.FC<Props> = ({
 
                 {/* Last Day: Departure Flight Integration */}
                 {activeDay === totalDays && data.hasDepartureFlight !== false && (
-                  <div className="border-2 border-dashed border-[#4f46e5]/40 rounded-xl p-5 bg-white relative animate-fade-in-up mt-8 group">
+                  <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 relative group mt-8 hover:shadow-md transition-shadow">
                     {/* Delete Button */}
                     <button
                       onClick={onRemoveDepartureFlight}
-                      className="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 z-10"
+                      className="absolute top-3 right-3 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 z-10"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     </button>
+
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 transform rotate-45" viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                        </svg>
+                      </div>
+                      <h4 className="text-sm font-bold text-slate-800">Departure Flight</h4>
+                    </div>
+
                     <div className="flex flex-col gap-3 mb-4">
                       <div className="flex items-center gap-3">
                         <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider w-8 shrink-0">From</span>
@@ -717,6 +750,7 @@ const ItineraryBuilder: React.FC<Props> = ({
                     </button>
                   </div>
                 )}
+
 
                 {/* Manual Add Button */}
                 <button

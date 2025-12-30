@@ -10,6 +10,19 @@ import { HowItWorks, ContactUs, SiteMap, TermsOfUse, PrivacyPolicy, CookieConsen
 import { generateQuickItinerary, getDemoItinerary } from './services/geminiService';
 import { Itinerary } from './types';
 
+const getEmptyItinerary = (): Itinerary => ({
+  destination: "My Trip",
+  days: [
+    {
+      day: 1,
+      theme: "Adventure Begins",
+      activities: []
+    }
+  ],
+  hasArrivalFlight: true,
+  hasDepartureFlight: true
+});
+
 const App: React.FC = () => {
   const [itinerary, setItinerary] = useState<Itinerary | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -146,6 +159,15 @@ const App: React.FC = () => {
 
       day.activities = newActivities;
       newDays[dayIndex] = day;
+      return { ...prev, days: newDays };
+    });
+  }, []);
+
+  const handleUpdateDay = useCallback((dayIndex: number, newDayData: any) => {
+    setItinerary(prev => {
+      if (!prev) return null;
+      const newDays = [...prev.days];
+      newDays[dayIndex] = { ...newDays[dayIndex], ...newDayData };
       return { ...prev, days: newDays };
     });
   }, []);
@@ -359,6 +381,7 @@ const App: React.FC = () => {
               handleRemoveArrivalFlight={handleRemoveArrivalFlight}
               handleRemoveDepartureFlight={handleRemoveDepartureFlight}
               handleRemoveHotel={handleRemoveHotel}
+              handleUpdateDay={handleUpdateDay}
             />
 
             {error && (
@@ -396,6 +419,7 @@ interface BuilderPageContentProps {
   handleRemoveArrivalFlight: () => void;
   handleRemoveDepartureFlight: () => void;
   handleRemoveHotel: (dayIndex: number) => void;
+  handleUpdateDay: (dayIndex: number, newDayData: any) => void;
 }
 
 const BuilderPageContent: React.FC<BuilderPageContentProps> = ({
@@ -408,7 +432,8 @@ const BuilderPageContent: React.FC<BuilderPageContentProps> = ({
   handleUpdateActivity,
   handleRemoveArrivalFlight,
   handleRemoveDepartureFlight,
-  handleRemoveHotel
+  handleRemoveHotel,
+  handleUpdateDay
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -422,16 +447,77 @@ const BuilderPageContent: React.FC<BuilderPageContentProps> = ({
 
   if (!itinerary && !location.state?.itinerary) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-3xl font-black text-slate-900 mb-4">No itinerary loaded</h2>
-          <p className="text-slate-600 font-medium mb-8">Start by creating a new itinerary or exploring the community.</p>
-          <button
-            onClick={() => navigate('/')}
-            className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-indigo-700 transition-all"
-          >
-            Go to Home
-          </button>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
+        <div className="max-w-2xl w-full text-center">
+          <div className="mb-8 flex justify-center">
+            <div className="w-20 h-20 bg-indigo-100 rounded-2xl flex items-center justify-center text-4xl">
+              ✨
+            </div>
+          </div>
+          <h2 className="text-4xl font-black text-slate-900 mb-4 tracking-tight">Start Your Journey</h2>
+          <p className="text-lg text-slate-600 font-medium mb-12 max-w-lg mx-auto">
+            Ready to plan your next adventure? Choose how you'd like to begin building your perfect itinerary.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <button
+              onClick={() => setItinerary(getEmptyItinerary())}
+              className="group p-8 bg-white border-2 border-slate-200 hover:border-indigo-600 rounded-3xl text-left transition-all hover:-translate-y-1 hover:shadow-xl relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-100 transition-opacity">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-24 w-24 text-indigo-600 rotate-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 4v16m8-8H4" />
+                </svg>
+              </div>
+              <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 mb-6 group-hover:scale-110 transition-transform">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-black text-slate-900 mb-2">Start from Scratch</h3>
+              <p className="text-slate-500 font-medium text-sm leading-relaxed">Build your itinerary day by day with full control over every detail.</p>
+            </button>
+
+            <button
+              onClick={() => {
+                const demoData = getDemoItinerary();
+                setItinerary({
+                  ...demoData,
+                  days: demoData.days.map(day => ({
+                    ...day,
+                    activities: day.activities.map(act => ({
+                      ...act,
+                      id: act.id || Math.random().toString(36).substr(2, 9)
+                    }))
+                  }))
+                } as Itinerary);
+              }}
+              className="group p-8 bg-white border-2 border-slate-200 hover:border-purple-600 rounded-3xl text-left transition-all hover:-translate-y-1 hover:shadow-xl relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-100 transition-opacity">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-24 w-24 text-purple-600 rotate-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                </svg>
+              </div>
+              <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600 mb-6 group-hover:scale-110 transition-transform">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-black text-slate-900 mb-2">View Demo Trip</h3>
+              <p className="text-slate-500 font-medium text-sm leading-relaxed">Explore a pre-built luxury trip to Paris to see what's possible.</p>
+            </button>
+          </div>
+
+          <div className="mt-12">
+            <button
+              onClick={() => navigate('/')}
+              className="text-slate-400 font-bold hover:text-slate-600 transition-colors text-sm"
+            >
+              ← Back to Home
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -469,6 +555,7 @@ const BuilderPageContent: React.FC<BuilderPageContentProps> = ({
       onRemoveArrivalFlight={handleRemoveArrivalFlight}
       onRemoveDepartureFlight={handleRemoveDepartureFlight}
       onRemoveHotel={handleRemoveHotel}
+      onUpdateDay={handleUpdateDay}
     />
   ) : null;
 };
