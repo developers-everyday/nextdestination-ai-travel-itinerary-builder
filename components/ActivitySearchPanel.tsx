@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 interface ActivitySearchPanelProps {
     onSearch: (searchData: any) => void;
-    onCancel: () => void;
+    onCancel?: () => void;
     onAddActivity: (activity: any) => void;
 }
 
@@ -87,6 +87,49 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
                 {/* Left Panel: List */}
                 <div className="w-full lg:w-[55%] overflow-y-auto p-4 border-r border-slate-200 shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-10 scrollbar-hide bg-slate-50 flex flex-col">
 
+                    <div className="mb-2">
+                        <div className="flex items-center gap-3 mb-3">
+                            {onCancel && (
+                                <button
+                                    onClick={onCancel}
+                                    className="p-2 -ml-2 hover:bg-slate-100 rounded-full text-slate-500 hover:text-indigo-600 transition-colors"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                                    </svg>
+                                </button>
+                            )}
+                            <h2 className="text-lg font-bold text-slate-800">Search Activities</h2>
+                        </div>
+                        <form onSubmit={handleSearch} className="relative">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <input
+                                type="text"
+                                className="w-full pl-10 pr-20 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700 text-sm placeholder:text-slate-400 shadow-sm"
+                                placeholder="Search activities..."
+                                value={location}
+                                onChange={(e) => setLocation(e.target.value)}
+                            />
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded-full transition-colors"
+                                    title="Voice Search"
+                                    onClick={() => console.log("Voice search clicked")}
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                    </svg>
+                                </button>
+                                <div className="flex items-center justify-center w-6 h-6 bg-indigo-50 rounded-full border border-indigo-100 cursor-pointer hover:bg-indigo-100 transition-colors" title="AI Assistant">
+                                    <span className="text-xs">🤖</span>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
                     <div className="flex justify-between items-center mb-4 px-1 mt-6">
                         <h3 className="text-sm font-bold text-slate-800">Top Suggestions</h3>
                         <div className="flex gap-2">
@@ -161,31 +204,7 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
                 {/* Right Panel: Map */}
                 <div className="flex-1 bg-[#e2e8f0] relative overflow-hidden hidden lg:block h-full">
                     {/* Map Search Overlay */}
-                    <div className="absolute top-6 left-6 z-30 w-80 bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl p-4 border border-white/50 animate-fade-in-down">
-                        <div className="flex items-center gap-3 mb-3">
-                            <button
-                                onClick={onCancel}
-                                className="p-2 -ml-2 hover:bg-slate-100 rounded-full text-slate-500 hover:text-indigo-600 transition-colors"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-                                </svg>
-                            </button>
-                            <h2 className="text-lg font-bold text-slate-800">Search Activities</h2>
-                        </div>
-                        <form onSubmit={handleSearch} className="relative">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                            <input
-                                type="text"
-                                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700 text-sm placeholder:text-slate-400"
-                                placeholder="Search activities..."
-                                value={location}
-                                onChange={(e) => setLocation(e.target.value)}
-                            />
-                        </form>
-                    </div>
+
                     {/* Simulated Map Background Pattern */}
                     <div className="absolute inset-0 opacity-40"
                         style={{

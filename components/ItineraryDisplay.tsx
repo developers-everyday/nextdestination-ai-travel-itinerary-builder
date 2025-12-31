@@ -19,7 +19,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Itinerary, ItineraryItem } from '../types';
 import FlightSearchPanel from './FlightSearchPanel';
 import FlightDetailsPanel from './FlightDetailsPanel';
-import HotelSearchPanel from './HotelSearchPanel';
+
 import ActivitySearchPanel from './ActivitySearchPanel';
 import HotelDetailsPanel from './HotelDetailsPanel';
 
@@ -267,7 +267,7 @@ const ItineraryBuilder: React.FC<Props> = ({
 }) => {
   // In Component Props
   const [activeDay, setActiveDay] = useState(1);
-  const [rightPanelMode, setRightPanelMode] = useState<'MAP' | 'FLIGHT_SEARCH' | 'HOTEL_SEARCH' | 'ACTIVITY_SEARCH' | 'FLIGHT_DETAILS' | 'HOTEL_DETAILS'>('MAP');
+  const [rightPanelMode, setRightPanelMode] = useState<'MAP' | 'FLIGHT_SEARCH' | 'ACTIVITY_SEARCH' | 'FLIGHT_DETAILS' | 'HOTEL_DETAILS'>('ACTIVITY_SEARCH');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const [searchData, setSearchData] = useState<any>(null);
@@ -498,9 +498,7 @@ const ItineraryBuilder: React.FC<Props> = ({
                   </div>
                   <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-1">{data.destination}</p>
                 </div>
-                <button className="bg-[#4f46e5] hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-2 shadow-sm transition-all active:scale-95">
-                  <span className="hidden sm:inline">✨</span> Magic Build
-                </button>
+
               </div>
 
               <div className="flex-1 overflow-y-auto px-6 py-2 space-y-4 scrollbar-hide pb-24 md:pb-20">
@@ -807,61 +805,7 @@ const ItineraryBuilder: React.FC<Props> = ({
           ${mobileView === 'LIST' ? 'hidden md:flex' : 'flex'}
           flex-1 h-full overflow-hidden
         `}>
-          {rightPanelMode === 'MAP' && (
-            <>
-              {/* Map Text Overlay */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <h1 className="text-7xl font-black text-slate-400/30 tracking-tight leading-none text-center uppercase">
-                  Integrated Map View
-                </h1>
-              </div>
 
-              {/* Search Box */}
-              <div className="absolute top-6 left-8 right-8 z-20">
-                <div className="bg-white/95 backdrop-blur-md p-1.5 rounded-xl shadow-xl shadow-slate-300/40 flex items-center gap-3 border border-slate-200">
-                  <button
-                    className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-indigo-600 transition-colors"
-                    onClick={() => console.log("Start voice search")}
-                    title="Voice Search"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
-                    </svg>
-                  </button>
-                  <input
-                    type="text"
-                    placeholder="Search places..."
-                    className="flex-1 bg-transparent border-none outline-none px-2 text-base font-medium text-slate-700 placeholder:text-slate-400"
-                  />
-                </div>
-              </div>
-
-              {/* Bottom Toolbar & Action */}
-              <div className="absolute bottom-6 right-6 flex flex-col items-end gap-3 z-20">
-                {/* Mini Toolbar */}
-                <div className="bg-[#1e293b] w-10 h-28 rounded-2xl flex flex-col items-center justify-between py-3 shadow-xl">
-                  <button className="text-slate-400 hover:text-white flex flex-col gap-0.5">
-                    <div className="w-1 h-1 bg-current rounded-full" />
-                    <div className="w-1 h-1 bg-current rounded-full" />
-                  </button>
-                  <button className="text-slate-400 hover:text-white transition-colors">✨</button>
-                  <button className="text-slate-400 hover:text-white transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                    </svg>
-                  </button>
-                </div>
-
-                {/* Smart Pack CTA */}
-                <button className="bg-white px-5 py-3 rounded-full shadow-2xl flex items-center gap-2 border border-slate-200 group hover:shadow-indigo-100 transition-all active:scale-95">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-indigo-600" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
-                  </svg>
-                  <span className="font-bold text-indigo-600 text-sm tracking-tight">Simulate Trip</span>
-                </button>
-              </div>
-            </>
-          )}
 
           {rightPanelMode === 'FLIGHT_SEARCH' && (
             <FlightSearchPanel
@@ -878,17 +822,11 @@ const ItineraryBuilder: React.FC<Props> = ({
             />
           )}
 
-          {rightPanelMode === 'HOTEL_SEARCH' && (
-            <HotelSearchPanel
-              onSearch={handleHotelSearch}
-              onCancel={() => setRightPanelMode('MAP')}
-            />
-          )}
+
 
           {rightPanelMode === 'ACTIVITY_SEARCH' && (
             <ActivitySearchPanel
               onSearch={handleActivitySearch}
-              onCancel={() => setRightPanelMode('MAP')}
               onAddActivity={handleAddActivityFromPanel}
             />
           )}
@@ -896,7 +834,7 @@ const ItineraryBuilder: React.FC<Props> = ({
           {rightPanelMode === 'HOTEL_DETAILS' && (
             <HotelDetailsPanel
               searchData={searchData}
-              onBack={() => setRightPanelMode('HOTEL_SEARCH')}
+              onBack={() => setRightPanelMode('MAP')}
               onSelect={handleSelectHotel}
             />
           )}
