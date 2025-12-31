@@ -20,12 +20,13 @@ import { Itinerary, ItineraryItem } from '../types';
 import FlightSearchPanel from './FlightSearchPanel';
 import FlightDetailsPanel from './FlightDetailsPanel';
 import HotelSearchPanel from './HotelSearchPanel';
+import ActivitySearchPanel from './ActivitySearchPanel';
 import HotelDetailsPanel from './HotelDetailsPanel';
 
 interface Props {
   data: Itinerary;
   onBackToHome: () => void;
-  onAddActivity: (dayIndex: number) => void;
+  onAddActivity: (dayIndex: number, initialData?: any) => void;
   onAddDay: () => void;
   onRemoveDay: (day: number) => void;
   onReorderActivity: (dayIndex: number, oldIndex: number, newIndex: number) => void;
@@ -264,8 +265,9 @@ const ItineraryBuilder: React.FC<Props> = ({
   onRemoveHotel,
   onUpdateDay
 }) => {
+  // In Component Props
   const [activeDay, setActiveDay] = useState(1);
-  const [rightPanelMode, setRightPanelMode] = useState<'MAP' | 'FLIGHT_SEARCH' | 'HOTEL_SEARCH' | 'FLIGHT_DETAILS' | 'HOTEL_DETAILS'>('MAP');
+  const [rightPanelMode, setRightPanelMode] = useState<'MAP' | 'FLIGHT_SEARCH' | 'HOTEL_SEARCH' | 'ACTIVITY_SEARCH' | 'FLIGHT_DETAILS' | 'HOTEL_DETAILS'>('MAP');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const [searchData, setSearchData] = useState<any>(null);
@@ -306,6 +308,23 @@ const ItineraryBuilder: React.FC<Props> = ({
     console.log("Selected hotel:", hotel);
     // Ideally update state here
     setRightPanelMode('MAP');
+  };
+
+  const handleActivitySearch = (data: any) => {
+    console.log("Searching activities:", data);
+  };
+
+  const handleAddActivityFromPanel = (activity: any) => {
+    // activity object from panel: { id, text, type, duration, price, image }
+    // Map to ItineraryItem format
+    const newItem = {
+      activity: activity.text,
+      description: `Duration: ${activity.duration}, Price: ${activity.price}`,
+      type: 'activity',
+      time: '10:00' // Default time for suggestion
+    };
+    onAddActivity(safeDayIndex, newItem);
+    // setRightPanelMode('MAP'); // Optional: keep open to add more?
   };
 
   const sensors = useSensors(
@@ -454,12 +473,12 @@ const ItineraryBuilder: React.FC<Props> = ({
                 <div>
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2 group/theme">
-                      <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Day {currentDay.day}:</h2>
+                      <h2 className="text-xl font-bold text-slate-800 tracking-tight whitespace-nowrap shrink-0">Day {currentDay.day}:</h2>
                       <input
                         type="text"
                         value={currentDay.theme}
                         onChange={(e) => onUpdateDay(safeDayIndex, { theme: e.target.value })}
-                        className="text-2xl font-bold text-slate-800 tracking-tight bg-transparent border-b border-transparent hover:border-slate-300 focus:border-indigo-500 outline-none transition-all w-full max-w-sm"
+                        className="text-xl font-bold text-slate-800 tracking-tight bg-transparent border-b border-transparent hover:border-slate-300 focus:border-indigo-500 outline-none transition-all flex-1 min-w-0 max-w-sm"
                       />
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-300 group-hover/theme:text-slate-400 opacity-0 group-hover/theme:opacity-100 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -505,48 +524,53 @@ const ItineraryBuilder: React.FC<Props> = ({
                           <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
                         </svg>
                       </div>
-                      <h4 className="text-sm font-bold text-slate-800">Arrival Flight</h4>
+                      <h4 className="text-sm font-bold text-slate-800">Flight</h4>
                     </div>
 
                     <div className="flex flex-col gap-3 mb-4">
-                      <div className="flex items-center gap-3">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider w-8 shrink-0">From</span>
+                      {/* From */}
+                      <div className="relative">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">From</label>
                         <input
                           type="text"
                           value={arrivalFrom}
                           onChange={(e) => setArrivalFrom(e.target.value)}
-                          placeholder="Origin"
-                          className="flex-1 bg-transparent border-b border-slate-200 py-1 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all placeholder:font-normal placeholder:text-slate-300"
+                          placeholder="Origin City or Airport"
+                          className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:font-normal placeholder:text-slate-400"
                         />
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider w-8 shrink-0">To</span>
+                      {/* To */}
+                      <div className="relative">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">To</label>
                         <input
                           type="text"
                           value={arrivalTo}
                           onChange={(e) => setArrivalTo(e.target.value)}
-                          placeholder="Destination"
-                          className="flex-1 bg-transparent border-b border-slate-200 py-1 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all placeholder:font-normal placeholder:text-slate-300"
+                          placeholder="Destination City or Airport"
+                          className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:font-normal placeholder:text-slate-400"
                         />
                       </div>
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2 flex-1">
-                          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider w-8 shrink-0">Pax</span>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        {/* Pax */}
+                        <div className="relative">
+                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">Pax</label>
                           <input
                             type="number"
                             min="1"
                             value={arrivalTravelers}
                             onChange={(e) => setArrivalTravelers(parseInt(e.target.value))}
-                            className="w-12 bg-transparent border-b border-slate-200 py-1 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all"
+                            className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
                           />
                         </div>
-                        <div className="flex items-center gap-2 flex-[1.5]">
-                          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Date</span>
+                        {/* Date */}
+                        <div className="relative">
+                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">Date</label>
                           <input
                             type="date"
                             value={arrivalDate}
                             onChange={(e) => setArrivalDate(e.target.value)}
-                            className="flex-1 bg-transparent border-b border-slate-200 py-1 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all"
+                            className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
                           />
                         </div>
                       </div>
@@ -691,48 +715,53 @@ const ItineraryBuilder: React.FC<Props> = ({
                           <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
                         </svg>
                       </div>
-                      <h4 className="text-sm font-bold text-slate-800">Departure Flight</h4>
+                      <h4 className="text-sm font-bold text-slate-800">Flight</h4>
                     </div>
 
                     <div className="flex flex-col gap-3 mb-4">
-                      <div className="flex items-center gap-3">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider w-8 shrink-0">From</span>
+                      {/* From */}
+                      <div className="relative">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">From</label>
                         <input
                           type="text"
                           value={departureFrom}
                           onChange={(e) => setDepartureFrom(e.target.value)}
-                          placeholder="Origin"
-                          className="flex-1 bg-transparent border-b border-slate-200 py-1 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all placeholder:font-normal placeholder:text-slate-300"
+                          placeholder="Origin City or Airport"
+                          className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:font-normal placeholder:text-slate-400"
                         />
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider w-8 shrink-0">To</span>
+                      {/* To */}
+                      <div className="relative">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">To</label>
                         <input
                           type="text"
                           value={departureTo}
                           onChange={(e) => setDepartureTo(e.target.value)}
-                          placeholder="Destination"
-                          className="flex-1 bg-transparent border-b border-slate-200 py-1 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all placeholder:font-normal placeholder:text-slate-300"
+                          placeholder="Destination City or Airport"
+                          className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:font-normal placeholder:text-slate-400"
                         />
                       </div>
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2 flex-1">
-                          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider w-8 shrink-0">Pax</span>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        {/* Pax */}
+                        <div className="relative">
+                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">Pax</label>
                           <input
                             type="number"
                             min="1"
                             value={departureTravelers}
                             onChange={(e) => setDepartureTravelers(parseInt(e.target.value))}
-                            className="w-12 bg-transparent border-b border-slate-200 py-1 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all"
+                            className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
                           />
                         </div>
-                        <div className="flex items-center gap-2 flex-[1.5]">
-                          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Date</span>
+                        {/* Date */}
+                        <div className="relative">
+                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">Date</label>
                           <input
                             type="date"
                             value={departureDate}
                             onChange={(e) => setDepartureDate(e.target.value)}
-                            className="flex-1 bg-transparent border-b border-slate-200 py-1 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all"
+                            className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
                           />
                         </div>
                       </div>
@@ -753,12 +782,20 @@ const ItineraryBuilder: React.FC<Props> = ({
 
 
                 {/* Manual Add Button */}
-                <button
-                  onClick={() => onAddActivity(safeDayIndex)}
-                  className="w-full py-4 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 font-bold text-sm hover:border-indigo-300 hover:text-indigo-600 transition-all flex items-center justify-center gap-2 mt-4"
-                >
-                  + Add Manual Item
-                </button>
+                <div className="flex gap-3 mt-4">
+                  <button
+                    onClick={() => onAddActivity(safeDayIndex)}
+                    className="flex-1 py-4 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 font-bold text-sm hover:border-indigo-300 hover:text-indigo-600 transition-all flex items-center justify-center gap-2"
+                  >
+                    + Add Manual Item
+                  </button>
+                  <button
+                    onClick={() => setRightPanelMode('ACTIVITY_SEARCH')}
+                    className="flex-1 py-4 bg-indigo-50 border-2 border-indigo-100 rounded-xl text-indigo-600 font-bold text-sm hover:bg-indigo-100 transition-all flex items-center justify-center gap-2"
+                  >
+                    ✨ Suggestions
+                  </button>
+                </div>
               </div>
             </div>
           </>
@@ -845,6 +882,14 @@ const ItineraryBuilder: React.FC<Props> = ({
             <HotelSearchPanel
               onSearch={handleHotelSearch}
               onCancel={() => setRightPanelMode('MAP')}
+            />
+          )}
+
+          {rightPanelMode === 'ACTIVITY_SEARCH' && (
+            <ActivitySearchPanel
+              onSearch={handleActivitySearch}
+              onCancel={() => setRightPanelMode('MAP')}
+              onAddActivity={handleAddActivityFromPanel}
             />
           )}
 

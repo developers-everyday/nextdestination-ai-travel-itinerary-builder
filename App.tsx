@@ -527,7 +527,7 @@ const BuilderPageContent: React.FC<BuilderPageContentProps> = ({
     <ItineraryBuilder
       data={itinerary}
       onBackToHome={() => navigate('/')}
-      onAddActivity={(dayIndex) => {
+      onAddActivity={(dayIndex, initialData) => {
         setItinerary(prev => {
           if (!prev) return null;
           const newDays = [...prev.days];
@@ -540,7 +540,8 @@ const BuilderPageContent: React.FC<BuilderPageContentProps> = ({
               activity: "",
               description: "",
               location: "",
-              type: "activity"
+              type: "activity",
+              ...(initialData || {}) // Merge initial data if provided
             }
           ];
           newDays[dayIndex] = day;
