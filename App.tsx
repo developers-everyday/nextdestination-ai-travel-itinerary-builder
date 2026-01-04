@@ -1,14 +1,16 @@
-
 import React, { useState, useCallback } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
-import Hero from './components/Hero';
-import Features from './components/Features';
 import ItineraryBuilder from './components/ItineraryDisplay';
 import CommunityPage from './components/CommunityPage';
 import { HowItWorks, ContactUs, SiteMap, TermsOfUse, PrivacyPolicy, CookieConsent, AccessibilityStatement } from './components/FooterPages';
 import { generateQuickItinerary, getDemoItinerary } from './services/geminiService';
 import { Itinerary } from './types';
+
+// New Components
+import SearchHeader from './components/home/SearchHeader';
+import CategoryBar from './components/home/CategoryBar';
+import ItineraryGrid from './components/home/ItineraryGrid';
 
 const getEmptyItinerary = (): Itinerary => ({
   destination: "My Trip",
@@ -27,6 +29,7 @@ const App: React.FC = () => {
   const [itinerary, setItinerary] = useState<Itinerary | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
   // Helper to ensure all activities have IDs
   const sanitizeItinerary = (data: Itinerary): Itinerary => {
@@ -42,20 +45,24 @@ const App: React.FC = () => {
     };
   };
 
-  const handleSearch = useCallback(async (destination: string) => {
+  // We need a navigate hook here to redirect after search in valid react-router context
+  // App is rendered inside BrowserRouter in index.tsx
+  const navigate = useNavigate();
+
+  const handleSearchAndRedirect = useCallback(async (destination: string) => {
     setIsLoading(true);
     setError(null);
-    setItinerary(null);
-
     try {
       const rawData = await generateQuickItinerary(destination);
-      setItinerary(sanitizeItinerary(rawData));
+      const sanitized = sanitizeItinerary(rawData);
+      setItinerary(sanitized);
+      navigate('/builder', { state: { itinerary: sanitized } });
     } catch (err) {
       setError("We couldn't generate an itinerary for that destination right now. Please try again.");
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [navigate]);
 
   const handleAddDay = useCallback(() => {
     setItinerary(prev => {
@@ -143,8 +150,6 @@ const App: React.FC = () => {
     });
   }, []);
 
-  // Day reordering removed as per user request
-
   const handleReorderActivity = useCallback((dayIndex: number, oldIndex: number, newIndex: number) => {
     setItinerary(prev => {
       if (!prev) return null;
@@ -174,45 +179,23 @@ const App: React.FC = () => {
 
   const handleOpenDemo = useCallback(() => {
     const demoData = getDemoItinerary();
-    setItinerary(sanitizeItinerary(demoData as Itinerary));
-  }, []);
-
-  const communityItineraries = [
-    {
-      name: "Hidden Gems of Positano",
-      location: "Amalfi Coast, Italy",
-      img: "https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&q=80&w=800",
-      user: "Marco G.",
-      userImg: "https://i.pravatar.cc/150?u=marco",
-      trips: 1240
-    },
-    {
-      name: "Cyberpunk Tokyo Nightlife",
-      location: "Shibuya, Japan",
-      img: "https://images.unsplash.com/photo-1542051841857-5f90071e7989?auto=format&fit=crop&q=80&w=800",
-      user: "Sarah K.",
-      userImg: "https://i.pravatar.cc/150?u=sarah",
-      trips: 890
-    },
-    {
-      name: "Luxury Retreat in Bali",
-      location: "Ubud, Indonesia",
-      img: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&q=80&w=800",
-      user: "Julian P.",
-      userImg: "https://i.pravatar.cc/150?u=julian",
-      trips: 2105
-    }
-  ];
+    // Navigate to builder with demo data
+    navigate('/builder', { state: { itinerary: sanitizeItinerary(demoData as Itinerary) } });
+  }, [navigate]);
 
   return (
     <Routes>
       {/* Home Page Route */}
       <Route path="/" element={
-        <div className="min-h-screen bg-slate-50 selection:bg-indigo-100">
+        <div className="min-h-screen bg-white">
           <Navbar onOpenBuilder={handleOpenDemo} />
-          <main>
-            <Hero onSearch={handleSearch} />
-            <Features />
+          <main className="pt-24">
+            <SearchHeader onSearch={handleSearchAndRedirect} />
+            <CategoryBar
+              selectedCategory={selectedCategory}
+              onSelectCategory={setSelectedCategory}
+            />
+            <ItineraryGrid category={selectedCategory} />
 
             {/* Dynamic AI Loading Overlay */}
             {isLoading && (
@@ -232,122 +215,37 @@ const App: React.FC = () => {
                 </div>
               </div>
             )}
-            {/* Community Inspiration Section */}
-            <section className="py-32 bg-slate-900 text-white overflow-hidden relative">
-              <div className="absolute top-0 right-0 w-1/3 h-full bg-indigo-600/10 blur-[120px] pointer-events-none" />
-              <div className="max-w-7xl mx-auto px-6 relative z-10">
-                <div className="flex flex-col md:flex-row items-end justify-between mb-20 gap-8">
-                  <div className="max-w-2xl">
-                    <span className="text-indigo-400 font-black uppercase tracking-[0.3em] text-xs mb-4 block">Crowdsourced Magic</span>
-                    <h2 className="text-5xl md:text-7xl font-black mb-8 leading-tight tracking-tighter">Inspired by <br />True Travelers</h2>
-                    <p className="text-slate-400 text-xl leading-relaxed font-medium">
-                      Explore successful itineraries shared by the community and let our AI customize them to fit your exact dates and budget.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => window.location.href = '/community'}
-                    className="bg-white text-slate-900 px-10 py-5 rounded-2xl font-black text-lg hover:bg-indigo-50 transition-all shadow-2xl active:scale-95 shrink-0"
-                  >
-                    Explore the Community
-                  </button>
-                </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                  {communityItineraries.map((trip, idx) => (
-                    <div key={idx} className="group relative rounded-[2.5rem] overflow-hidden bg-slate-800/50 border border-slate-700/50 hover:border-indigo-500/50 transition-all duration-500">
-                      <div className="h-80 relative overflow-hidden">
-                        <img src={trip.img} alt={trip.name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/20 to-transparent" />
-                        <div className="absolute top-6 left-6">
-                          <div className="bg-white/10 backdrop-blur-md px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-                            Trending Now
-                          </div>
-                        </div>
-                      </div>
-                      <div className="p-8">
-                        <h3 className="text-2xl font-black text-white mb-2 group-hover:text-indigo-400 transition-colors">{trip.name}</h3>
-                        <p className="text-slate-400 font-bold mb-8 flex items-center gap-2">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-indigo-500" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                          </svg>
-                          {trip.location}
-                        </p>
-
-                        <div className="flex items-center justify-between pt-6 border-t border-slate-700/50">
-                          <div className="flex items-center gap-3">
-                            <img src={trip.userImg} className="w-10 h-10 rounded-full border-2 border-indigo-500/30" alt={trip.user} />
-                            <div>
-                              <p className="text-xs font-bold text-slate-300">Creator</p>
-                              <p className="text-sm font-black text-white">{trip.user}</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-xs font-bold text-slate-300">Remixed</p>
-                            <p className="text-sm font-black text-indigo-400">{trip.trips} times</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </section>
-
-            {/* CTA Footer Section */}
-            <section className="py-32 bg-white relative overflow-hidden">
-              <div className="absolute -top-24 -left-24 w-64 h-64 bg-indigo-50 rounded-full blur-3xl opacity-50" />
-              <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-purple-50 rounded-full blur-3xl opacity-50" />
-
-              <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
-                <h2 className="text-6xl md:text-7xl font-black text-slate-900 mb-10 tracking-tighter leading-tight">Plan Your Perfect Trip in Minutes.</h2>
-                <p className="text-2xl text-slate-600 mb-14 font-medium leading-relaxed">No more scattered tabs and endless research. Build your complete itinerary with everything you need.</p>
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-                  <button
-                    onClick={() => window.location.href = '/builder'}
-                    className="bg-indigo-600 text-white px-12 py-6 rounded-[2rem] text-xl font-black shadow-[0_20px_50px_rgba(79,70,229,0.3)] hover:bg-indigo-700 hover:-translate-y-1 transition-all w-full sm:w-auto active:translate-y-0"
-                  >
-                    Create My Itinerary
-                  </button>
-                  <button className="bg-slate-50 text-slate-900 px-12 py-6 rounded-[2rem] text-xl font-black hover:bg-slate-100 transition-all w-full sm:w-auto border border-slate-200">
-                    View Demo
-                  </button>
-                </div>
-              </div>
-            </section>
-
-            <footer className="bg-slate-50 py-20 border-t border-slate-200">
-              <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-16 mb-20">
+            <footer className="bg-slate-50 py-12 border-t border-slate-200 mt-12 mb-20 md:mb-0">
+              <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
                 <div className="md:col-span-2">
-                  <div className="flex items-center gap-2 mb-8">
-                    <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-xl shadow-indigo-100">N</div>
-                    <span className="font-black text-2xl text-slate-900 tracking-tighter">NextDestination<span className="text-indigo-600">.ai</span></span>
+                  <div className="flex items-center gap-2 mb-6">
+                    <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-lg shadow-indigo-100">N</div>
+                    <span className="font-black text-xl text-slate-900 tracking-tighter">NextDestination<span className="text-indigo-600">.ai</span></span>
                   </div>
-                  <p className="text-slate-500 font-medium text-lg leading-relaxed max-w-sm mb-8">
-                    Create custom itineraries tailored to your style. Learn from traveler's experiences and let AI be your assistant for an unforgettable trip.
+                  <p className="text-slate-500 font-medium text-sm leading-relaxed max-w-sm">
+                    Discover the world's most amazing adventures, curated by travelers and optimized by AI.
                   </p>
                 </div>
                 <div>
-                  <h4 className="font-black text-slate-900 mb-6 uppercase tracking-widest text-xs">Explore & Support</h4>
-                  <ul className="space-y-4 text-slate-500 font-bold text-sm">
-                    <li><a href="/how-it-works" className="hover:text-indigo-600 transition-colors">How the site works</a></li>
+                  <h4 className="font-bold text-slate-900 mb-4 text-sm">Support</h4>
+                  <ul className="space-y-3 text-slate-500 text-sm">
+                    <li><a href="/how-it-works" className="hover:text-indigo-600 transition-colors">How it works</a></li>
+                    <li><a href="/contact" className="hover:text-indigo-600 transition-colors">Contact</a></li>
                     <li><a href="/sitemap" className="hover:text-indigo-600 transition-colors">Site Map</a></li>
-                    <li><a href="/contact" className="hover:text-indigo-600 transition-colors">Contact us</a></li>
                   </ul>
                 </div>
                 <div>
-                  <h4 className="font-black text-slate-900 mb-6 uppercase tracking-widest text-xs">Legal & Privacy</h4>
-                  <ul className="space-y-4 text-slate-500 font-bold text-sm">
-                    <li><a href="/terms" className="hover:text-indigo-600 transition-colors">Terms of Use</a></li>
-                    <li><a href="/privacy" className="hover:text-indigo-600 transition-colors">Privacy and Cookies Statement</a></li>
-                    <li><a href="/cookie-consent" className="hover:text-indigo-600 transition-colors">Cookie consent</a></li>
-                    <li><a href="/accessibility" className="hover:text-indigo-600 transition-colors">Accessibility Statement</a></li>
+                  <h4 className="font-bold text-slate-900 mb-4 text-sm">Legal</h4>
+                  <ul className="space-y-3 text-slate-500 text-sm">
+                    <li><a href="/terms" className="hover:text-indigo-600 transition-colors">Terms</a></li>
+                    <li><a href="/privacy" className="hover:text-indigo-600 transition-colors">Privacy</a></li>
                   </ul>
                 </div>
               </div>
-              <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-8 pt-10 border-t border-slate-200/50">
-                <div className="text-slate-400 font-bold text-sm">
-                  © 2025 NextDestination Technologies. All rights reserved.
+              <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4 pt-8 border-t border-slate-200">
+                <div className="text-slate-400 font-medium text-xs">
+                  © 2025 NextDestination Technologies.
                 </div>
               </div>
             </footer>
@@ -440,12 +338,12 @@ const BuilderPageContent: React.FC<BuilderPageContentProps> = ({
 
   // Check if we have an itinerary from navigation state (from community page)
   React.useEffect(() => {
-    if (location.state?.itinerary && !itinerary) {
+    if (location.state?.itinerary) {
       setItinerary(location.state.itinerary);
     }
-  }, [location.state, itinerary, setItinerary]);
+  }, [location.state, setItinerary]);
 
-  if (!itinerary && !location.state?.itinerary) {
+  if (!itinerary) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
         <div className="max-w-2xl w-full text-center">
