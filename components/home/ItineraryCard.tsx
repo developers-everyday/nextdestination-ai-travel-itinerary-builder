@@ -37,11 +37,7 @@ const ItineraryCard: React.FC<ItineraryCardProps> = ({
                     </svg>
                 </button>
 
-                {isGuestFavorite && (
-                    <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm">
-                        <span className="text-xs font-bold text-slate-900">Guest favorite</span>
-                    </div>
-                )}
+
             </div>
 
             <div className="flex justify-between items-start gap-2">

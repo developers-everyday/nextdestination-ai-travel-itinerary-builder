@@ -13,7 +13,10 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@google/genai": "^1.34.0",
+    "@types/react-datepicker": "^6.2.0",
+    "date-fns": "^4.1.0",
     "react": "^19.2.3",
+    "react-datepicker": "^9.1.0",
     "react-dom": "^19.2.3",
     "react-router-dom": "^7.11.0"
   },

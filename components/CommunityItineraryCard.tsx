@@ -71,22 +71,7 @@ const CommunityItineraryCard: React.FC<CommunityItineraryCardProps> = ({ itinera
                     {itinerary.location}
                 </p>
 
-                {/* Tags */}
-                <div className="flex flex-wrap gap-2 mb-6">
-                    {itinerary.tags.slice(0, 3).map((tag, idx) => (
-                        <span
-                            key={idx}
-                            className="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg text-xs font-bold"
-                        >
-                            {tag}
-                        </span>
-                    ))}
-                    {itinerary.tags.length > 3 && (
-                        <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-lg text-xs font-bold">
-                            +{itinerary.tags.length - 3}
-                        </span>
-                    )}
-                </div>
+
 
                 {/* Creator Info */}
                 <div className="flex items-center justify-between pt-6 border-t border-slate-200">
@@ -108,10 +93,7 @@ const CommunityItineraryCard: React.FC<CommunityItineraryCardProps> = ({ itinera
                             </div>
                         </div>
                     </div>
-                    <div className="text-right">
-                        <p className="text-xs font-bold text-slate-500">Category</p>
-                        <p className="text-sm font-black text-indigo-600">{itinerary.category}</p>
-                    </div>
+
                 </div>
             </div>
         </div>

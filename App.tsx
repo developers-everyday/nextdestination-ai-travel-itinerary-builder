@@ -11,6 +11,8 @@ import { Itinerary } from './types';
 import SearchHeader from './components/home/SearchHeader';
 import CategoryBar from './components/home/CategoryBar';
 import ItineraryGrid from './components/home/ItineraryGrid';
+import SourceToggle from './components/home/SourceToggle';
+import PlanningSuggestions from './components/PlanningSuggestions';
 
 const getEmptyItinerary = (): Itinerary => ({
   destination: "My Trip",
@@ -30,6 +32,7 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [itinerarySource, setItinerarySource] = useState<'community' | 'model'>('community');
 
   // Helper to ensure all activities have IDs
   const sanitizeItinerary = (data: Itinerary): Itinerary => {
@@ -50,18 +53,7 @@ const App: React.FC = () => {
   const navigate = useNavigate();
 
   const handleSearchAndRedirect = useCallback(async (destination: string) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const rawData = await generateQuickItinerary(destination);
-      const sanitized = sanitizeItinerary(rawData);
-      setItinerary(sanitized);
-      navigate('/builder', { state: { itinerary: sanitized } });
-    } catch (err) {
-      setError("We couldn't generate an itinerary for that destination right now. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
+    navigate('/planning-suggestions', { state: { destination } });
   }, [navigate]);
 
   const handleAddDay = useCallback(() => {
@@ -191,11 +183,18 @@ const App: React.FC = () => {
           <Navbar onOpenBuilder={handleOpenDemo} />
           <main className="pt-24">
             <SearchHeader onSearch={handleSearchAndRedirect} />
+            <SourceToggle
+              selectedSource={itinerarySource}
+              onSelectSource={setItinerarySource}
+            />
             <CategoryBar
               selectedCategory={selectedCategory}
               onSelectCategory={setSelectedCategory}
             />
-            <ItineraryGrid category={selectedCategory} />
+            <ItineraryGrid
+              category={selectedCategory}
+              source={itinerarySource}
+            />
 
             {/* Dynamic AI Loading Overlay */}
             {isLoading && (
@@ -255,6 +254,9 @@ const App: React.FC = () => {
 
       {/* Community Page Route */}
       <Route path="/community" element={<CommunityPage />} />
+
+      {/* Planning Suggestions Route */}
+      <Route path="/planning-suggestions" element={<PlanningSuggestions />} />
 
       {/* Builder Page Route */}
       <Route path="/builder" element={

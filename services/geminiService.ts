@@ -1,13 +1,17 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+if (!process.env.API_KEY) {
+  console.error("API_KEY is missing. Please set GEMINI_API_KEY in your .env file.");
+}
 
-export const generateQuickItinerary = async (destination: string) => {
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+
+export const generateQuickItinerary = async (destination: string, days: number = 3) => {
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.0-flash-exp",
-      contents: `Create a detailed 3-day luxury travel itinerary for ${destination}. 
+      contents: `Create a detailed ${days}-day luxury travel itinerary for ${destination}. 
       Return the response in JSON format. 
       For each day, provide a theme and 3-4 key activities (Morning, Afternoon, Evening).`,
       config: {

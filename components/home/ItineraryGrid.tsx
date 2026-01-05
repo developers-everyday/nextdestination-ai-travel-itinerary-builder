@@ -1,8 +1,12 @@
 import React, { useMemo } from 'react';
 import ItineraryCard, { ItineraryCardProps } from './ItineraryCard';
+import { communityItineraries } from '../../services/communityData';
+import CommunityItineraryCard from '../CommunityItineraryCard';
+import { useNavigate } from 'react-router-dom';
 
 interface ItineraryGridProps {
     category: string;
+    source: 'community' | 'model';
 }
 
 const MOCK_ITINERARIES: ItineraryCardProps[] = [
@@ -140,18 +144,65 @@ const MOCK_ITINERARIES: ItineraryCardProps[] = [
     }
 ];
 
-const ItineraryGrid: React.FC<ItineraryGridProps> = ({ category }) => {
+const ItineraryGrid: React.FC<ItineraryGridProps> = ({ category, source }) => {
+    const navigate = useNavigate();
+
     const filteredItineraries = useMemo(() => {
-        if (category === 'all') return MOCK_ITINERARIES;
-        return MOCK_ITINERARIES.filter(it => it.category === category);
-    }, [category]);
+        if (source === 'community') {
+            // Filter community itineraries
+            // First show trending ones
+            let itineraries = communityItineraries.filter(it => it.trending);
+
+            // If category is not 'all', filter by category as well
+            if (category !== 'all') {
+                itineraries = itineraries.filter(it =>
+                    it.category.toLowerCase() === category.toLowerCase() ||
+                    it.tags.some(tag => tag.toLowerCase() === category.toLowerCase())
+                );
+            }
+            return itineraries;
+        } else {
+            // Filter AI mock itineraries
+            if (category === 'all') return MOCK_ITINERARIES;
+            return MOCK_ITINERARIES.filter(it => it.category === category);
+        }
+    }, [category, source]);
+
+    const handleCommunityCardClick = (itinerary: any) => {
+        // Navigate to builder with this itinerary
+        navigate('/builder', { state: { itinerary: itinerary.itinerary } });
+    };
 
     return (
         <div className="max-w-7xl mx-auto px-6 pb-24 pt-6">
+            {source === 'model' && (
+                <div className="flex justify-center mb-10">
+                    <button
+                        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                        className="px-8 py-4 bg-white border-2 border-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-50 hover:border-slate-200 transition-all flex items-center gap-2"
+                    >
+                        Generate Your Own Trip
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
+                        </svg>
+                    </button>
+                </div>
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-10">
-                {filteredItineraries.map((itinerary) => (
-                    <ItineraryCard key={itinerary.id} {...itinerary} />
-                ))}
+                {source === 'community' ? (
+                    filteredItineraries.map((itinerary: any) => (
+                        <CommunityItineraryCard
+                            key={itinerary.id}
+                            itinerary={itinerary}
+                            onClick={() => handleCommunityCardClick(itinerary)}
+                        />
+                    ))
+                ) : (
+                    filteredItineraries.map((itinerary: any) => (
+                        <ItineraryCard key={itinerary.id} {...itinerary} />
+                    ))
+                )}
             </div>
 
             {filteredItineraries.length === 0 && (
@@ -161,6 +212,21 @@ const ItineraryGrid: React.FC<ItineraryGridProps> = ({ category }) => {
                     <p className="text-slate-500">Try selecting a different category or search for a destination.</p>
                 </div>
             )}
+
+            {/* View All Button */}
+            <div className="flex justify-center mt-16">
+                {source === 'community' && (
+                    <button
+                        onClick={() => navigate('/community')}
+                        className="px-8 py-4 bg-white border-2 border-indigo-100 text-indigo-600 rounded-2xl font-bold hover:bg-indigo-50 hover:border-indigo-200 transition-all flex items-center gap-2"
+                    >
+                        View all Community Itineraries
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                    </button>
+                )}
+            </div>
         </div>
     );
 };

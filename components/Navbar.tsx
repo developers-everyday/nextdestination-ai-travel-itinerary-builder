@@ -16,10 +16,7 @@ const Navbar: React.FC<Props> = ({ onOpenBuilder }) => {
         </Link>
 
         <div className="hidden md:flex items-center gap-8 font-medium text-slate-600">
-          <a href="#" className="hover:text-indigo-600 transition-colors">Destinations</a>
           <Link to="/builder" className="hover:text-indigo-600 transition-colors">Itinerary Builder</Link>
-          <a href="#" className="hover:text-indigo-600 transition-colors">Pricing</a>
-          <a href="#" className="hover:text-indigo-600 transition-colors">About</a>
         </div>
 
         <div className="flex items-center gap-4">
