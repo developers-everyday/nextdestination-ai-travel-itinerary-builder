@@ -13,6 +13,8 @@ import CategoryBar from './components/home/CategoryBar';
 import ItineraryGrid from './components/home/ItineraryGrid';
 import SourceToggle from './components/home/SourceToggle';
 import PlanningSuggestions from './components/PlanningSuggestions';
+import LoginPage from './components/LoginPage';
+import SignupPage from './components/SignupPage';
 
 const getEmptyItinerary = (): Itinerary => ({
   destination: "My Trip",
@@ -257,6 +259,12 @@ const App: React.FC = () => {
 
       {/* Planning Suggestions Route */}
       <Route path="/planning-suggestions" element={<PlanningSuggestions />} />
+
+      {/* Login Page Route */}
+      <Route path="/login" element={<LoginPage />} />
+
+      {/* Signup Page Route */}
+      <Route path="/signup" element={<SignupPage />} />
 
       {/* Builder Page Route */}
       <Route path="/builder" element={

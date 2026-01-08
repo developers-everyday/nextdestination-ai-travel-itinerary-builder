@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Navbar from './Navbar';
-import { generateQuickItinerary, getDemoItinerary } from '../services/geminiService';
+import { generateQuickItinerary, getDestinationAttractions } from '../services/geminiService';
 import { Itinerary } from '../types';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
@@ -18,6 +18,29 @@ const PlanningSuggestions: React.FC = () => {
     // Date Picker State
     const [startDate, setStartDate] = useState<Date | null>(new Date());
     const [endDate, setEndDate] = useState<Date | null>(new Date(new Date().setDate(new Date().getDate() + 5)));
+
+    // Attractions State
+    const [attractions, setAttractions] = useState<string[]>([]);
+    const [selectedAttractions, setSelectedAttractions] = useState<string[]>([]);
+    const [isLoadingAttractions, setIsLoadingAttractions] = useState(true);
+
+    useEffect(() => {
+        const fetchAttractions = async () => {
+            setIsLoadingAttractions(true);
+            try {
+                const data = await getDestinationAttractions(destination);
+                setAttractions(data);
+            } catch (err) {
+                console.error("Failed to fetch attractions", err);
+            } finally {
+                setIsLoadingAttractions(false);
+            }
+        };
+
+        if (destination) {
+            fetchAttractions();
+        }
+    }, [destination]);
 
     const handleDateChange = (dates: [Date | null, Date | null]) => {
         const [start, end] = dates;
@@ -39,29 +62,13 @@ const PlanningSuggestions: React.FC = () => {
         };
     };
 
-    const handleSelectPlan = async (days: number) => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const rawData = await generateQuickItinerary(destination, days);
-            const sanitized = sanitizeItinerary(rawData);
-            navigate('/builder', { state: { itinerary: sanitized } });
-        } catch (err: any) {
-            console.error(err);
-            const errorMessage = err?.message || "Unknown error occurred";
-            setError(`We couldn't generate an itinerary. Error: ${errorMessage}`);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleCustomDates = () => {
+    const handleSelectPlan = async () => {
         if (!startDate || !endDate) {
             setError("Please select both a start and end date.");
             return;
         }
 
-        const days = differenceInDays(endDate, startDate) + 1; // Include start date
+        const days = differenceInDays(endDate, startDate) + 1;
 
         if (days < 1) {
             setError("End date must be after start date.");
@@ -73,7 +80,27 @@ const PlanningSuggestions: React.FC = () => {
             return;
         }
 
-        handleSelectPlan(days);
+        setIsLoading(true);
+        setError(null);
+        try {
+            const rawData = await generateQuickItinerary(destination, days, selectedAttractions);
+            const sanitized = sanitizeItinerary(rawData);
+            navigate('/builder', { state: { itinerary: sanitized } });
+        } catch (err: any) {
+            console.error(err);
+            const errorMessage = err?.message || "Unknown error occurred";
+            setError(`We couldn't generate an itinerary. Error: ${errorMessage}`);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const toggleAttraction = (attraction: string) => {
+        setSelectedAttractions(prev =>
+            prev.includes(attraction)
+                ? prev.filter(a => a !== attraction)
+                : [...prev, attraction]
+        );
     };
 
 
@@ -103,12 +130,31 @@ const PlanningSuggestions: React.FC = () => {
                         Trip to <span className="text-indigo-600">{destination}</span>
                     </h1>
                     <p className="text-xl text-slate-500 font-medium max-w-2xl mx-auto">
-                        Review the local forecast and choose the perfect duration for your adventure.
+                        Review local insights and customize your preferences for a perfect trip.
                     </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
-                    {/* Travelling Dates Trigger */}
+                    {/* Weather Widget (Swapped to first position) */}
+                    <div className="bg-white rounded-3xl p-8 shadow-xl shadow-slate-200/50 border border-slate-100 relative overflow-hidden group hover:shadow-2xl hover:shadow-indigo-100 transition-all cursor-default">
+                        <div className="absolute top-0 right-0 bg-indigo-50 text-indigo-600 px-4 py-1 rounded-bl-2xl text-xs font-bold tracking-widest uppercase">{destination} Current Weather</div>
+                        <div className="flex items-center justify-between mt-4">
+                            <div>
+                                <div className="text-7xl mb-2">{mockWeather.icon}</div>
+                                <div className="text-slate-900 font-black text-4xl">{mockWeather.temp}°C</div>
+                                <div className="text-slate-500 font-medium text-lg">{mockWeather.condition}</div>
+                            </div>
+                            <div className="text-right">
+                                <div className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">High / Low</div>
+                                <div className="text-2xl font-bold text-slate-800">{mockWeather.high}° / {mockWeather.low}°</div>
+                                <div className="mt-4 text-xs font-medium text-slate-400 bg-slate-50 px-3 py-1 rounded-full inline-block">
+                                    Updates live
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Travelling Dates Trigger (Swapped to second position) */}
                     <button
                         onClick={() => setIsCalendarOpen(true)}
                         className="bg-white rounded-3xl p-8 shadow-xl shadow-slate-200/50 border border-slate-100 text-left hover:shadow-2xl hover:shadow-indigo-100 transition-all hover:-translate-y-1 group relative overflow-hidden"
@@ -129,31 +175,12 @@ const PlanningSuggestions: React.FC = () => {
                             ) : 'Select your dates'}
                         </div>
                         <div className="flex items-center gap-2 text-slate-400 font-medium text-sm">
-                            <span>Click to open calendar</span>
+                            <span>Click to pick dates</span>
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                             </svg>
                         </div>
                     </button>
-
-                    {/* Weather Widget */}
-                    <div className="bg-white rounded-3xl p-8 shadow-xl shadow-slate-200/50 border border-slate-100 relative overflow-hidden group hover:shadow-2xl hover:shadow-indigo-100 transition-all cursor-default">
-                        <div className="absolute top-0 right-0 bg-indigo-50 text-indigo-600 px-4 py-1 rounded-bl-2xl text-xs font-bold tracking-widest uppercase">Current Weather</div>
-                        <div className="flex items-center justify-between mt-4">
-                            <div>
-                                <div className="text-7xl mb-2">{mockWeather.icon}</div>
-                                <div className="text-slate-900 font-black text-4xl">{mockWeather.temp}°C</div>
-                                <div className="text-slate-500 font-medium text-lg">{mockWeather.condition}</div>
-                            </div>
-                            <div className="text-right">
-                                <div className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">High / Low</div>
-                                <div className="text-2xl font-bold text-slate-800">{mockWeather.high}° / {mockWeather.low}°</div>
-                                <div className="mt-4 text-xs font-medium text-slate-400 bg-slate-50 px-3 py-1 rounded-full inline-block">
-                                    Updates live
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 {/* Calendar Modal */}
@@ -204,56 +231,76 @@ const PlanningSuggestions: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <button
-                                    onClick={() => setIsCalendarOpen(false)}
-                                    className="py-4 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setIsCalendarOpen(false);
-                                        handleCustomDates();
-                                    }}
-                                    disabled={!startDate || !endDate}
-                                    className={`py-4 rounded-xl font-black text-lg shadow-lg transition-all transform active:scale-95 ${startDate && endDate
-                                        ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200 hover:-translate-y-1'
-                                        : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                                        }`}
-                                >
-                                    Generate Plan
-                                </button>
-                            </div>
+                            {/* Only 'Done/Save' action here, Generate is moved to main page */}
+                            <button
+                                onClick={() => setIsCalendarOpen(false)}
+                                className="w-full py-4 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200"
+                            >
+                                Set Dates
+                            </button>
                         </div>
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 gap-12 max-w-4xl mx-auto">
-                    {/* Quick Options */}
-                    <div className="w-full">
-                        <h2 className="text-2xl font-black text-slate-900 mb-8">Popular Durations</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            {[3, 5, 6].map((dayCount) => (
-                                <button
-                                    key={dayCount}
-                                    onClick={() => handleSelectPlan(dayCount)}
-                                    className="group relative bg-white rounded-3xl p-6 text-left border-2 border-slate-100 hover:border-indigo-600 transition-all hover:shadow-xl hover:shadow-indigo-100 hover:-translate-y-1"
-                                >
-                                    <div className="text-5xl font-black text-slate-200 mb-4 group-hover:text-indigo-100 transition-colors">
-                                        {dayCount}
-                                    </div>
-                                    <h3 className="text-xl font-bold text-slate-900 mb-1">
-                                        {dayCount} Days
-                                    </h3>
-                                    <div className="text-sm font-bold text-indigo-600 flex items-center gap-1">
-                                        Generate <span className="transform group-hover:translate-x-1 transition-transform">→</span>
-                                    </div>
-                                </button>
+                {/* Things to Do Section */}
+                <div className="mb-16">
+                    <h2 className="text-2xl font-black text-slate-900 mb-6">Things to do in {destination}</h2>
+                    <p className="text-slate-500 mb-8 max-w-2xl">Select the experiences you'd like to include in your trip.</p>
+
+                    {isLoadingAttractions ? (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                                <div key={i} className="h-32 bg-slate-100 rounded-2xl animate-pulse"></div>
                             ))}
                         </div>
-                    </div>
+                    ) : (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {attractions.map((attraction, index) => {
+                                const isSelected = selectedAttractions.includes(attraction);
+                                return (
+                                    <button
+                                        key={index}
+                                        onClick={() => toggleAttraction(attraction)}
+                                        className={`p-6 rounded-2xl text-left transition-all border-2 relative overflow-hidden group ${isSelected
+                                            ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200 scale-[1.02]'
+                                            : 'bg-white border-slate-100 hover:border-indigo-200 text-slate-700 hover:shadow-md'
+                                            }`}
+                                    >
+                                        <div className={`text-lg font-bold mb-1 ${isSelected ? 'text-white' : 'text-slate-900'}`}>
+                                            {attraction}
+                                        </div>
+                                        <div className={`text-xs font-semibold uppercase tracking-wider ${isSelected ? 'text-indigo-200' : 'text-slate-400'}`}>
+                                            {isSelected ? 'Selected' : 'Add to trip'}
+                                        </div>
+                                        {isSelected && (
+                                            <div className="absolute top-2 right-2">
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                </svg>
+                                            </div>
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
 
+                {/* Generate Button (Moved to bottom) */}
+                <div className="flex justify-center pb-20">
+                    <button
+                        onClick={handleSelectPlan}
+                        disabled={!startDate || !endDate}
+                        className={`py-5 px-12 rounded-full font-black text-xl shadow-xl transition-all transform hover:scale-105 active:scale-95 flex items-center gap-3 ${startDate && endDate
+                            ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200'
+                            : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                            }`}
+                    >
+                        <span>Generate My Plan</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                    </button>
                 </div>
 
                 {error && (

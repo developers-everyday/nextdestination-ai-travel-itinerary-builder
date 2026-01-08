@@ -7,11 +7,13 @@ if (!process.env.API_KEY) {
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 
-export const generateQuickItinerary = async (destination: string, days: number = 3) => {
+export const generateQuickItinerary = async (destination: string, days: number = 3, selectedInterests: string[] = []) => {
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.0-flash-exp",
       contents: `Create a detailed ${days}-day luxury travel itinerary for ${destination}. 
+      The user is interested in: ${selectedInterests.length > 0 ? selectedInterests.join(", ") : "general highlights"}.
+      Ensure these specific interests/attractions are included in the itinerary where appropriate.
       Return the response in JSON format. 
       For each day, provide a theme and 3-4 key activities (Morning, Afternoon, Evening).`,
       config: {
@@ -68,6 +70,31 @@ export const generateQuickItinerary = async (destination: string, days: number =
   } catch (error) {
     console.error("Gemini API Error:", error);
     throw error;
+  }
+};
+
+export const getDestinationAttractions = async (destination: string): Promise<string[]> => {
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.0-flash-exp",
+      contents: `List 10 top specific tourist attractions, famous places, or must-do activities in ${destination}.
+      Return ONLY a raw JSON array of strings. Do not include markdown formatting or backticks.
+      Example: ["Eiffel Tower", "Louvre Museum", "Seine Cruise"]`,
+    });
+
+    const text = response.text.replace(/```json|```/g, '').trim();
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Error fetching attractions:", error);
+    // Fallback attractions if API fails
+    return [
+      `Explore ${destination} Center`,
+      "Local Food Tour",
+      "Historical Museums",
+      "City Park Walk",
+      "Shopping District",
+      "Iconic Landmarks"
+    ];
   }
 };
 
