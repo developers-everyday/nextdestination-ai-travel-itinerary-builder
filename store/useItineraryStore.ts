@@ -35,6 +35,18 @@ interface ItineraryState {
     stopJourney: () => void;
     nextStop: () => void;
     prevStop: () => void;
+
+    // Voice Agent State
+    isVoiceActive: boolean;
+    voiceStatus: string;
+    isMuted: boolean;
+    setVoiceState: (isActive: boolean, status: string) => void;
+
+    // Voice Agent Actions
+    voiceToggleCallback: (() => void) | null;
+    setVoiceToggleCallback: (cb: () => void) => void;
+    toggleVoice: () => void;
+    toggleMute: () => void;
 }
 
 export const useItineraryStore = create<ItineraryState>((set, get) => ({
@@ -212,4 +224,23 @@ export const useItineraryStore = create<ItineraryState>((set, get) => ({
     stopJourney: () => console.log("Journey stopped"),
     nextStop: () => console.log("Next stop"),
     prevStop: () => console.log("Prev stop"),
+
+    // Voice Agent Integration
+    isVoiceActive: false,
+    voiceStatus: 'Idle',
+    isMuted: false,
+    setVoiceState: (isActive, status) => set({ isVoiceActive: isActive, voiceStatus: status, isMuted: false }),
+
+    // Callback registration for the headless agent
+    voiceToggleCallback: () => console.warn("Voice agent not connected"),
+    setVoiceToggleCallback: (cb) => set({ voiceToggleCallback: cb }),
+
+    // Action called by UI components
+    toggleVoice: () => {
+        const state = get();
+        if (state.voiceToggleCallback) {
+            state.voiceToggleCallback();
+        }
+    },
+    toggleMute: () => set((state) => ({ isMuted: !state.isMuted }))
 }));

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import MapComponent from './Map';
+import { useItineraryStore } from '../store/useItineraryStore';
+import { useSettingsStore } from '../store/useSettingsStore';
 
 interface ActivitySearchPanelProps {
     onSearch: (searchData: any) => void;
@@ -8,6 +10,9 @@ interface ActivitySearchPanelProps {
 }
 
 const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onCancel, onAddActivity }) => {
+    const { toggleVoice, isVoiceActive, voiceStatus, isMuted, toggleMute } = useItineraryStore();
+    const { setSettingsOpen } = useSettingsStore();
+
     const [location, setLocation] = useState('');
     const [category, setCategory] = useState('All');
     const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -114,20 +119,45 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
                                 onChange={(e) => setLocation(e.target.value)}
                             />
                             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                {/* Mic Icon: Mute Toggle (Only visible when Active) */}
+                                {isVoiceActive && (
+                                    <button
+                                        type="button"
+                                        onClick={toggleMute}
+                                        className={`p-1.5 rounded-full transition-colors relative ${isMuted ? 'text-red-500 bg-red-50' : 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100'}`}
+                                        title={isMuted ? "Unmute" : "Mute"}
+                                    >
+                                        {isMuted ? (
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                                <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" strokeWidth="2" />
+                                            </svg>
+                                        ) : (
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                            </svg>
+                                        )}
+                                    </button>
+                                )}
+
+                                {/* Robot Icon: Start/Stop Agent */}
                                 <button
                                     type="button"
-                                    className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded-full transition-colors"
-                                    title="Voice Search"
-                                    onClick={() => console.log("Voice search clicked")}
+                                    onClick={toggleVoice}
+                                    className={`flex items-center justify-center w-8 h-8 rounded-full border cursor-pointer transition-all ${isVoiceActive ? 'bg-red-50 border-red-200 text-red-500' : 'bg-white border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200'}`}
+                                    title={isVoiceActive ? "Stop Voice Agent" : "Start Voice Agent"}
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                                    </svg>
+                                    <span className={`text-base ${isVoiceActive ? 'animate-pulse' : ''}`}>🤖</span>
                                 </button>
-                                <div className="flex items-center justify-center w-6 h-6 bg-indigo-50 rounded-full border border-indigo-100 cursor-pointer hover:bg-indigo-100 transition-colors" title="AI Assistant">
-                                    <span className="text-xs">🤖</span>
-                                </div>
                             </div>
+                            {/* Status Tooltip for Voice Agent */}
+                            {voiceStatus !== 'Idle' && (
+                                <div className="absolute top-full left-0 mt-2 w-full flex justify-center pointer-events-none">
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full bg-white border shadow-sm ${voiceStatus.startsWith('Error') ? 'text-red-500 border-red-200' : 'text-indigo-600 border-indigo-200'}`}>
+                                        {voiceStatus}
+                                    </span>
+                                </div>
+                            )}
                         </form>
                     </div>
 
