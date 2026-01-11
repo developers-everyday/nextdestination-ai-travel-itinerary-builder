@@ -24,6 +24,9 @@ import FlightDetailsPanel from './FlightDetailsPanel';
 
 import ActivitySearchPanel from './ActivitySearchPanel';
 import HotelDetailsPanel from './HotelDetailsPanel';
+import { useJsApiLoader, Libraries } from '@react-google-maps/api';
+
+const libraries: Libraries = ['places'];
 
 interface Props {
   data: Itinerary;
@@ -47,9 +50,10 @@ interface SortableItemProps {
   index: number;
   dayIndex: number;
   onRemove: (dayIndex: number, activityIndex: number) => void;
+  isScriptLoaded: boolean;
 }
 
-const SortableActivityItem = ({ id, item, index, dayIndex, onRemove, onUpdate }: SortableItemProps & { onUpdate: (dayIndex: number, activityIndex: number, data: any) => void }) => {
+const SortableActivityItem = ({ id, item, index, dayIndex, onRemove, onUpdate, isScriptLoaded }: SortableItemProps & { onUpdate: (dayIndex: number, activityIndex: number, data: any) => void }) => {
   const {
     attributes,
     listeners,
@@ -66,8 +70,39 @@ const SortableActivityItem = ({ id, item, index, dayIndex, onRemove, onUpdate }:
 
   // Search State
   const [searchValue, setSearchValue] = useState("");
-  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [autocompleteService, setAutocompleteService] = useState<google.maps.places.AutocompleteService | null>(null);
+
+  React.useEffect(() => {
+    if (isScriptLoaded && !autocompleteService && window.google) {
+      setAutocompleteService(new window.google.maps.places.AutocompleteService());
+    }
+  }, [isScriptLoaded, autocompleteService]);
+
+  React.useEffect(() => {
+    if (!searchValue || !autocompleteService) {
+      setSuggestions([]);
+      return;
+    }
+
+    if (searchValue.length > 2) {
+      const timer = setTimeout(() => {
+        autocompleteService.getPlacePredictions(
+          { input: searchValue },
+          (predictions, status) => {
+            if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
+              setSuggestions(predictions);
+              setShowSuggestions(true);
+            } else {
+              setSuggestions([]);
+            }
+          }
+        );
+      }, 300); // Debounce
+      return () => clearTimeout(timer);
+    }
+  }, [searchValue, autocompleteService]);
 
   const handleSave = () => {
     onUpdate(dayIndex, index, {
@@ -86,34 +121,24 @@ const SortableActivityItem = ({ id, item, index, dayIndex, onRemove, onUpdate }:
   };
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      // Mock suggestions based on input (or random if empty)
-      const mockPlaces = [
-        "Eiffel Tower, Paris",
-        "Louvre Museum, Paris",
-        "Notre-Dame Cathedral, Paris",
-        "Arc de Triomphe, Paris",
-        "Sacré-Cœur, Paris"
-      ];
-      // Filter if needed, or just show all for demo
-      setSuggestions(mockPlaces);
-      setShowSuggestions(true);
-    }
+    // Only handle enter if we have suggestions? Or maybe just let the user type?
+    // Using Autocomplete, Enter usually selects the first suggestion or just the text.
+    // implementation handled by click for now.
   };
 
-  const handleSelectSuggestion = (place: string) => {
-    // Update the item description or adding it as location if we had a field. 
-    // For now, let's append to description or just log it. 
-    // Actually, updating the activity title might be what the user expects if it's empty, or description.
-    // Let's append to description to show effect.
-    const newDesc = editDesc ? `${editDesc} \nLocation: ${place}` : `Location: ${place}`;
+  const handleSelectSuggestion = (place: google.maps.places.AutocompletePrediction) => {
+    // We update description with the place description
+    const newDesc = editDesc ? `${editDesc} \nLocation: ${place.description}` : `Location: ${place.description}`;
     setEditDesc(newDesc);
 
-    // Also likely want to save this update immediately or just rely on the user clicking save?
-    // User is in "view" mode (not editing) usually when clicking this search icon (since it's parallel to Edit button).
-    // So we should probably trigger an update immediately.
+    // Optionally update title if empty
+    if (!editTitle) {
+      setEditTitle(place.structured_formatting.main_text);
+    }
+
     onUpdate(dayIndex, index, {
-      description: newDesc
+      description: newDesc,
+      activity: editTitle || place.structured_formatting.main_text
     });
 
     setSearchValue("");
@@ -223,11 +248,12 @@ const SortableActivityItem = ({ id, item, index, dayIndex, onRemove, onUpdate }:
                 <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-slate-200 rounded-lg shadow-xl z-[60] overflow-hidden">
                   {suggestions.map((place, idx) => (
                     <div
-                      key={idx}
-                      className="px-3 py-2 text-xs text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 cursor-pointer transition-colors font-medium"
+                      key={place.place_id || idx}
+                      className="px-3 py-2 text-xs text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 cursor-pointer transition-colors font-medium border-b border-slate-50 last:border-none"
                       onClick={() => handleSelectSuggestion(place)}
                     >
-                      {place}
+                      <div className="font-bold">{place.structured_formatting.main_text}</div>
+                      <div className="text-[10px] text-slate-400 truncate">{place.structured_formatting.secondary_text}</div>
                     </div>
                   ))}
                 </div>
@@ -275,6 +301,12 @@ const ItineraryBuilder: React.FC<Props> = ({
   const [rightPanelMode, setRightPanelMode] = useState<'MAP' | 'FLIGHT_SEARCH' | 'ACTIVITY_SEARCH' | 'FLIGHT_DETAILS' | 'HOTEL_DETAILS'>('ACTIVITY_SEARCH');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
+    libraries
+  });
+
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
   const handleSaveTrip = () => {
@@ -805,6 +837,7 @@ const ItineraryBuilder: React.FC<Props> = ({
                         dayIndex={safeDayIndex}
                         onRemove={onRemoveActivity}
                         onUpdate={onUpdateActivity}
+                        isScriptLoaded={isLoaded}
                       />
                     ))}
                   </SortableContext>

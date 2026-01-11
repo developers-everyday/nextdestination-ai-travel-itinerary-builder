@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import MapComponent from './Map';
 
 interface ActivitySearchPanelProps {
     onSearch: (searchData: any) => void;
@@ -203,46 +204,7 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
 
                 {/* Right Panel: Map */}
                 <div className="flex-1 bg-[#e2e8f0] relative overflow-hidden hidden lg:block h-full">
-                    {/* Map Search Overlay */}
-
-                    {/* Simulated Map Background Pattern */}
-                    <div className="absolute inset-0 opacity-40"
-                        style={{
-                            backgroundImage: 'radial-gradient(#cbd5e1 2px, transparent 2px)',
-                            backgroundSize: '30px 30px'
-                        }}
-                    ></div>
-
-                    {/* Simulated Map Features (Roads/Blocks) - purely aesthetic */}
-                    <div className="absolute top-1/4 left-0 w-full h-2 bg-white/50 transform -rotate-6"></div>
-                    <div className="absolute top-0 right-1/3 h-full w-3 bg-white/50 transform rotate-12"></div>
-                    <div className="absolute bottom-1/3 left-1/4 w-32 h-32 bg-blue-100/30 rounded-full blur-xl"></div>
-
-                    {/* Map Markers */}
-                    {suggestions.map((item) => (
-                        <div
-                            key={item.id}
-                            className={`absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all duration-300 z-10 ${hoveredId === item.id ? 'scale-110 z-20' : 'scale-100'}`}
-                            style={{ top: `${item.coordinates.top}%`, left: `${item.coordinates.left}%` }}
-                            onMouseEnter={() => setHoveredId(item.id)}
-                            onMouseLeave={() => setHoveredId(null)}
-                            onClick={() => onAddActivity(item)}
-                        >
-                            <div className={`relative flex flex-col items-center group`}>
-                                <div className={`px-2.5 py-1 rounded-full shadow-lg flex items-center justify-center text-xs font-bold border-2 transition-colors ${hoveredId === item.id ? 'bg-slate-900 border-white text-white' : 'bg-white border-white text-slate-900'}`}>
-                                    {item.price}
-                                </div>
-                                <div className={`w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] ${hoveredId === item.id ? 'border-t-slate-900' : 'border-t-white'} shadow-sm`}></div>
-                            </div>
-                        </div>
-                    ))}
-
-                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-white px-4 py-2 rounded-full shadow-lg text-xs font-bold text-slate-700 flex items-center gap-2 cursor-pointer hover:bg-slate-50">
-                        <span>Map Area</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </div>
+                    <MapComponent />
                 </div>
             </div>
         </div>

@@ -1,0 +1,29 @@
+{
+    "name": "nextdestination-backend",
+    "version": "1.0.0",
+    "description": "Backend API for NextDestination travel itinerary builder",
+    "main": "index.js",
+    "type": "module",
+    "scripts": {
+        "start": "node index.js",
+        "dev": "nodemon index.js",
+        "seed": "node db/seed.js"
+    },
+    "keywords": [
+        "travel",
+        "neo4j",
+        "express",
+        "recommendation"
+    ],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "cors": "^2.8.5",
+        "dotenv": "^16.4.5",
+        "express": "^4.21.1",
+        "neo4j-driver": "^5.25.0"
+    },
+    "devDependencies": {
+        "nodemon": "^3.1.7"
+    }
+}

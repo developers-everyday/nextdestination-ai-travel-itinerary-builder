@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { AuthProvider } from './components/AuthContext';
 import Navbar from './components/Navbar';
 import ItineraryBuilder from './components/ItineraryDisplay';
 import CommunityPage from './components/CommunityPage';
@@ -17,6 +18,11 @@ import LoginPage from './components/LoginPage';
 import SignupPage from './components/SignupPage';
 import MyItineraries from './components/MyItineraries';
 
+// Store & Agent
+import { useItineraryStore } from './store/useItineraryStore';
+import VoiceAgent from './components/VoiceAgent';
+import SettingsModal from './components/SettingsModal';
+
 const getEmptyItinerary = (): Itinerary => ({
   destination: "My Trip",
   days: [
@@ -30,12 +36,31 @@ const getEmptyItinerary = (): Itinerary => ({
   hasDepartureFlight: true
 });
 
-const App: React.FC = () => {
-  const [itinerary, setItinerary] = useState<Itinerary | null>(null);
+const TravelApp: React.FC = () => {
+  // Use centralized store
+  const {
+    itinerary,
+    setItinerary,
+    addDay,
+    removeDay,
+    addActivity,
+    removeActivity,
+    updateActivity,
+    reorderActivity,
+    setHasArrivalFlight,
+    setHasDepartureFlight,
+    setHasHotel,
+    updateDay
+  } = useItineraryStore();
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [itinerarySource, setItinerarySource] = useState<'community' | 'model'>('community');
+
+  const removeArrivalFlightWrapper = useCallback(() => setHasArrivalFlight(false), [setHasArrivalFlight]);
+  const removeDepartureFlightWrapper = useCallback(() => setHasDepartureFlight(false), [setHasDepartureFlight]);
+  const removeHotelWrapper = useCallback((dayIndex: number) => setHasHotel(dayIndex, false), [setHasHotel]);
 
   // Helper to ensure all activities have IDs
   const sanitizeItinerary = (data: Itinerary): Itinerary => {
@@ -59,263 +84,168 @@ const App: React.FC = () => {
     navigate('/planning-suggestions', { state: { destination } });
   }, [navigate]);
 
-  const handleAddDay = useCallback(() => {
-    setItinerary(prev => {
-      if (!prev) return null;
-      const newDayNum = prev.days.length + 1;
-      return {
-        ...prev,
-        days: [
-          ...prev.days,
-          {
-            day: newDayNum,
-            theme: "Free Day",
-            activities: []
-          }
-        ]
-      };
-    });
-  }, []);
-
-  const handleRemoveDay = useCallback((dayNum: number) => {
-    setItinerary(prev => {
-      if (!prev) return null;
-      if (prev.days.length <= 1) return prev; // Prevent deleting the last day
-
-      const newDays = prev.days
-        .filter(d => d.day !== dayNum)
-        .map((d, index) => ({
-          ...d,
-          day: index + 1 // Re-index days
-        }));
-
-      return {
-        ...prev,
-        days: newDays
-      };
-    });
-  }, []);
-
-  const handleRemoveActivity = useCallback((dayIndex: number, activityIndex: number) => {
-    setItinerary(prev => {
-      if (!prev) return null;
-      const newDays = [...prev.days];
-      const day = { ...newDays[dayIndex] };
-      const newActivities = [...day.activities];
-      newActivities.splice(activityIndex, 1);
-      day.activities = newActivities;
-      newDays[dayIndex] = day;
-      return { ...prev, days: newDays };
-    });
-  }, []);
-
-  const handleUpdateActivity = useCallback((dayIndex: number, activityIndex: number, newActivity: any) => {
-    setItinerary(prev => {
-      if (!prev) return null;
-      const newDays = [...prev.days];
-      const day = { ...newDays[dayIndex] };
-      const newActivities = [...day.activities];
-      newActivities[activityIndex] = { ...newActivities[activityIndex], ...newActivity };
-      day.activities = newActivities;
-      newDays[dayIndex] = day;
-      return { ...prev, days: newDays };
-    });
-  }, []);
-
-  const handleRemoveArrivalFlight = useCallback(() => {
-    setItinerary(prev => {
-      if (!prev) return null;
-      return { ...prev, hasArrivalFlight: false };
-    });
-  }, []);
-
-  const handleRemoveDepartureFlight = useCallback(() => {
-    setItinerary(prev => {
-      if (!prev) return null;
-      return { ...prev, hasDepartureFlight: false };
-    });
-  }, []);
-
-  const handleRemoveHotel = useCallback((dayIndex: number) => {
-    setItinerary(prev => {
-      if (!prev) return null;
-      const newDays = [...prev.days];
-      newDays[dayIndex] = { ...newDays[dayIndex], hasHotel: false };
-      return { ...prev, days: newDays };
-    });
-  }, []);
-
-  const handleReorderActivity = useCallback((dayIndex: number, oldIndex: number, newIndex: number) => {
-    setItinerary(prev => {
-      if (!prev) return null;
-      const newDays = [...prev.days];
-      const day = { ...newDays[dayIndex] };
-      const newActivities = [...day.activities];
-
-      if (newIndex < 0 || newIndex >= newActivities.length) return prev;
-
-      const [movedActivity] = newActivities.splice(oldIndex, 1);
-      newActivities.splice(newIndex, 0, movedActivity);
-
-      day.activities = newActivities;
-      newDays[dayIndex] = day;
-      return { ...prev, days: newDays };
-    });
-  }, []);
-
-  const handleUpdateDay = useCallback((dayIndex: number, newDayData: any) => {
-    setItinerary(prev => {
-      if (!prev) return null;
-      const newDays = [...prev.days];
-      newDays[dayIndex] = { ...newDays[dayIndex], ...newDayData };
-      return { ...prev, days: newDays };
-    });
-  }, []);
-
   const handleOpenDemo = useCallback(() => {
     const demoData = getDemoItinerary();
     // Navigate to builder with demo data
+    setItinerary(sanitizeItinerary(demoData as Itinerary));
     navigate('/builder', { state: { itinerary: sanitizeItinerary(demoData as Itinerary) } });
-  }, [navigate]);
+  }, [navigate, setItinerary]);
 
   return (
-    <Routes>
-      {/* Home Page Route */}
-      <Route path="/" element={
-        <div className="min-h-screen bg-white">
-          <Navbar onOpenBuilder={handleOpenDemo} />
-          <main className="pt-24">
-            <SearchHeader onSearch={handleSearchAndRedirect} />
-            <SourceToggle
-              selectedSource={itinerarySource}
-              onSelectSource={setItinerarySource}
-            />
-            <CategoryBar
-              selectedCategory={selectedCategory}
-              onSelectCategory={setSelectedCategory}
-            />
-            <ItineraryGrid
-              category={selectedCategory}
-              source={itinerarySource}
-            />
+    <AuthProvider>
+      <VoiceAgent />
+      <SettingsModal />
+      <Routes>
+        {/* Home Page Route */}
+        <Route path="/" element={
+          <div className="min-h-screen bg-white">
+            <Navbar onOpenBuilder={handleOpenDemo} />
+            <main className="pt-24">
+              <SearchHeader onSearch={handleSearchAndRedirect} />
+              <SourceToggle
+                selectedSource={itinerarySource}
+                onSelectSource={setItinerarySource}
+              />
+              <CategoryBar
+                selectedCategory={selectedCategory}
+                onSelectCategory={setSelectedCategory}
+              />
+              <ItineraryGrid
+                category={selectedCategory}
+                source={itinerarySource}
+              />
 
-            {/* Dynamic AI Loading Overlay */}
-            {isLoading && (
-              <div className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center p-6 text-center animate-fade-in">
-                <div className="w-24 h-24 border-[10px] border-indigo-50 border-t-indigo-600 rounded-full animate-spin mb-10"></div>
-                <h2 className="text-5xl font-black text-slate-900 tracking-tight mb-4">Initializing Your Journey...</h2>
-                <p className="text-xl text-slate-500 font-semibold max-w-lg">Our AI is synchronizing global travel data and optimizing your personal route.</p>
-              </div>
-            )}
-
-            {error && (
-              <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] max-w-md w-full px-6">
-                <div className="bg-red-50 border border-red-100 p-6 rounded-[2rem] text-center shadow-2xl animate-bounce">
-                  <p className="text-red-900 font-bold text-lg mb-1">System Error</p>
-                  <p className="text-red-700 font-medium text-sm">{error}</p>
-                  <button onClick={() => setError(null)} className="mt-4 text-xs font-black text-red-900 uppercase tracking-widest border-b-2 border-red-200 hover:border-red-900 transition-all">Dismiss</button>
+              {/* Dynamic AI Loading Overlay */}
+              {isLoading && (
+                <div className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center p-6 text-center animate-fade-in">
+                  <div className="w-24 h-24 border-[10px] border-indigo-50 border-t-indigo-600 rounded-full animate-spin mb-10"></div>
+                  <h2 className="text-5xl font-black text-slate-900 tracking-tight mb-4">Initializing Your Journey...</h2>
+                  <p className="text-xl text-slate-500 font-semibold max-w-lg">Our AI is synchronizing global travel data and optimizing your personal route.</p>
                 </div>
-              </div>
-            )}
+              )}
 
-            <footer className="bg-slate-50 py-12 border-t border-slate-200 mt-12 mb-20 md:mb-0">
-              <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-                <div className="md:col-span-2">
-                  <div className="flex items-center gap-2 mb-6">
-                    <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-lg shadow-indigo-100">N</div>
-                    <span className="font-black text-xl text-slate-900 tracking-tighter">NextDestination<span className="text-indigo-600">.ai</span></span>
+              {error && (
+                <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] max-w-md w-full px-6">
+                  <div className="bg-red-50 border border-red-100 p-6 rounded-[2rem] text-center shadow-2xl animate-bounce">
+                    <p className="text-red-900 font-bold text-lg mb-1">System Error</p>
+                    <p className="text-red-700 font-medium text-sm">{error}</p>
+                    <button onClick={() => setError(null)} className="mt-4 text-xs font-black text-red-900 uppercase tracking-widest border-b-2 border-red-200 hover:border-red-900 transition-all">Dismiss</button>
                   </div>
-                  <p className="text-slate-500 font-medium text-sm leading-relaxed max-w-sm">
-                    Discover the world's most amazing adventures, curated by travelers and optimized by AI.
-                  </p>
                 </div>
-                <div>
-                  <h4 className="font-bold text-slate-900 mb-4 text-sm">Support</h4>
-                  <ul className="space-y-3 text-slate-500 text-sm">
-                    <li><a href="/how-it-works" className="hover:text-indigo-600 transition-colors">How it works</a></li>
-                    <li><a href="/contact" className="hover:text-indigo-600 transition-colors">Contact</a></li>
-                    <li><a href="/sitemap" className="hover:text-indigo-600 transition-colors">Site Map</a></li>
-                  </ul>
+              )}
+
+              <footer className="bg-slate-50 py-12 border-t border-slate-200 mt-12 mb-20 md:mb-0">
+                {/* Footer content unchanged */}
+                <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+                  <div className="md:col-span-2">
+                    <div className="flex items-center gap-2 mb-6">
+                      <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-lg shadow-indigo-100">N</div>
+                      <span className="font-black text-xl text-slate-900 tracking-tighter">NextDestination<span className="text-indigo-600">.ai</span></span>
+                    </div>
+                    <p className="text-slate-500 font-medium text-sm leading-relaxed max-w-sm">
+                      Discover the world's most amazing adventures, curated by travelers and optimized by AI.
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 mb-4 text-sm">Support</h4>
+                    <ul className="space-y-3 text-slate-500 text-sm">
+                      <li><a href="/how-it-works" className="hover:text-indigo-600 transition-colors">How it works</a></li>
+                      <li><a href="/contact" className="hover:text-indigo-600 transition-colors">Contact</a></li>
+                      <li><a href="/sitemap" className="hover:text-indigo-600 transition-colors">Site Map</a></li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 mb-4 text-sm">Legal</h4>
+                    <ul className="space-y-3 text-slate-500 text-sm">
+                      <li><a href="/terms" className="hover:text-indigo-600 transition-colors">Terms</a></li>
+                      <li><a href="/privacy" className="hover:text-indigo-600 transition-colors">Privacy</a></li>
+                    </ul>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="font-bold text-slate-900 mb-4 text-sm">Legal</h4>
-                  <ul className="space-y-3 text-slate-500 text-sm">
-                    <li><a href="/terms" className="hover:text-indigo-600 transition-colors">Terms</a></li>
-                    <li><a href="/privacy" className="hover:text-indigo-600 transition-colors">Privacy</a></li>
-                  </ul>
+                <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4 pt-8 border-t border-slate-200">
+                  <div className="text-slate-400 font-medium text-xs">
+                    © 2025 NextDestination Technologies.
+                  </div>
                 </div>
-              </div>
-              <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4 pt-8 border-t border-slate-200">
-                <div className="text-slate-400 font-medium text-xs">
-                  © 2025 NextDestination Technologies.
+              </footer>
+            </main>
+          </div>
+        } />
+
+        {/* Community Page Route */}
+        <Route path="/community" element={<CommunityPage />} />
+
+        {/* Planning Suggestions Route */}
+        <Route path="/planning-suggestions" element={<PlanningSuggestions />} />
+
+        {/* Login Page Route */}
+        <Route path="/login" element={<LoginPage />} />
+
+        {/* Signup Page Route */}
+        <Route path="/signup" element={<SignupPage />} />
+
+        {/* Saved Trips Route */}
+        <Route path="/saved-trips" element={<MyItineraries />} />
+
+        {/* Builder Page Route */}
+        <Route path="/builder" element={
+          <div className="min-h-screen bg-slate-50 selection:bg-indigo-100">
+            <main>
+              {isLoading && (
+                <div className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center p-6 text-center animate-fade-in">
+                  <div className="w-24 h-24 border-[10px] border-indigo-50 border-t-indigo-600 rounded-full animate-spin mb-10"></div>
+                  <h2 className="text-5xl font-black text-slate-900 tracking-tight mb-4">Initializing Your Journey...</h2>
+                  <p className="text-xl text-slate-500 font-semibold max-w-lg">Our AI is synchronizing global travel data and optimizing your personal route.</p>
                 </div>
-              </div>
-            </footer>
-          </main>
-        </div>
-      } />
+              )}
 
-      {/* Community Page Route */}
-      <Route path="/community" element={<CommunityPage />} />
+              <BuilderPageContent
+                itinerary={itinerary}
+                setItinerary={setItinerary}
+                handleAddDay={addDay}
+                handleRemoveDay={removeDay}
+                handleReorderActivity={reorderActivity}
+                handleRemoveActivity={removeActivity}
+                handleUpdateActivity={updateActivity}
+                handleRemoveArrivalFlight={removeArrivalFlightWrapper}
+                handleRemoveDepartureFlight={removeDepartureFlightWrapper}
+                handleRemoveHotel={removeHotelWrapper}
+                handleUpdateDay={updateDay}
+                handleAddActivity={(dayIndex, initialData) => {
+                  const newItem = {
+                    id: Math.random().toString(36).substr(2, 9),
+                    time: "09:00",
+                    activity: "",
+                    description: "",
+                    location: "",
+                    type: "activity" as "activity",
+                    ...(initialData || {})
+                  };
+                  addActivity(dayIndex, newItem);
+                }}
+              />
 
-      {/* Planning Suggestions Route */}
-      <Route path="/planning-suggestions" element={<PlanningSuggestions />} />
-
-      {/* Login Page Route */}
-      <Route path="/login" element={<LoginPage />} />
-
-      {/* Signup Page Route */}
-      <Route path="/signup" element={<SignupPage />} />
-
-      {/* Saved Trips Route */}
-      <Route path="/saved-trips" element={<MyItineraries />} />
-
-      {/* Builder Page Route */}
-      <Route path="/builder" element={
-        <div className="min-h-screen bg-slate-50 selection:bg-indigo-100">
-          <main>
-            {isLoading && (
-              <div className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center p-6 text-center animate-fade-in">
-                <div className="w-24 h-24 border-[10px] border-indigo-50 border-t-indigo-600 rounded-full animate-spin mb-10"></div>
-                <h2 className="text-5xl font-black text-slate-900 tracking-tight mb-4">Initializing Your Journey...</h2>
-                <p className="text-xl text-slate-500 font-semibold max-w-lg">Our AI is synchronizing global travel data and optimizing your personal route.</p>
-              </div>
-            )}
-
-            <BuilderPageContent
-              itinerary={itinerary}
-              setItinerary={setItinerary}
-              handleAddDay={handleAddDay}
-              handleRemoveDay={handleRemoveDay}
-              handleReorderActivity={handleReorderActivity}
-              handleRemoveActivity={handleRemoveActivity}
-              handleUpdateActivity={handleUpdateActivity}
-              handleRemoveArrivalFlight={handleRemoveArrivalFlight}
-              handleRemoveDepartureFlight={handleRemoveDepartureFlight}
-              handleRemoveHotel={handleRemoveHotel}
-              handleUpdateDay={handleUpdateDay}
-            />
-
-            {error && (
-              <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] max-w-md w-full px-6">
-                <div className="bg-red-50 border border-red-100 p-6 rounded-[2rem] text-center shadow-2xl animate-bounce">
-                  <p className="text-red-900 font-bold text-lg mb-1">System Error</p>
-                  <p className="text-red-700 font-medium text-sm">{error}</p>
-                  <button onClick={() => setError(null)} className="mt-4 text-xs font-black text-red-900 uppercase tracking-widest border-b-2 border-red-200 hover:border-red-900 transition-all">Dismiss</button>
+              {error && (
+                <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] max-w-md w-full px-6">
+                  <div className="bg-red-50 border border-red-100 p-6 rounded-[2rem] text-center shadow-2xl animate-bounce">
+                    <p className="text-red-900 font-bold text-lg mb-1">System Error</p>
+                    <p className="text-red-700 font-medium text-sm">{error}</p>
+                    <button onClick={() => setError(null)} className="mt-4 text-xs font-black text-red-900 uppercase tracking-widest border-b-2 border-red-200 hover:border-red-900 transition-all">Dismiss</button>
+                  </div>
                 </div>
-              </div>
-            )}
-          </main>
-        </div>
-      } />
-      <Route path="/how-it-works" element={<><Navbar onOpenBuilder={handleOpenDemo} /><HowItWorks /></>} />
-      <Route path="/contact" element={<><Navbar onOpenBuilder={handleOpenDemo} /><ContactUs /></>} />
-      <Route path="/sitemap" element={<><Navbar onOpenBuilder={handleOpenDemo} /><SiteMap /></>} />
-      <Route path="/terms" element={<><Navbar onOpenBuilder={handleOpenDemo} /><TermsOfUse /></>} />
-      <Route path="/privacy" element={<><Navbar onOpenBuilder={handleOpenDemo} /><PrivacyPolicy /></>} />
-      <Route path="/cookie-consent" element={<><Navbar onOpenBuilder={handleOpenDemo} /><CookieConsent /></>} />
-      <Route path="/accessibility" element={<><Navbar onOpenBuilder={handleOpenDemo} /><AccessibilityStatement /></>} />
-    </Routes>
+              )}
+            </main>
+          </div>
+        } />
+        <Route path="/how-it-works" element={<><Navbar onOpenBuilder={handleOpenDemo} /><HowItWorks /></>} />
+        <Route path="/contact" element={<><Navbar onOpenBuilder={handleOpenDemo} /><ContactUs /></>} />
+        <Route path="/sitemap" element={<><Navbar onOpenBuilder={handleOpenDemo} /><SiteMap /></>} />
+        <Route path="/terms" element={<><Navbar onOpenBuilder={handleOpenDemo} /><TermsOfUse /></>} />
+        <Route path="/privacy" element={<><Navbar onOpenBuilder={handleOpenDemo} /><PrivacyPolicy /></>} />
+        <Route path="/cookie-consent" element={<><Navbar onOpenBuilder={handleOpenDemo} /><CookieConsent /></>} />
+        <Route path="/accessibility" element={<><Navbar onOpenBuilder={handleOpenDemo} /><AccessibilityStatement /></>} />
+      </Routes>
+      ) : null;</AuthProvider >
   );
 };
 
@@ -332,6 +262,7 @@ interface BuilderPageContentProps {
   handleRemoveDepartureFlight: () => void;
   handleRemoveHotel: (dayIndex: number) => void;
   handleUpdateDay: (dayIndex: number, newDayData: any) => void;
+  handleAddActivity: (dayIndex: number, initialData?: any) => void;
 }
 
 const BuilderPageContent: React.FC<BuilderPageContentProps> = ({
@@ -345,7 +276,8 @@ const BuilderPageContent: React.FC<BuilderPageContentProps> = ({
   handleRemoveArrivalFlight,
   handleRemoveDepartureFlight,
   handleRemoveHotel,
-  handleUpdateDay
+  handleUpdateDay,
+  handleAddActivity
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -439,27 +371,7 @@ const BuilderPageContent: React.FC<BuilderPageContentProps> = ({
     <ItineraryBuilder
       data={itinerary}
       onBackToHome={() => navigate('/')}
-      onAddActivity={(dayIndex, initialData) => {
-        setItinerary(prev => {
-          if (!prev) return null;
-          const newDays = [...prev.days];
-          const day = { ...newDays[dayIndex] };
-          day.activities = [
-            ...day.activities,
-            {
-              id: Math.random().toString(36).substr(2, 9),
-              time: "09:00",
-              activity: "",
-              description: "",
-              location: "",
-              type: "activity",
-              ...(initialData || {}) // Merge initial data if provided
-            }
-          ];
-          newDays[dayIndex] = day;
-          return { ...prev, days: newDays };
-        });
-      }}
+      onAddActivity={handleAddActivity}
       onAddDay={handleAddDay}
       onRemoveDay={handleRemoveDay}
       onReorderActivity={handleReorderActivity}
@@ -474,4 +386,4 @@ const BuilderPageContent: React.FC<BuilderPageContentProps> = ({
   ) : null;
 };
 
-export default App;
+export default TravelApp;
