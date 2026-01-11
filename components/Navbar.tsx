@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -16,6 +15,7 @@ const Navbar: React.FC<Props> = ({ onOpenBuilder }) => {
         </Link>
 
         <div className="hidden md:flex items-center gap-8 font-medium text-slate-600">
+          <Link to="/saved-trips" className="hover:text-indigo-600 transition-colors">Saved Trips</Link>
           <Link to="/builder" className="hover:text-indigo-600 transition-colors">Itinerary Builder</Link>
         </div>
 

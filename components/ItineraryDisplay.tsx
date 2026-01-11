@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   DndContext,
   closestCenter,
@@ -17,6 +18,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Itinerary, ItineraryItem } from '../types';
+import { saveItinerary } from '../services/localStorageService';
 import FlightSearchPanel from './FlightSearchPanel';
 import FlightDetailsPanel from './FlightDetailsPanel';
 
@@ -36,6 +38,7 @@ interface Props {
   onRemoveDepartureFlight: () => void;
   onRemoveHotel: (dayIndex: number) => void;
   onUpdateDay: (dayIndex: number, data: any) => void;
+  onItineraryChange?: (itinerary: Itinerary) => void;
 }
 
 interface SortableItemProps {
@@ -263,13 +266,37 @@ const ItineraryBuilder: React.FC<Props> = ({
   onRemoveArrivalFlight,
   onRemoveDepartureFlight,
   onRemoveHotel,
-  onUpdateDay
+  onUpdateDay,
+  onItineraryChange
 }) => {
+  const navigate = useNavigate();
   // In Component Props
   const [activeDay, setActiveDay] = useState(1);
   const [rightPanelMode, setRightPanelMode] = useState<'MAP' | 'FLIGHT_SEARCH' | 'ACTIVITY_SEARCH' | 'FLIGHT_DETAILS' | 'HOTEL_DETAILS'>('ACTIVITY_SEARCH');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+
+  const handleSaveTrip = () => {
+    setSaveStatus('saving');
+    try {
+      // Create a default name if none exists
+      const tripName = `Trip to ${data.destination}`;
+      const saved = saveItinerary(data, tripName);
+      setSaveStatus('saved');
+
+      // Update the parent state with the new ID if it was a new save
+      if (onItineraryChange && !data.id) {
+        onItineraryChange(saved);
+      }
+
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    } catch (e) {
+      console.error("Failed to save", e);
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    }
+  };
 
   const [searchData, setSearchData] = useState<any>(null);
 
@@ -415,6 +442,41 @@ const ItineraryBuilder: React.FC<Props> = ({
           }
         }}>
           <button
+            onClick={handleSaveTrip}
+            disabled={saveStatus === 'saving'}
+            className={`
+              flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all
+              ${saveStatus === 'saved'
+                ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md hover:shadow-lg shadow-indigo-200'}
+            `}
+          >
+            {saveStatus === 'saving' ? (
+              <>
+                <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Saving...</span>
+              </>
+            ) : saveStatus === 'saved' ? (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                <span>Saved</span>
+              </>
+            ) : (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                </svg>
+                <span>Save Trip</span>
+              </>
+            )}
+          </button>
+
+          <button
             onClick={() => setIsProfileOpen(!isProfileOpen)}
             className="flex items-center gap-2 border border-slate-200 rounded-full p-1 pl-3 hover:shadow-md transition-shadow bg-white"
           >
@@ -442,7 +504,9 @@ const ItineraryBuilder: React.FC<Props> = ({
                   </svg>
                   Profile
                 </button>
-                <button className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition-colors flex items-center gap-2">
+                <button
+                  onClick={() => navigate('/saved-trips')}
+                  className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition-colors flex items-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                   </svg>

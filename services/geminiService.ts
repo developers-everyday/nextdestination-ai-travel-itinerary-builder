@@ -1,5 +1,6 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
+import { GEMINI_CONFIG } from "./geminiConfig";
 
 if (!process.env.API_KEY) {
   console.error("API_KEY is missing. Please set GEMINI_API_KEY in your .env file.");
@@ -9,48 +10,12 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 
 export const generateQuickItinerary = async (destination: string, days: number = 3, selectedInterests: string[] = []) => {
   try {
+    const config = GEMINI_CONFIG.endpoints.generateItinerary;
+
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash-exp",
-      contents: `Create a detailed ${days}-day luxury travel itinerary for ${destination}. 
-      The user is interested in: ${selectedInterests.length > 0 ? selectedInterests.join(", ") : "general highlights"}.
-      Ensure these specific interests/attractions are included in the itinerary where appropriate.
-      Return the response in JSON format. 
-      For each day, provide a theme and 3-4 key activities (Morning, Afternoon, Evening).`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            destination: { type: Type.STRING },
-            days: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  day: { type: Type.INTEGER },
-                  theme: { type: Type.STRING },
-                  activities: {
-                    type: Type.ARRAY,
-                    items: {
-                      type: Type.OBJECT,
-                      properties: {
-                        time: { type: Type.STRING },
-                        activity: { type: Type.STRING },
-                        location: { type: Type.STRING },
-                        description: { type: Type.STRING },
-                        type: { type: Type.STRING, enum: ["activity", "flight", "hotel"] }
-                      },
-                      required: ["time", "activity", "location", "description"]
-                    }
-                  }
-                },
-                required: ["day", "theme", "activities"]
-              }
-            }
-          },
-          required: ["destination", "days"]
-        }
-      }
+      model: config.model,
+      contents: config.buildPrompt(destination, days, selectedInterests),
+      config: config.generationConfig
     });
 
     const data = JSON.parse(response.text);
@@ -75,11 +40,11 @@ export const generateQuickItinerary = async (destination: string, days: number =
 
 export const getDestinationAttractions = async (destination: string): Promise<string[]> => {
   try {
+    const config = GEMINI_CONFIG.endpoints.getAttractions;
+
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash-exp",
-      contents: `List 10 top specific tourist attractions, famous places, or must-do activities in ${destination}.
-      Return ONLY a raw JSON array of strings. Do not include markdown formatting or backticks.
-      Example: ["Eiffel Tower", "Louvre Museum", "Seine Cruise"]`,
+      model: config.model,
+      contents: config.buildPrompt(destination),
     });
 
     const text = response.text.replace(/```json|```/g, '').trim();

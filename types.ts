@@ -19,6 +19,7 @@ export interface Itinerary {
   days: DayPlan[];
   hasArrivalFlight?: boolean;
   hasDepartureFlight?: boolean;
+  id?: string;
 }
 
 export interface Destination {

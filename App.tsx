@@ -15,6 +15,7 @@ import SourceToggle from './components/home/SourceToggle';
 import PlanningSuggestions from './components/PlanningSuggestions';
 import LoginPage from './components/LoginPage';
 import SignupPage from './components/SignupPage';
+import MyItineraries from './components/MyItineraries';
 
 const getEmptyItinerary = (): Itinerary => ({
   destination: "My Trip",
@@ -266,6 +267,9 @@ const App: React.FC = () => {
       {/* Signup Page Route */}
       <Route path="/signup" element={<SignupPage />} />
 
+      {/* Saved Trips Route */}
+      <Route path="/saved-trips" element={<MyItineraries />} />
+
       {/* Builder Page Route */}
       <Route path="/builder" element={
         <div className="min-h-screen bg-slate-50 selection:bg-indigo-100">
@@ -465,6 +469,7 @@ const BuilderPageContent: React.FC<BuilderPageContentProps> = ({
       onRemoveDepartureFlight={handleRemoveDepartureFlight}
       onRemoveHotel={handleRemoveHotel}
       onUpdateDay={handleUpdateDay}
+      onItineraryChange={(i) => setItinerary(i)}
     />
   ) : null;
 };
