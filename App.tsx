@@ -23,6 +23,10 @@ import { useItineraryStore } from './store/useItineraryStore';
 import VoiceAgent from './components/VoiceAgent';
 import SettingsModal from './components/SettingsModal';
 
+import { useJsApiLoader, Libraries } from '@react-google-maps/api';
+
+const libraries: Libraries = ['places'];
+
 const getEmptyItinerary = (): Itinerary => ({
   destination: "My Trip",
   days: [
@@ -37,6 +41,13 @@ const getEmptyItinerary = (): Itinerary => ({
 });
 
 const TravelApp: React.FC = () => {
+  // Centralized Google Maps Loader
+  const { isLoaded: isGoogleMapsLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
+    libraries
+  });
+
   // Use centralized store
   const {
     itinerary,
@@ -101,7 +112,10 @@ const TravelApp: React.FC = () => {
           <div className="min-h-screen bg-white">
             <Navbar onOpenBuilder={handleOpenDemo} />
             <main className="pt-24">
-              <SearchHeader onSearch={handleSearchAndRedirect} />
+              <SearchHeader
+                onSearch={handleSearchAndRedirect}
+                isScriptLoaded={isGoogleMapsLoaded}
+              />
               <SourceToggle
                 selectedSource={itinerarySource}
                 onSelectSource={setItinerarySource}
@@ -223,6 +237,7 @@ const TravelApp: React.FC = () => {
                   };
                   addActivity(dayIndex, newItem);
                 }}
+                isScriptLoaded={isGoogleMapsLoaded}
               />
 
               {error && (
@@ -245,7 +260,7 @@ const TravelApp: React.FC = () => {
         <Route path="/cookie-consent" element={<><Navbar onOpenBuilder={handleOpenDemo} /><CookieConsent /></>} />
         <Route path="/accessibility" element={<><Navbar onOpenBuilder={handleOpenDemo} /><AccessibilityStatement /></>} />
       </Routes>
-      ) : null;</AuthProvider >
+    </AuthProvider >
   );
 };
 
@@ -263,6 +278,7 @@ interface BuilderPageContentProps {
   handleRemoveHotel: (dayIndex: number) => void;
   handleUpdateDay: (dayIndex: number, newDayData: any) => void;
   handleAddActivity: (dayIndex: number, initialData?: any) => void;
+  isScriptLoaded: boolean;
 }
 
 const BuilderPageContent: React.FC<BuilderPageContentProps> = ({
@@ -277,7 +293,8 @@ const BuilderPageContent: React.FC<BuilderPageContentProps> = ({
   handleRemoveDepartureFlight,
   handleRemoveHotel,
   handleUpdateDay,
-  handleAddActivity
+  handleAddActivity,
+  isScriptLoaded
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -382,6 +399,7 @@ const BuilderPageContent: React.FC<BuilderPageContentProps> = ({
       onRemoveHotel={handleRemoveHotel}
       onUpdateDay={handleUpdateDay}
       onItineraryChange={(i) => setItinerary(i)}
+      isScriptLoaded={isScriptLoaded}
     />
   ) : null;
 };

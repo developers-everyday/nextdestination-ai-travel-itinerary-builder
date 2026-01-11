@@ -24,9 +24,6 @@ import FlightDetailsPanel from './FlightDetailsPanel';
 
 import ActivitySearchPanel from './ActivitySearchPanel';
 import HotelDetailsPanel from './HotelDetailsPanel';
-import { useJsApiLoader, Libraries } from '@react-google-maps/api';
-
-const libraries: Libraries = ['places'];
 
 interface Props {
   data: Itinerary;
@@ -280,7 +277,7 @@ const SortableActivityItem = ({ id, item, index, dayIndex, onRemove, onUpdate, i
   );
 };
 
-const ItineraryBuilder: React.FC<Props> = ({
+const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
   data,
   onBackToHome,
   onAddActivity,
@@ -293,19 +290,18 @@ const ItineraryBuilder: React.FC<Props> = ({
   onRemoveDepartureFlight,
   onRemoveHotel,
   onUpdateDay,
-  onItineraryChange
+  onItineraryChange,
+  isScriptLoaded
 }) => {
   const navigate = useNavigate();
   // In Component Props
   const [activeDay, setActiveDay] = useState(1);
+  const [leftPanelMode, setLeftPanelMode] = useState<'LIST' | 'Map'>('LIST');
   const [rightPanelMode, setRightPanelMode] = useState<'MAP' | 'FLIGHT_SEARCH' | 'ACTIVITY_SEARCH' | 'FLIGHT_DETAILS' | 'HOTEL_DETAILS'>('ACTIVITY_SEARCH');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
-    libraries
-  });
+  // useJsApiLoader removed - passed from parent
+  const isLoaded = isScriptLoaded;
 
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
@@ -977,6 +973,7 @@ const ItineraryBuilder: React.FC<Props> = ({
             <ActivitySearchPanel
               onSearch={handleActivitySearch}
               onAddActivity={handleAddActivityFromPanel}
+              isScriptLoaded={isLoaded}
             />
           )}
 

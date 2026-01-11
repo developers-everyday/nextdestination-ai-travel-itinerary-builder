@@ -7,9 +7,10 @@ interface ActivitySearchPanelProps {
     onSearch: (searchData: any) => void;
     onCancel?: () => void;
     onAddActivity: (activity: any) => void;
+    isScriptLoaded?: boolean;
 }
 
-const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onCancel, onAddActivity }) => {
+const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onCancel, onAddActivity, isScriptLoaded }) => {
     const { toggleVoice, isVoiceActive, voiceStatus, isMuted, toggleMute } = useItineraryStore();
     const { setSettingsOpen } = useSettingsStore();
 
@@ -18,9 +19,53 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
     const [hoveredId, setHoveredId] = useState<string | null>(null);
     const [wishlist, setWishlist] = useState<Set<string>>(new Set());
 
+    // Google Places Search State
+    const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [autocompleteService, setAutocompleteService] = useState<google.maps.places.AutocompleteService | null>(null);
+
+    React.useEffect(() => {
+        if (isScriptLoaded && !autocompleteService && window.google) {
+            setAutocompleteService(new window.google.maps.places.AutocompleteService());
+        }
+    }, [isScriptLoaded, autocompleteService]);
+
+    React.useEffect(() => {
+        if (!location || !autocompleteService) {
+            setSuggestions([]);
+            return;
+        }
+
+        if (location.length > 2) {
+            const timer = setTimeout(() => {
+                autocompleteService.getPlacePredictions(
+                    { input: location },
+                    (predictions, status) => {
+                        if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
+                            setSuggestions(predictions);
+                            setShowSuggestions(true);
+                        } else {
+                            setSuggestions([]);
+                        }
+                    }
+                );
+            }, 300);
+            return () => clearTimeout(timer);
+        }
+    }, [location, autocompleteService]);
+
+    const handleSelectSuggestion = (place: google.maps.places.AutocompletePrediction) => {
+        setLocation(place.description);
+        setSuggestions([]);
+        setShowSuggestions(false);
+        // Optionally trigger search or just update input
+        // onSearch({ location: place.description, category });
+    };
+
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         onSearch({ location, category });
+        setShowSuggestions(false);
     };
 
     const toggleWishlist = (id: string, e: React.MouseEvent) => {
@@ -39,7 +84,7 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
 
 
     // Mock suggestions with real images and coordinates
-    const suggestions = [
+    const mockSuggestions = [
         {
             id: 's1',
             text: 'Guided City Walking Tour',
@@ -107,7 +152,7 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
                             )}
                             <h2 className="text-lg font-bold text-slate-800">Search Activities</h2>
                         </div>
-                        <form onSubmit={handleSearch} className="relative">
+                        <form onSubmit={handleSearch} className="relative z-50">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
@@ -117,7 +162,26 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
                                 placeholder="Search activities..."
                                 value={location}
                                 onChange={(e) => setLocation(e.target.value)}
+                                onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                             />
+
+                            {/* Dropdown for Suggestions */}
+                            {showSuggestions && suggestions.length > 0 && (
+                                <div className="absolute top-full left-0 mt-2 w-full bg-white border border-slate-200 rounded-xl shadow-xl z-[60] overflow-hidden">
+                                    {suggestions.map((place, idx) => (
+                                        <div
+                                            key={place.place_id || idx}
+                                            className="px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 hover:text-indigo-600 cursor-pointer transition-colors font-medium border-b border-slate-50 last:border-none flex flex-col"
+                                            onClick={() => handleSelectSuggestion(place)}
+                                        >
+                                            <span className="font-bold">{place.structured_formatting.main_text}</span>
+                                            <span className="text-xs text-slate-400">{place.structured_formatting.secondary_text}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
                             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
                                 {/* Mic Icon: Mute Toggle (Only visible when Active) */}
                                 {isVoiceActive && (
@@ -170,7 +234,7 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
 
                     {/* Main List: Grid of Vertical Cards */}
                     <div className="grid grid-cols-2 gap-4">
-                        {suggestions.map(item => (
+                        {mockSuggestions.map(item => (
                             <div
                                 key={item.id}
                                 className={`group bg-white border rounded-2xl overflow-hidden hover:border-indigo-300 hover:shadow-lg transition-all cursor-pointer relative flex flex-col ${hoveredId === item.id ? 'border-indigo-400 shadow-md ring-1 ring-indigo-400/20' : 'border-neutral-200'}`}
