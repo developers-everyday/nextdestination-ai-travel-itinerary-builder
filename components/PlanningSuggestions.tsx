@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Navbar from './Navbar';
-import { generateQuickItinerary, getDestinationAttractions } from '../services/geminiService';
+import { getDestinationAttractions } from '../services/geminiService';
+import { hydrateItinerary } from '../services/hydrationService';
 import { Itinerary } from '../types';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
@@ -83,8 +84,31 @@ const PlanningSuggestions: React.FC = () => {
         setIsLoading(true);
         setError(null);
         try {
-            const rawData = await generateQuickItinerary(destination, days, selectedAttractions);
-            const sanitized = sanitizeItinerary(rawData);
+            // Call Hybrid API
+            const response = await fetch('http://localhost:3001/api/suggestions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    destination,
+                    days,
+                    interests: selectedAttractions
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Server responded with ${response.status}`);
+            }
+
+            const { data: rawData, source } = await response.json();
+            console.log(`Itinerary loaded from: ${source}`);
+
+            // Hydrate with Places Data (Photos, Ratings, Exact Coords)
+            // We can pass a map instance if we had one, but providing null/undefined will use a dummy element
+            const hydratedData = await hydrateItinerary(rawData);
+
+            const sanitized = sanitizeItinerary(hydratedData);
             navigate('/builder', { state: { itinerary: sanitized } });
         } catch (err: any) {
             console.error(err);

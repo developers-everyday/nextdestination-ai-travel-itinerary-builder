@@ -99,7 +99,7 @@ const SortableActivityItem = ({ id, item, index, dayIndex, onRemove, onUpdate, i
         };
 
         if (searchBounds) {
-          request.locationBias = searchBounds;
+          request.locationRestriction = searchBounds;
         }
 
         autocompleteService.getPlacePredictions(
@@ -370,22 +370,44 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [shareStatus, setShareStatus] = useState<'idle' | 'sharing' | 'shared' | 'error'>('idle');
   const [searchBounds, setSearchBounds] = useState<google.maps.LatLngBounds | null>(null);
+  const [placesService, setPlacesService] = useState<google.maps.places.PlacesService | null>(null);
 
-  // Geocode destination for bounds
+  // Initialize PlacesService for ItineraryBuilder
   React.useEffect(() => {
-    if (isScriptLoaded && data.destination && window.google) {
-      const geocoder = new window.google.maps.Geocoder();
-      geocoder.geocode({ address: data.destination }, (results, status) => {
-        if (status === 'OK' && results && results[0]) {
-          if (results[0].geometry.viewport) {
+    if (isScriptLoaded && window.google && !placesService) {
+      const dummy = document.createElement('div');
+      setPlacesService(new window.google.maps.places.PlacesService(dummy));
+    }
+  }, [isScriptLoaded, placesService]);
+
+  // Geocode destination for bounds (using PlacesService fallback)
+  React.useEffect(() => {
+    if (placesService && data.destination && window.google) {
+      const request = {
+        query: data.destination,
+        fields: ['geometry']
+      };
+
+      placesService.findPlaceFromQuery(request, (results, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && results && results[0]) {
+          if (results[0].geometry?.viewport) {
             setSearchBounds(results[0].geometry.viewport);
-          } else if (results[0].geometry.bounds) {
-            setSearchBounds(results[0].geometry.bounds);
+            setFocusedLocation([results[0].geometry.location.lng(), results[0].geometry.location.lat()]);
+          } else if (results[0].geometry?.location) {
+            // Fallback for point location
+            const loc = results[0].geometry.location;
+            const offset = 0.1;
+            const sw = new google.maps.LatLng(loc.lat() - offset, loc.lng() - offset);
+            const ne = new google.maps.LatLng(loc.lat() + offset, loc.lng() + offset);
+            setSearchBounds(new google.maps.LatLngBounds(sw, ne));
+            setFocusedLocation([loc.lng(), loc.lat()]);
           }
         }
       });
     }
-  }, [isScriptLoaded, data.destination]);
+  }, [placesService, data.destination]);
+
+
 
   const handleSaveTrip = () => {
     setSaveStatus('saving');
@@ -498,6 +520,20 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
   const safeDayIndex = currentDayIndex >= 0 ? currentDayIndex : 0;
   const currentDay = data.days[safeDayIndex] || data.days[0];
   const totalDays = data.days.length;
+
+  // Auto-focus on the first activity of the day when switching days
+  React.useEffect(() => {
+    if (currentDay && currentDay.activities && currentDay.activities.length > 0) {
+      const firstActivityWithCoords = currentDay.activities.find(act => act.coordinates && act.coordinates.length === 2);
+      if (firstActivityWithCoords && firstActivityWithCoords.coordinates) {
+        setFocusedLocation(firstActivityWithCoords.coordinates);
+      } else if (searchBounds) {
+        // Fallback to destination center if no specific activity coordinates
+        const center = searchBounds.getCenter();
+        setFocusedLocation([center.lng(), center.lat()]);
+      }
+    }
+  }, [activeDay, currentDay, setFocusedLocation, searchBounds]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;

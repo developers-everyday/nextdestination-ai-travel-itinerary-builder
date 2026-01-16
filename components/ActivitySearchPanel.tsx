@@ -26,21 +26,52 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
     const [autocompleteService, setAutocompleteService] = useState<google.maps.places.AutocompleteService | null>(null);
     const [searchBounds, setSearchBounds] = useState<google.maps.LatLngBounds | null>(null);
 
-    // Geocode destination to get bounds
+    const [placesService, setPlacesService] = useState<google.maps.places.PlacesService | null>(null);
+
+    // Initialize PlacesService
     React.useEffect(() => {
-        if (isScriptLoaded && destination && window.google) {
-            const geocoder = new window.google.maps.Geocoder();
-            geocoder.geocode({ address: destination }, (results, status) => {
-                if (status === 'OK' && results && results[0]) {
-                    if (results[0].geometry.viewport) {
+        if (isScriptLoaded && window.google && !placesService) {
+            const dummy = document.createElement('div');
+            setPlacesService(new window.google.maps.places.PlacesService(dummy));
+        }
+    }, [isScriptLoaded, placesService]);
+
+    // Get Destination Bounds using PlacesService (instead of Geocoder)
+    React.useEffect(() => {
+        if (placesService && destination && window.google) {
+            const request = {
+                query: destination,
+                fields: ['geometry']
+            };
+
+            placesService.findPlaceFromQuery(request, (results, status) => {
+                if (status === google.maps.places.PlacesServiceStatus.OK && results && results[0]) {
+                    // console.log("PlacesService success:", results[0]);
+                    if (results[0].geometry?.viewport) {
                         setSearchBounds(results[0].geometry.viewport);
-                    } else if (results[0].geometry.bounds) {
-                        setSearchBounds(results[0].geometry.bounds);
+                    } else if (results[0].geometry?.location) {
+                        // Create bounds from location if viewport missing (rare for regions)
+                        const bounds = new window.google.maps.LatLngBounds();
+                        bounds.extend(results[0].geometry.location);
+                        // Expand slightly? Autocomplete bias works best with bounds.
+                        // For a point, maybe just set a wide bound or rely on location?
+                        // Let's rely on viewport if possible, otherwise just use location as center?
+                        // But Autocomplete needs bounds or center. LocationBias can be LatLngBounds or Circle.
+                        // Let's create a small circle bounds around it (e.g. 50km)
+                        // Actually, let's keep it simple: strict restriction requires bounds.
+                        // If no viewport, we might skip or try to synthesize one.
+                        const loc = results[0].geometry.location;
+                        const offset = 0.1; // roughly 10km
+                        const sw = new google.maps.LatLng(loc.lat() - offset, loc.lng() - offset);
+                        const ne = new google.maps.LatLng(loc.lat() + offset, loc.lng() + offset);
+                        setSearchBounds(new google.maps.LatLngBounds(sw, ne));
                     }
+                } else {
+                    console.error("Place search failed for destination:", destination, status);
                 }
             });
         }
-    }, [isScriptLoaded, destination]);
+    }, [placesService, destination]);
 
     React.useEffect(() => {
         if (isScriptLoaded && !autocompleteService && window.google) {
@@ -60,9 +91,12 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
                     input: location,
                 };
 
-                // Apply location bias if available
+                // Apply strict location restriction if available
                 if (searchBounds) {
-                    request.locationBias = searchBounds;
+                    // console.log("Applying search bounds restriction:", searchBounds);
+                    request.locationRestriction = searchBounds;
+                } else {
+                    console.warn("No search bounds available for lookup, results may be global.");
                 }
 
                 autocompleteService.getPlacePredictions(
@@ -158,6 +192,11 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
         }
     ];
 
+    // Determine search scope status for UI
+    const searchScope = searchBounds
+        ? { label: `Searching in ${destination}`, active: true }
+        : { label: "Global Search", active: false };
+
     return (
         <div className="h-full flex flex-col bg-white overflow-hidden animate-slide-in-right">
             {/* Split Content */}
@@ -166,18 +205,24 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
                 <div className="w-full lg:w-[55%] overflow-y-auto p-4 border-r border-slate-200 shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-10 scrollbar-hide bg-slate-50 flex flex-col">
 
                     <div className="mb-2">
-                        <div className="flex items-center gap-3 mb-3">
-                            {onCancel && (
-                                <button
-                                    onClick={onCancel}
-                                    className="p-2 -ml-2 hover:bg-slate-100 rounded-full text-slate-500 hover:text-indigo-600 transition-colors"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-                                    </svg>
-                                </button>
-                            )}
-                            <h2 className="text-lg font-bold text-slate-800">Search Activities</h2>
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                                {onCancel && (
+                                    <button
+                                        onClick={onCancel}
+                                        className="p-2 -ml-2 hover:bg-slate-100 rounded-full text-slate-500 hover:text-indigo-600 transition-colors"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                                        </svg>
+                                    </button>
+                                )}
+                                <h2 className="text-lg font-bold text-slate-800">Search Activities</h2>
+                            </div>
+                            {/* Scope Badge */}
+                            <div className={`px-2 py-1 rounded-md text-[10px] font-bold border ${searchScope.active ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                                {searchScope.label}
+                            </div>
                         </div>
                         <form onSubmit={handleSearch} className="relative z-50">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">

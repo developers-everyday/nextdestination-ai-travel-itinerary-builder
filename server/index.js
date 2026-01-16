@@ -9,12 +9,14 @@ const port = process.env.PORT || 3001;
 
 import recommendationRoutes from './routes/recommendations.js';
 import itineraryRoutes from './routes/itineraries.js';
+import suggestionRoutes from './routes/suggestions.js';
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
 app.use('/api/recommend', recommendationRoutes);
 app.use('/api/itineraries', itineraryRoutes);
+app.use('/api/suggestions', suggestionRoutes);
 
 // Health Check
 app.get('/', (req, res) => {

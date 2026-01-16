@@ -9,6 +9,7 @@ import { MapPin } from 'lucide-react';
 
 const MapComponent = () => {
     const mapRef = useRef<MapRef>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
     const { itinerary, focusedLocation, zoomLevel, theme, setZoomLevel } = useItineraryStore();
     const { mapboxToken } = useSettingsStore();
     const [selectedStop, setSelectedStop] = useState<ItineraryItem | null>(null);
@@ -33,6 +34,26 @@ const MapComponent = () => {
         }
     }, [focusedLocation]);
 
+    // Add ResizeObserver to handle container size changes
+    useEffect(() => {
+        // We need to observe the container div
+        const currentContainer = mapRef.current?.getMap().getContainer();
+
+        if (!currentContainer) return;
+
+        const resizeObserver = new ResizeObserver(() => {
+            if (mapRef.current) {
+                mapRef.current.resize();
+            }
+        });
+
+        resizeObserver.observe(currentContainer);
+
+        return () => {
+            resizeObserver.disconnect();
+        };
+    }, []);
+
     if (!mapboxToken) {
         return (
             <div className="flex items-center justify-center h-full bg-slate-100 text-slate-500 p-6 text-center">
@@ -46,7 +67,7 @@ const MapComponent = () => {
     }
 
     return (
-        <div className="w-full h-full relative">
+        <div ref={containerRef} className="w-full h-full relative">
             <Map
                 ref={mapRef}
                 mapboxAccessToken={mapboxToken}
