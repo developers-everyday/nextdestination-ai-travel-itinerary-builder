@@ -17,6 +17,7 @@ import PlanningSuggestions from './components/PlanningSuggestions';
 import LoginPage from './components/LoginPage';
 import SignupPage from './components/SignupPage';
 import MyItineraries from './components/MyItineraries';
+import SharedItineraryPage from './components/SharedItineraryPage';
 
 // Store & Agent
 import { useItineraryStore } from './store/useItineraryStore';
@@ -200,6 +201,9 @@ const TravelApp: React.FC = () => {
 
         {/* Saved Trips Route */}
         <Route path="/saved-trips" element={<MyItineraries />} />
+
+        {/* Shared Itinerary Route */}
+        <Route path="/share/:id" element={<SharedItineraryPage isScriptLoaded={isGoogleMapsLoaded} />} />
 
         {/* Builder Page Route */}
         <Route path="/builder" element={

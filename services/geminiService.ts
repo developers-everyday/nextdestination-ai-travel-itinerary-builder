@@ -38,6 +38,20 @@ export const generateQuickItinerary = async (destination: string, days: number =
   }
 };
 
+export const generateEmbedding = async (text: string): Promise<number[]> => {
+  try {
+    const config = GEMINI_CONFIG.models;
+    const response = await ai.models.embedContent({
+      model: config.embedding,
+      contents: text,
+    });
+    return response.embeddings[0].values;
+  } catch (error) {
+    console.error("Error generating embedding:", error);
+    throw error;
+  }
+};
+
 export const getDestinationAttractions = async (destination: string): Promise<string[]> => {
   try {
     const config = GEMINI_CONFIG.endpoints.getAttractions;

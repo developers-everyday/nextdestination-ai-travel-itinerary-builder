@@ -8,9 +8,10 @@ interface ActivitySearchPanelProps {
     onCancel?: () => void;
     onAddActivity: (activity: any) => void;
     isScriptLoaded?: boolean;
+    destination?: string;
 }
 
-const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onCancel, onAddActivity, isScriptLoaded }) => {
+const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onCancel, onAddActivity, isScriptLoaded, destination }) => {
     const { toggleVoice, isVoiceActive, voiceStatus, isMuted, toggleMute } = useItineraryStore();
     const { setSettingsOpen } = useSettingsStore();
 
@@ -23,6 +24,23 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
     const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [autocompleteService, setAutocompleteService] = useState<google.maps.places.AutocompleteService | null>(null);
+    const [searchBounds, setSearchBounds] = useState<google.maps.LatLngBounds | null>(null);
+
+    // Geocode destination to get bounds
+    React.useEffect(() => {
+        if (isScriptLoaded && destination && window.google) {
+            const geocoder = new window.google.maps.Geocoder();
+            geocoder.geocode({ address: destination }, (results, status) => {
+                if (status === 'OK' && results && results[0]) {
+                    if (results[0].geometry.viewport) {
+                        setSearchBounds(results[0].geometry.viewport);
+                    } else if (results[0].geometry.bounds) {
+                        setSearchBounds(results[0].geometry.bounds);
+                    }
+                }
+            });
+        }
+    }, [isScriptLoaded, destination]);
 
     React.useEffect(() => {
         if (isScriptLoaded && !autocompleteService && window.google) {
@@ -38,8 +56,17 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
 
         if (location.length > 2) {
             const timer = setTimeout(() => {
+                const request: google.maps.places.AutocompletionRequest = {
+                    input: location,
+                };
+
+                // Apply location bias if available
+                if (searchBounds) {
+                    request.locationBias = searchBounds;
+                }
+
                 autocompleteService.getPlacePredictions(
-                    { input: location },
+                    request,
                     (predictions, status) => {
                         if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
                             setSuggestions(predictions);
@@ -52,7 +79,7 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
             }, 300);
             return () => clearTimeout(timer);
         }
-    }, [location, autocompleteService]);
+    }, [location, autocompleteService, searchBounds]);
 
     const handleSelectSuggestion = (place: google.maps.places.AutocompletePrediction) => {
         setLocation(place.description);

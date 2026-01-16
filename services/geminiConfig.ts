@@ -3,6 +3,7 @@ import { Type, Schema } from "@google/genai";
 export const GEMINI_CONFIG = {
     models: {
         standard: "gemini-2.0-flash-exp",
+        embedding: "text-embedding-004",
     },
     endpoints: {
         generateItinerary: {
@@ -13,6 +14,7 @@ export const GEMINI_CONFIG = {
         Ensure these specific interests/attractions are included in the itinerary where appropriate.
         Return the response in JSON format. 
         For each day, provide a theme and 3-4 key activities (Morning, Afternoon, Evening).
+        For each activity, you MUST provide the [longitude, latitude] coordinates in the 'coordinates' field.
       `,
             generationConfig: {
                 responseMimeType: "application/json",
@@ -36,9 +38,13 @@ export const GEMINI_CONFIG = {
                                                 activity: { type: Type.STRING },
                                                 location: { type: Type.STRING },
                                                 description: { type: Type.STRING },
+                                                coordinates: {
+                                                    type: Type.ARRAY,
+                                                    items: { type: Type.NUMBER }
+                                                },
                                                 type: { type: Type.STRING, enum: ["activity", "flight", "hotel"] }
                                             },
-                                            required: ["time", "activity", "location", "description"]
+                                            required: ["time", "activity", "location", "description", "coordinates"]
                                         }
                                     }
                                 },

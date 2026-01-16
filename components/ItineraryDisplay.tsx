@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import MapComponent from './Map';
+import { useItineraryStore } from '../store/useItineraryStore';
 import {
   DndContext,
   closestCenter,
@@ -24,6 +26,7 @@ import FlightDetailsPanel from './FlightDetailsPanel';
 
 import ActivitySearchPanel from './ActivitySearchPanel';
 import HotelDetailsPanel from './HotelDetailsPanel';
+import { saveItineraryToBackend } from '../services/itineraryService';
 
 interface Props {
   data: Itinerary;
@@ -48,9 +51,11 @@ interface SortableItemProps {
   dayIndex: number;
   onRemove: (dayIndex: number, activityIndex: number) => void;
   isScriptLoaded: boolean;
+  searchBounds?: google.maps.LatLngBounds | null;
+  onFocusMap: (coords: [number, number]) => void;
 }
 
-const SortableActivityItem = ({ id, item, index, dayIndex, onRemove, onUpdate, isScriptLoaded }: SortableItemProps & { onUpdate: (dayIndex: number, activityIndex: number, data: any) => void }) => {
+const SortableActivityItem = ({ id, item, index, dayIndex, onRemove, onUpdate, isScriptLoaded, searchBounds, onFocusMap }: SortableItemProps & { onUpdate: (dayIndex: number, activityIndex: number, data: any) => void }) => {
   const {
     attributes,
     listeners,
@@ -70,10 +75,14 @@ const SortableActivityItem = ({ id, item, index, dayIndex, onRemove, onUpdate, i
   const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [autocompleteService, setAutocompleteService] = useState<google.maps.places.AutocompleteService | null>(null);
+  const [placesService, setPlacesService] = useState<google.maps.places.PlacesService | null>(null);
 
   React.useEffect(() => {
     if (isScriptLoaded && !autocompleteService && window.google) {
       setAutocompleteService(new window.google.maps.places.AutocompleteService());
+      // Create a dummy element for PlacesService as it requires a map or HTMLDivElement
+      const dummyElement = document.createElement('div');
+      setPlacesService(new window.google.maps.places.PlacesService(dummyElement));
     }
   }, [isScriptLoaded, autocompleteService]);
 
@@ -85,8 +94,16 @@ const SortableActivityItem = ({ id, item, index, dayIndex, onRemove, onUpdate, i
 
     if (searchValue.length > 2) {
       const timer = setTimeout(() => {
+        const request: google.maps.places.AutocompletionRequest = {
+          input: searchValue,
+        };
+
+        if (searchBounds) {
+          request.locationBias = searchBounds;
+        }
+
         autocompleteService.getPlacePredictions(
-          { input: searchValue },
+          request,
           (predictions, status) => {
             if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
               setSuggestions(predictions);
@@ -99,7 +116,7 @@ const SortableActivityItem = ({ id, item, index, dayIndex, onRemove, onUpdate, i
       }, 300); // Debounce
       return () => clearTimeout(timer);
     }
-  }, [searchValue, autocompleteService]);
+  }, [searchValue, autocompleteService, searchBounds]);
 
   const handleSave = () => {
     onUpdate(dayIndex, index, {
@@ -133,10 +150,31 @@ const SortableActivityItem = ({ id, item, index, dayIndex, onRemove, onUpdate, i
       setEditTitle(place.structured_formatting.main_text);
     }
 
-    onUpdate(dayIndex, index, {
+    // Default update without coordinates first
+    const updates: any = {
       description: newDesc,
       activity: editTitle || place.structured_formatting.main_text
-    });
+    };
+
+    // Fetch details to get coordinates using PlacesService
+    if (placesService && place.place_id) {
+      placesService.getDetails({
+        placeId: place.place_id,
+        fields: ['geometry', 'formatted_address']
+      }, (placeDetails, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && placeDetails?.geometry?.location) {
+          updates.coordinates = [
+            placeDetails.geometry.location.lng(),
+            placeDetails.geometry.location.lat()
+          ];
+          updates.location = placeDetails.formatted_address; // Also save specific address
+        }
+        onUpdate(dayIndex, index, updates);
+      });
+    } else {
+      onUpdate(dayIndex, index, updates);
+    }
+
 
     setSearchValue("");
     setShowSuggestions(false);
@@ -232,7 +270,7 @@ const SortableActivityItem = ({ id, item, index, dayIndex, onRemove, onUpdate, i
 
               <input
                 type="text"
-                placeholder="Find location..."
+                placeholder={searchBounds ? "Search Local..." : "Search..."}
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
                 className="w-0 group-hover/search:w-40 focus:w-40 bg-transparent border-none outline-none text-xs text-slate-600 font-medium placeholder:text-slate-400 transition-all px-0 group-hover/search:px-2 focus:px-2"
@@ -267,7 +305,17 @@ const SortableActivityItem = ({ id, item, index, dayIndex, onRemove, onUpdate, i
             ) : (
               <>
                 <button onClick={() => setIsEditing(true)} className="py-1 px-3 rounded-lg border border-slate-200 font-semibold text-slate-600 text-[10px] hover:bg-slate-50 transition-all">Edit</button>
-                <button className="py-1 px-3 rounded-lg border border-slate-200 font-semibold text-slate-600 text-[10px] hover:bg-slate-50 transition-all">Map Pin</button>
+                <button
+                  onClick={() => item.coordinates && onFocusMap(item.coordinates)}
+                  disabled={!item.coordinates}
+                  className={`py-1 px-3 rounded-lg border border-slate-200 font-semibold text-[10px] transition-all flex items-center gap-1 ${item.coordinates ? 'text-indigo-600 bg-indigo-50 border-indigo-200 hover:bg-indigo-100' : 'text-slate-400 cursor-not-allowed'}`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  {item.coordinates ? 'Show on Map' : 'No Location'}
+                </button>
               </>
             )}
           </div>
@@ -303,7 +351,41 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
   // useJsApiLoader removed - passed from parent
   const isLoaded = isScriptLoaded;
 
+  const { setFocusedLocation } = useItineraryStore(); // Use global store for map focus
+
+  const handleFocusMap = (coords: [number, number]) => {
+    setFocusedLocation(coords);
+
+    // Only switch to MAP mode if we aren't in a mode that already displays the map nicely (like ACTIVITY_SEARCH)
+    // The user wants to keep the "Search Activities" panel intact when clicking "Show on Map"
+    if (rightPanelMode !== 'ACTIVITY_SEARCH') {
+      setRightPanelMode('MAP');
+    }
+
+    if (window.innerWidth < 768) {
+      setMobileView('MAP');
+    }
+  };
+
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [shareStatus, setShareStatus] = useState<'idle' | 'sharing' | 'shared' | 'error'>('idle');
+  const [searchBounds, setSearchBounds] = useState<google.maps.LatLngBounds | null>(null);
+
+  // Geocode destination for bounds
+  React.useEffect(() => {
+    if (isScriptLoaded && data.destination && window.google) {
+      const geocoder = new window.google.maps.Geocoder();
+      geocoder.geocode({ address: data.destination }, (results, status) => {
+        if (status === 'OK' && results && results[0]) {
+          if (results[0].geometry.viewport) {
+            setSearchBounds(results[0].geometry.viewport);
+          } else if (results[0].geometry.bounds) {
+            setSearchBounds(results[0].geometry.bounds);
+          }
+        }
+      });
+    }
+  }, [isScriptLoaded, data.destination]);
 
   const handleSaveTrip = () => {
     setSaveStatus('saving');
@@ -316,6 +398,7 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
       // Update the parent state with the new ID if it was a new save
       if (onItineraryChange && !data.id) {
         onItineraryChange(saved);
+        // Also update data reference locally if needed, though react handles props
       }
 
       setTimeout(() => setSaveStatus('idle'), 3000);
@@ -323,6 +406,21 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
       console.error("Failed to save", e);
       setSaveStatus('error');
       setTimeout(() => setSaveStatus('idle'), 3000);
+    }
+  };
+
+  const handleShare = async () => {
+    setShareStatus('sharing');
+    try {
+      const id = await saveItineraryToBackend(data);
+      const link = `${window.location.origin}/share/${id}`;
+      await navigator.clipboard.writeText(link);
+      setShareStatus('shared');
+      setTimeout(() => setShareStatus('idle'), 3000);
+    } catch (err) {
+      console.error("Share failed", err);
+      setShareStatus('error');
+      setTimeout(() => setShareStatus('idle'), 3000);
     }
   };
 
@@ -469,6 +567,39 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
             return () => document.removeEventListener('mousedown', handleClickOutside);
           }
         }}>
+          {/* Share Button */}
+          <button
+            onClick={handleShare}
+            disabled={shareStatus === 'sharing'}
+            className={`
+              flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all
+              ${shareStatus === 'shared'
+                ? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
+                : 'bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-50'}
+            `}
+          >
+            {shareStatus === 'sharing' ? (
+              <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            ) : shareStatus === 'shared' ? (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Link Copied
+              </>
+            ) : (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+                Share
+              </>
+            )}
+          </button>
+
           <button
             onClick={handleSaveTrip}
             disabled={saveStatus === 'saving'}
@@ -834,6 +965,8 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
                         onRemove={onRemoveActivity}
                         onUpdate={onUpdateActivity}
                         isScriptLoaded={isLoaded}
+                        searchBounds={searchBounds}
+                        onFocusMap={handleFocusMap}
                       />
                     ))}
                   </SortableContext>
@@ -951,6 +1084,11 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
           flex-1 h-full overflow-hidden
         `}>
 
+          {/* Always render Map if mode is MAP, or hidden but mounted for state preservation if desired, 
+              but typically we switch. Let's simplifiy: if MAP, show MapComponent. */}
+          {rightPanelMode === 'MAP' && (
+            <MapComponent />
+          )}
 
           {rightPanelMode === 'FLIGHT_SEARCH' && (
             <FlightSearchPanel
@@ -974,6 +1112,7 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
               onSearch={handleActivitySearch}
               onAddActivity={handleAddActivityFromPanel}
               isScriptLoaded={isLoaded}
+              destination={data.destination}
             />
           )}
 
@@ -986,7 +1125,6 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
           )}
         </div>
       </div>
-
       {/* Mobile Toggle Button (FAB) */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 md:hidden z-[70]">
         <button

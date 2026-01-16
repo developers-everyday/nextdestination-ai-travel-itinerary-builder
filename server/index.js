@@ -5,14 +5,16 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3001;
 
 import recommendationRoutes from './routes/recommendations.js';
+import itineraryRoutes from './routes/itineraries.js';
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 app.use('/api/recommend', recommendationRoutes);
+app.use('/api/itineraries', itineraryRoutes);
 
 // Health Check
 app.get('/', (req, res) => {
