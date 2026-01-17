@@ -24,9 +24,7 @@ import { useItineraryStore } from './store/useItineraryStore';
 import VoiceAgent from './components/VoiceAgent';
 import SettingsModal from './components/SettingsModal';
 
-import { useJsApiLoader, Libraries } from '@react-google-maps/api';
-
-const libraries: Libraries = ['places'];
+import { APIProvider } from '@vis.gl/react-google-maps';
 
 const getEmptyItinerary = (): Itinerary => ({
   destination: "My Trip",
@@ -42,12 +40,8 @@ const getEmptyItinerary = (): Itinerary => ({
 });
 
 const TravelApp: React.FC = () => {
-  // Centralized Google Maps Loader
-  const { isLoaded: isGoogleMapsLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
-    libraries
-  });
+  const [isGoogleMapsLoaded, setIsGoogleMapsLoaded] = useState(false);
+
 
   // Use centralized store
   const {
@@ -104,167 +98,173 @@ const TravelApp: React.FC = () => {
   }, [navigate, setItinerary]);
 
   return (
-    <AuthProvider>
-      <VoiceAgent />
-      <SettingsModal />
-      <Routes>
-        {/* Home Page Route */}
-        <Route path="/" element={
-          <div className="min-h-screen bg-white">
-            <Navbar onOpenBuilder={handleOpenDemo} />
-            <main className="pt-24">
-              <SearchHeader
-                onSearch={handleSearchAndRedirect}
-                isScriptLoaded={isGoogleMapsLoaded}
-              />
-              <SourceToggle
-                selectedSource={itinerarySource}
-                onSelectSource={setItinerarySource}
-              />
-              <CategoryBar
-                selectedCategory={selectedCategory}
-                onSelectCategory={setSelectedCategory}
-              />
-              <ItineraryGrid
-                category={selectedCategory}
-                source={itinerarySource}
-              />
+    <APIProvider
+      apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ""} // Assuming environment variable is set
+      onLoad={() => setIsGoogleMapsLoaded(true)}
+      libraries={['places']}
+    >
+      <AuthProvider>
+        <VoiceAgent />
+        <SettingsModal />
+        <Routes>
+          {/* Home Page Route */}
+          <Route path="/" element={
+            <div className="min-h-screen bg-white">
+              <Navbar onOpenBuilder={handleOpenDemo} />
+              <main className="pt-24">
+                <SearchHeader
+                  onSearch={handleSearchAndRedirect}
+                  isScriptLoaded={isGoogleMapsLoaded}
+                />
+                <SourceToggle
+                  selectedSource={itinerarySource}
+                  onSelectSource={setItinerarySource}
+                />
+                <CategoryBar
+                  selectedCategory={selectedCategory}
+                  onSelectCategory={setSelectedCategory}
+                />
+                <ItineraryGrid
+                  category={selectedCategory}
+                  source={itinerarySource}
+                />
 
-              {/* Dynamic AI Loading Overlay */}
-              {isLoading && (
-                <div className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center p-6 text-center animate-fade-in">
-                  <div className="w-24 h-24 border-[10px] border-indigo-50 border-t-indigo-600 rounded-full animate-spin mb-10"></div>
-                  <h2 className="text-5xl font-black text-slate-900 tracking-tight mb-4">Initializing Your Journey...</h2>
-                  <p className="text-xl text-slate-500 font-semibold max-w-lg">Our AI is synchronizing global travel data and optimizing your personal route.</p>
-                </div>
-              )}
-
-              {error && (
-                <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] max-w-md w-full px-6">
-                  <div className="bg-red-50 border border-red-100 p-6 rounded-[2rem] text-center shadow-2xl animate-bounce">
-                    <p className="text-red-900 font-bold text-lg mb-1">System Error</p>
-                    <p className="text-red-700 font-medium text-sm">{error}</p>
-                    <button onClick={() => setError(null)} className="mt-4 text-xs font-black text-red-900 uppercase tracking-widest border-b-2 border-red-200 hover:border-red-900 transition-all">Dismiss</button>
+                {/* Dynamic AI Loading Overlay */}
+                {isLoading && (
+                  <div className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center p-6 text-center animate-fade-in">
+                    <div className="w-24 h-24 border-[10px] border-indigo-50 border-t-indigo-600 rounded-full animate-spin mb-10"></div>
+                    <h2 className="text-5xl font-black text-slate-900 tracking-tight mb-4">Initializing Your Journey...</h2>
+                    <p className="text-xl text-slate-500 font-semibold max-w-lg">Our AI is synchronizing global travel data and optimizing your personal route.</p>
                   </div>
-                </div>
-              )}
+                )}
 
-              <footer className="bg-slate-50 py-12 border-t border-slate-200 mt-12 mb-20 md:mb-0">
-                {/* Footer content unchanged */}
-                <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-                  <div className="md:col-span-2">
-                    <div className="flex items-center gap-2 mb-6">
-                      <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-lg shadow-indigo-100">N</div>
-                      <span className="font-black text-xl text-slate-900 tracking-tighter">NextDestination<span className="text-indigo-600">.ai</span></span>
+                {error && (
+                  <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] max-w-md w-full px-6">
+                    <div className="bg-red-50 border border-red-100 p-6 rounded-[2rem] text-center shadow-2xl animate-bounce">
+                      <p className="text-red-900 font-bold text-lg mb-1">System Error</p>
+                      <p className="text-red-700 font-medium text-sm">{error}</p>
+                      <button onClick={() => setError(null)} className="mt-4 text-xs font-black text-red-900 uppercase tracking-widest border-b-2 border-red-200 hover:border-red-900 transition-all">Dismiss</button>
                     </div>
-                    <p className="text-slate-500 font-medium text-sm leading-relaxed max-w-sm">
-                      Discover the world's most amazing adventures, curated by travelers and optimized by AI.
-                    </p>
                   </div>
-                  <div>
-                    <h4 className="font-bold text-slate-900 mb-4 text-sm">Support</h4>
-                    <ul className="space-y-3 text-slate-500 text-sm">
-                      <li><a href="/how-it-works" className="hover:text-indigo-600 transition-colors">How it works</a></li>
-                      <li><a href="/contact" className="hover:text-indigo-600 transition-colors">Contact</a></li>
-                      <li><a href="/sitemap" className="hover:text-indigo-600 transition-colors">Site Map</a></li>
-                    </ul>
+                )}
+
+                <footer className="bg-slate-50 py-12 border-t border-slate-200 mt-12 mb-20 md:mb-0">
+                  {/* Footer content unchanged */}
+                  <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+                    <div className="md:col-span-2">
+                      <div className="flex items-center gap-2 mb-6">
+                        <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-lg shadow-indigo-100">N</div>
+                        <span className="font-black text-xl text-slate-900 tracking-tighter">NextDestination<span className="text-indigo-600">.ai</span></span>
+                      </div>
+                      <p className="text-slate-500 font-medium text-sm leading-relaxed max-w-sm">
+                        Discover the world's most amazing adventures, curated by travelers and optimized by AI.
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-900 mb-4 text-sm">Support</h4>
+                      <ul className="space-y-3 text-slate-500 text-sm">
+                        <li><a href="/how-it-works" className="hover:text-indigo-600 transition-colors">How it works</a></li>
+                        <li><a href="/contact" className="hover:text-indigo-600 transition-colors">Contact</a></li>
+                        <li><a href="/sitemap" className="hover:text-indigo-600 transition-colors">Site Map</a></li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-900 mb-4 text-sm">Legal</h4>
+                      <ul className="space-y-3 text-slate-500 text-sm">
+                        <li><a href="/terms" className="hover:text-indigo-600 transition-colors">Terms</a></li>
+                        <li><a href="/privacy" className="hover:text-indigo-600 transition-colors">Privacy</a></li>
+                      </ul>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-bold text-slate-900 mb-4 text-sm">Legal</h4>
-                    <ul className="space-y-3 text-slate-500 text-sm">
-                      <li><a href="/terms" className="hover:text-indigo-600 transition-colors">Terms</a></li>
-                      <li><a href="/privacy" className="hover:text-indigo-600 transition-colors">Privacy</a></li>
-                    </ul>
+                  <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4 pt-8 border-t border-slate-200">
+                    <div className="text-slate-400 font-medium text-xs">
+                      © 2025 NextDestination Technologies.
+                    </div>
                   </div>
-                </div>
-                <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4 pt-8 border-t border-slate-200">
-                  <div className="text-slate-400 font-medium text-xs">
-                    © 2025 NextDestination Technologies.
+                </footer>
+              </main>
+            </div>
+          } />
+
+          {/* Community Page Route */}
+          <Route path="/community" element={<CommunityPage />} />
+
+          {/* Planning Suggestions Route */}
+          <Route path="/planning-suggestions" element={<PlanningSuggestions />} />
+
+          {/* Login Page Route */}
+          <Route path="/login" element={<LoginPage />} />
+
+          {/* Signup Page Route */}
+          <Route path="/signup" element={<SignupPage />} />
+
+          {/* Saved Trips Route */}
+          <Route path="/saved-trips" element={<MyItineraries />} />
+
+          {/* Shared Itinerary Route */}
+          <Route path="/share/:id" element={<SharedItineraryPage isScriptLoaded={isGoogleMapsLoaded} />} />
+
+          {/* Builder Page Route */}
+          <Route path="/builder" element={
+            <div className="min-h-screen bg-slate-50 selection:bg-indigo-100">
+              <main>
+                {isLoading && (
+                  <div className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center p-6 text-center animate-fade-in">
+                    <div className="w-24 h-24 border-[10px] border-indigo-50 border-t-indigo-600 rounded-full animate-spin mb-10"></div>
+                    <h2 className="text-5xl font-black text-slate-900 tracking-tight mb-4">Initializing Your Journey...</h2>
+                    <p className="text-xl text-slate-500 font-semibold max-w-lg">Our AI is synchronizing global travel data and optimizing your personal route.</p>
                   </div>
-                </div>
-              </footer>
-            </main>
-          </div>
-        } />
+                )}
 
-        {/* Community Page Route */}
-        <Route path="/community" element={<CommunityPage />} />
+                <BuilderPageContent
+                  itinerary={itinerary}
+                  setItinerary={setItinerary}
+                  handleAddDay={addDay}
+                  handleRemoveDay={removeDay}
+                  handleReorderActivity={reorderActivity}
+                  handleRemoveActivity={removeActivity}
+                  handleUpdateActivity={updateActivity}
+                  handleRemoveArrivalFlight={removeArrivalFlightWrapper}
+                  handleRemoveDepartureFlight={removeDepartureFlightWrapper}
+                  handleRemoveHotel={removeHotelWrapper}
+                  handleUpdateDay={updateDay}
+                  handleAddActivity={(dayIndex, initialData) => {
+                    const newItem = {
+                      id: Math.random().toString(36).substr(2, 9),
+                      time: "09:00",
+                      activity: "",
+                      description: "",
+                      location: "",
+                      type: "activity" as "activity",
+                      ...(initialData || {})
+                    };
+                    addActivity(dayIndex, newItem);
+                  }}
+                  isScriptLoaded={isGoogleMapsLoaded}
+                />
 
-        {/* Planning Suggestions Route */}
-        <Route path="/planning-suggestions" element={<PlanningSuggestions />} />
-
-        {/* Login Page Route */}
-        <Route path="/login" element={<LoginPage />} />
-
-        {/* Signup Page Route */}
-        <Route path="/signup" element={<SignupPage />} />
-
-        {/* Saved Trips Route */}
-        <Route path="/saved-trips" element={<MyItineraries />} />
-
-        {/* Shared Itinerary Route */}
-        <Route path="/share/:id" element={<SharedItineraryPage isScriptLoaded={isGoogleMapsLoaded} />} />
-
-        {/* Builder Page Route */}
-        <Route path="/builder" element={
-          <div className="min-h-screen bg-slate-50 selection:bg-indigo-100">
-            <main>
-              {isLoading && (
-                <div className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center p-6 text-center animate-fade-in">
-                  <div className="w-24 h-24 border-[10px] border-indigo-50 border-t-indigo-600 rounded-full animate-spin mb-10"></div>
-                  <h2 className="text-5xl font-black text-slate-900 tracking-tight mb-4">Initializing Your Journey...</h2>
-                  <p className="text-xl text-slate-500 font-semibold max-w-lg">Our AI is synchronizing global travel data and optimizing your personal route.</p>
-                </div>
-              )}
-
-              <BuilderPageContent
-                itinerary={itinerary}
-                setItinerary={setItinerary}
-                handleAddDay={addDay}
-                handleRemoveDay={removeDay}
-                handleReorderActivity={reorderActivity}
-                handleRemoveActivity={removeActivity}
-                handleUpdateActivity={updateActivity}
-                handleRemoveArrivalFlight={removeArrivalFlightWrapper}
-                handleRemoveDepartureFlight={removeDepartureFlightWrapper}
-                handleRemoveHotel={removeHotelWrapper}
-                handleUpdateDay={updateDay}
-                handleAddActivity={(dayIndex, initialData) => {
-                  const newItem = {
-                    id: Math.random().toString(36).substr(2, 9),
-                    time: "09:00",
-                    activity: "",
-                    description: "",
-                    location: "",
-                    type: "activity" as "activity",
-                    ...(initialData || {})
-                  };
-                  addActivity(dayIndex, newItem);
-                }}
-                isScriptLoaded={isGoogleMapsLoaded}
-              />
-
-              {error && (
-                <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] max-w-md w-full px-6">
-                  <div className="bg-red-50 border border-red-100 p-6 rounded-[2rem] text-center shadow-2xl animate-bounce">
-                    <p className="text-red-900 font-bold text-lg mb-1">System Error</p>
-                    <p className="text-red-700 font-medium text-sm">{error}</p>
-                    <button onClick={() => setError(null)} className="mt-4 text-xs font-black text-red-900 uppercase tracking-widest border-b-2 border-red-200 hover:border-red-900 transition-all">Dismiss</button>
+                {error && (
+                  <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] max-w-md w-full px-6">
+                    <div className="bg-red-50 border border-red-100 p-6 rounded-[2rem] text-center shadow-2xl animate-bounce">
+                      <p className="text-red-900 font-bold text-lg mb-1">System Error</p>
+                      <p className="text-red-700 font-medium text-sm">{error}</p>
+                      <button onClick={() => setError(null)} className="mt-4 text-xs font-black text-red-900 uppercase tracking-widest border-b-2 border-red-200 hover:border-red-900 transition-all">Dismiss</button>
+                    </div>
                   </div>
-                </div>
-              )}
-            </main>
-          </div>
-        } />
-        <Route path="/how-it-works" element={<><Navbar onOpenBuilder={handleOpenDemo} /><HowItWorks /></>} />
-        <Route path="/contact" element={<><Navbar onOpenBuilder={handleOpenDemo} /><ContactUs /></>} />
-        <Route path="/sitemap" element={<><Navbar onOpenBuilder={handleOpenDemo} /><SiteMap /></>} />
-        <Route path="/terms" element={<><Navbar onOpenBuilder={handleOpenDemo} /><TermsOfUse /></>} />
-        <Route path="/privacy" element={<><Navbar onOpenBuilder={handleOpenDemo} /><PrivacyPolicy /></>} />
-        <Route path="/cookie-consent" element={<><Navbar onOpenBuilder={handleOpenDemo} /><CookieConsent /></>} />
-        <Route path="/accessibility" element={<><Navbar onOpenBuilder={handleOpenDemo} /><AccessibilityStatement /></>} />
-      </Routes>
-    </AuthProvider >
+                )}
+              </main>
+            </div>
+          } />
+          <Route path="/how-it-works" element={<><Navbar onOpenBuilder={handleOpenDemo} /><HowItWorks /></>} />
+          <Route path="/contact" element={<><Navbar onOpenBuilder={handleOpenDemo} /><ContactUs /></>} />
+          <Route path="/sitemap" element={<><Navbar onOpenBuilder={handleOpenDemo} /><SiteMap /></>} />
+          <Route path="/terms" element={<><Navbar onOpenBuilder={handleOpenDemo} /><TermsOfUse /></>} />
+          <Route path="/privacy" element={<><Navbar onOpenBuilder={handleOpenDemo} /><PrivacyPolicy /></>} />
+          <Route path="/cookie-consent" element={<><Navbar onOpenBuilder={handleOpenDemo} /><CookieConsent /></>} />
+          <Route path="/accessibility" element={<><Navbar onOpenBuilder={handleOpenDemo} /><AccessibilityStatement /></>} />
+        </Routes>
+      </AuthProvider >
+    </APIProvider>
   );
 };
 
