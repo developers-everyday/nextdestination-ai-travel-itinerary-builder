@@ -14,23 +14,37 @@ const MapComponent = () => {
     const { mapboxToken } = useSettingsStore();
     const [selectedStop, setSelectedStop] = useState<ItineraryItem | null>(null);
 
-    // Filter activities that have coordinates
+    // Filter activities that have valid coordinates
     const stops = React.useMemo(() => {
         if (!itinerary) return [];
         return itinerary.days.flatMap(day =>
             day.activities
-                .filter(act => act.coordinates)
+                .filter(act =>
+                    act.coordinates &&
+                    Array.isArray(act.coordinates) &&
+                    act.coordinates.length === 2 &&
+                    typeof act.coordinates[0] === 'number' &&
+                    typeof act.coordinates[1] === 'number' &&
+                    !isNaN(act.coordinates[0]) &&
+                    !isNaN(act.coordinates[1]) &&
+                    act.coordinates[1] >= -90 && act.coordinates[1] <= 90 // Valid latitude
+                )
                 .map(act => ({ ...act, dayIndex: day.day }))
         );
     }, [itinerary]);
 
     useEffect(() => {
         if (focusedLocation && mapRef.current) {
-            mapRef.current.flyTo({
-                center: focusedLocation,
-                zoom: 14,
-                essential: true
-            });
+            const [lng, lat] = focusedLocation;
+            if (typeof lng === 'number' && typeof lat === 'number' && !isNaN(lng) && !isNaN(lat) && lat >= -90 && lat <= 90) {
+                mapRef.current.flyTo({
+                    center: focusedLocation,
+                    zoom: 14,
+                    essential: true
+                });
+            } else {
+                console.warn("Invalid focusedLocation ignored:", focusedLocation);
+            }
         }
     }, [focusedLocation]);
 

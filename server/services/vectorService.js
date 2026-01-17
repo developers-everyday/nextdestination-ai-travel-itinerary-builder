@@ -1,4 +1,5 @@
 import { supabase } from '../db/supabase.js';
+import crypto from 'crypto';
 
 export const searchSimilarItineraries = async (embedding, threshold = 0.7, limit = 5) => {
     const { data: documents, error } = await supabase.rpc('match_itineraries', {

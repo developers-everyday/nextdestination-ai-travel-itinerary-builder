@@ -1,6 +1,10 @@
-import { GoogleGenAI, SchemaType } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.join(__dirname, '../../.env.local') });
 dotenv.config();
 
 const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
@@ -80,7 +84,24 @@ export const generateQuickItinerary = async (destination, days = 3, selectedInte
             }
         });
 
-        const data = JSON.parse(response.text());
+
+        console.log("Raw Gemini Response Keys:", Object.keys(response));
+        let textResponse;
+        if (typeof response.text === 'function') {
+            textResponse = response.text();
+        } else if (typeof response.text === 'string') {
+            textResponse = response.text;
+        } else if (response.candidates && response.candidates[0]?.content?.parts?.[0]?.text) {
+            textResponse = response.candidates[0].content.parts[0].text;
+        } else {
+            console.log("Full Response Object:", JSON.stringify(response, null, 2));
+            throw new Error("Could not extract text from Gemini response");
+        }
+
+        // Remove markdown code blocks if present
+        const cleanedText = textResponse.replace(/```json\n|\n```/g, '').trim();
+        const data = JSON.parse(cleanedText);
+
 
         // Inject IDs
         if (data.days) {
@@ -91,6 +112,11 @@ export const generateQuickItinerary = async (destination, days = 3, selectedInte
                     });
                 }
             });
+        }
+
+        console.log("Generated Itinerary Data (Sample):", JSON.stringify(data.days?.[0], null, 2));
+        if (data.days?.[0]?.activities?.[0]?.coordinates) {
+            console.log("First Activity Coords:", data.days[0].activities[0].coordinates);
         }
 
         return data;
