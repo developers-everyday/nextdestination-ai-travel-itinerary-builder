@@ -34,13 +34,24 @@ const MapComponent = () => {
             if (typeof lng === 'number' && typeof lat === 'number' && !isNaN(lng) && !isNaN(lat) && lat >= -90 && lat <= 90) {
                 map.moveCamera({
                     center: { lat, lng },
-                    zoom: 14 // Use a good zoom for focused view
+                    zoom: 15 // Updated to 15 as requested (Airbnb style)
                 });
+
+                // Auto-select the stop to show InfoWindow
+                const matchingStop = stops.find(s =>
+                    s.coordinates &&
+                    Math.abs(s.coordinates[0] - lng) < 0.0001 &&
+                    Math.abs(s.coordinates[1] - lat) < 0.0001
+                );
+
+                if (matchingStop) {
+                    setSelectedStop(matchingStop);
+                }
             } else {
                 console.warn("Invalid focusedLocation ignored:", focusedLocation);
             }
         }
-    }, [focusedLocation, map]);
+    }, [focusedLocation, map, stops]);
 
     // Handle Zoom Changes (manual listener since onZoomChanged prop is also available but hook is cleaner if map instance needed)
     // Actually Map component has onZoomChanged. using that is easier.
@@ -62,19 +73,29 @@ const MapComponent = () => {
                 disableDefaultUI={false}
             >
                 {/* Markers */}
-                {stops.map((stop, index) => (
-                    <AdvancedMarker
-                        key={stop.id || index}
-                        position={{ lat: stop.coordinates![1], lng: stop.coordinates![0] }}
-                        onClick={() => setSelectedStop(stop)}
-                    >
-                        <div className="flex flex-col items-center cursor-pointer group hover:scale-110 transition-transform">
-                            <div className={`p-2 rounded-full border-2 border-white shadow-lg ${theme === 'dark' ? 'bg-[#06b6d4]' : 'bg-[#dc2626]'}`}>
-                                <MapPin className="w-5 h-5 text-white" />
+                {stops.map((stop, index) => {
+                    const isFocused = focusedLocation &&
+                        Math.abs(stop.coordinates![0] - focusedLocation[0]) < 0.0001 &&
+                        Math.abs(stop.coordinates![1] - focusedLocation[1]) < 0.0001;
+
+                    return (
+                        <AdvancedMarker
+                            key={stop.id || index}
+                            position={{ lat: stop.coordinates![1], lng: stop.coordinates![0] }}
+                            onClick={() => setSelectedStop(stop)}
+                            zIndex={isFocused ? 100 : 1}
+                        >
+                            <div className={`flex flex-col items-center cursor-pointer group transition-all duration-300 ${isFocused ? 'scale-125' : 'hover:scale-110'}`}>
+                                <div className={`p-2 rounded-full border-2 border-white shadow-lg ${isFocused
+                                    ? 'bg-indigo-600 ring-4 ring-indigo-400/30'
+                                    : (theme === 'dark' ? 'bg-[#06b6d4]' : 'bg-[#dc2626]')
+                                    }`}>
+                                    <MapPin className={`text-white ${isFocused ? 'w-6 h-6' : 'w-5 h-5'}`} />
+                                </div>
                             </div>
-                        </div>
-                    </AdvancedMarker>
-                ))}
+                        </AdvancedMarker>
+                    );
+                })}
 
                 {/* InfoWindow for Selected Marker */}
                 {selectedStop && selectedStop.coordinates && (
@@ -82,6 +103,7 @@ const MapComponent = () => {
                         position={{ lat: selectedStop.coordinates[1], lng: selectedStop.coordinates[0] }}
                         onCloseClick={() => setSelectedStop(null)}
                         maxWidth={300}
+                        pixelOffset={[0, -40]} // Move above the marker
                     >
                         <div className="flex flex-col gap-2 p-1 min-w-[200px]">
                             <h3 className="font-bold text-sm text-gray-900">{selectedStop.activity}</h3>
@@ -91,6 +113,11 @@ const MapComponent = () => {
                     </InfoWindow>
                 )}
             </Map>
+
+            {/* Dev Tool: Zoom Level Indicator */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-sm border border-slate-200 px-3 py-1.5 rounded-full shadow-lg text-xs font-mono text-slate-500 pointer-events-none z-10">
+                Zoom: {zoomLevel.toFixed(1)}
+            </div>
         </div>
     );
 };

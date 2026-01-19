@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+import { getPlaceCoordinates } from './googleMaps.js';
 dotenv.config({ path: path.join(__dirname, '../../.env.local') });
 dotenv.config();
 
@@ -117,6 +118,54 @@ export const generateQuickItinerary = async (destination, days = 3, selectedInte
         console.log("Generated Itinerary Data (Sample):", JSON.stringify(data.days?.[0], null, 2));
         if (data.days?.[0]?.activities?.[0]?.coordinates) {
             console.log("First Activity Coords:", data.days[0].activities[0].coordinates);
+        }
+
+        // Enrich with real coordinates
+        console.log("Fetching accurate coordinates from Google Places...");
+        try {
+            const coordinatePromises = [];
+            const activitiesToUpdate = [];
+
+            if (data.days) {
+                data.days.forEach(day => {
+                    if (day.activities) {
+                        day.activities.forEach(activity => {
+                            if (activity.activity && activity.location) {
+                                activitiesToUpdate.push(activity);
+                                coordinatePromises.push(
+                                    getPlaceCoordinates(activity.activity, destination)
+                                );
+                            } else if (activity.activity) {
+                                // Fallback: try using just the activity name + destination
+                                activitiesToUpdate.push(activity);
+                                coordinatePromises.push(
+                                    getPlaceCoordinates(activity.activity, destination)
+                                );
+                            }
+                        });
+                    }
+                });
+            }
+
+            const results = await Promise.all(coordinatePromises);
+
+            results.forEach((coords, index) => {
+                if (coords) {
+                    // Update if we found real coordinates
+                    // Google Maps returns {lat, lng}, Gemini format is [lng, lat] (GeoJSON like) or [lat, lng]?
+                    // Looking at the prompt: "MUST provide the [longitude, latitude] coordinates"
+                    // Wait, usually it is [lon, lat] for GeoJSON/Mapbox, but Google Maps uses {lat, lng}.
+                    // Let's verify what the frontend expects.
+                    // The prompt asked for [longitude, latitude].
+
+                    // Let's stick to what the prompt asked for: [lng, lat]
+                    activitiesToUpdate[index].coordinates = [coords.lng, coords.lat];
+                }
+            });
+            console.log("Finished updating coordinates.");
+
+        } catch (coordError) {
+            console.error("Error fetching coordinates (proceeding with Gemini estimates):", coordError);
         }
 
         return data;
