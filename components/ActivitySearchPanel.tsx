@@ -20,182 +20,136 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
     const [hoveredId, setHoveredId] = useState<string | null>(null);
     const [wishlist, setWishlist] = useState<Set<string>>(new Set());
 
-    // Google Places Search State
-    const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
+    // New State for Backend Search
+    // New State for Backend Search
+    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [suggestions, setSuggestions] = useState<any[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
     const [showSuggestions, setShowSuggestions] = useState(false);
-    const [autocompleteService, setAutocompleteService] = useState<google.maps.places.AutocompleteService | null>(null);
-    const [searchBounds, setSearchBounds] = useState<google.maps.LatLngBounds | null>(null);
 
-    const [placesService, setPlacesService] = useState<google.maps.places.PlacesService | null>(null);
-
-    // Initialize PlacesService
+    // Fetch Initial Suggestions
     React.useEffect(() => {
-        if (isScriptLoaded && window.google && !placesService) {
-            const dummy = document.createElement('div');
-            setPlacesService(new window.google.maps.places.PlacesService(dummy));
-        }
-    }, [isScriptLoaded, placesService]);
+        const fetchInitialSuggestions = async () => {
+            if (!destination) return;
 
-    // Get Destination Bounds using PlacesService (instead of Geocoder)
-    React.useEffect(() => {
-        if (placesService && destination && window.google) {
-            const request = {
-                query: destination,
-                fields: ['geometry']
-            };
+            // Clear previous results to avoid stale data while loading
+            setSearchResults([]);
 
-            placesService.findPlaceFromQuery(request, (results, status) => {
-                if (status === google.maps.places.PlacesServiceStatus.OK && results && results[0]) {
-                    // console.log("PlacesService success:", results[0]);
-                    if (results[0].geometry?.viewport) {
-                        setSearchBounds(results[0].geometry.viewport);
-                    } else if (results[0].geometry?.location) {
-                        // Create bounds from location if viewport missing (rare for regions)
-                        const bounds = new window.google.maps.LatLngBounds();
-                        bounds.extend(results[0].geometry.location);
-                        // Expand slightly? Autocomplete bias works best with bounds.
-                        // For a point, maybe just set a wide bound or rely on location?
-                        // Let's rely on viewport if possible, otherwise just use location as center?
-                        // But Autocomplete needs bounds or center. LocationBias can be LatLngBounds or Circle.
-                        // Let's create a small circle bounds around it (e.g. 50km)
-                        // Actually, let's keep it simple: strict restriction requires bounds.
-                        // If no viewport, we might skip or try to synthesize one.
-                        const loc = results[0].geometry.location;
-                        const offset = 0.1; // roughly 10km
-                        const sw = new google.maps.LatLng(loc.lat() - offset, loc.lng() - offset);
-                        const ne = new google.maps.LatLng(loc.lat() + offset, loc.lng() + offset);
-                        setSearchBounds(new google.maps.LatLngBounds(sw, ne));
+            try {
+                const response = await fetch(`http://localhost:3001/api/activities/popular?destination=${encodeURIComponent(destination)}`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.results && data.results.length > 0) {
+                        setSearchResults(data.results.map((item: any) => ({
+                            place_id: item.id || Math.random().toString(),
+                            structured_formatting: {
+                                main_text: item.name,
+                                secondary_text: item.location || item.description
+                            },
+                            ...item
+                        })));
+                    } else {
+                        setSearchResults([]);
                     }
-                } else {
-                    console.error("Place search failed for destination:", destination, status);
                 }
-            });
-        }
-    }, [placesService, destination]);
+            } catch (error) {
+                console.error("Failed to fetch initial suggestions:", error);
+                setSearchResults([]);
+            }
+        };
 
-    React.useEffect(() => {
-        if (isScriptLoaded && !autocompleteService && window.google) {
-            setAutocompleteService(new window.google.maps.places.AutocompleteService());
-        }
-    }, [isScriptLoaded, autocompleteService]);
 
+        fetchInitialSuggestions();
+    }, [destination]);
+
+    // Search Scope
+    const searchScope = destination
+        ? { label: `Searching in ${destination}`, active: true }
+        : { label: "Global Search", active: false };
+
+    // Debounced Search Effect
     React.useEffect(() => {
-        if (!location || !autocompleteService) {
-            setSuggestions([]);
+        if (!location || location.length < 3) {
+            setSearchResults([]);
+            setShowSuggestions(false);
             return;
         }
 
-        if (location.length > 2) {
-            const timer = setTimeout(() => {
-                const request: google.maps.places.AutocompletionRequest = {
-                    input: location,
-                };
+        const timer = setTimeout(async () => {
+            setIsSearching(true);
+            try {
+                const response = await fetch('http://localhost:3001/api/activities/search', { // Ensure port matches server
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        query: location,
+                        destination: destination || 'Global'
+                    })
+                });
 
-                // Apply strict location restriction if available
-                if (searchBounds) {
-                    // console.log("Applying search bounds restriction:", searchBounds);
-                    request.locationRestriction = searchBounds;
-                } else {
-                    console.warn("No search bounds available for lookup, results may be global.");
-                }
-
-                autocompleteService.getPlacePredictions(
-                    request,
-                    (predictions, status) => {
-                        if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
-                            setSuggestions(predictions);
-                            setShowSuggestions(true);
-                        } else {
-                            setSuggestions([]);
-                        }
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.results) {
+                        setSearchResults(data.results.map((item: any) => ({
+                            place_id: item.id || Math.random().toString(),
+                            structured_formatting: {
+                                main_text: item.name,
+                                secondary_text: item.location || item.description
+                            },
+                            ...item // Keep all other props
+                        })));
+                        setSuggestions(data.results.map((item: any) => ({ // Also update suggestions for the dropdown
+                            place_id: item.id || Math.random().toString(),
+                            structured_formatting: {
+                                main_text: item.name,
+                                secondary_text: item.location || item.description
+                            },
+                            ...item
+                        })));
+                        setShowSuggestions(true);
                     }
-                );
-            }, 300);
-            return () => clearTimeout(timer);
-        }
-    }, [location, autocompleteService, searchBounds]);
+                }
+            } catch (error) {
+                console.error("Search failed:", error);
+            } finally {
+                setIsSearching(false);
+            }
+        }, 800); // 800ms debounce to avoid too many LLM calls
 
-    const handleSelectSuggestion = (place: google.maps.places.AutocompletePrediction) => {
-        setLocation(place.description);
-        setSuggestions([]);
+        return () => clearTimeout(timer);
+    }, [location, destination]);
+
+    const handleSelectSuggestion = (item: any) => {
+        setLocation(item.name);
+        setSearchResults([]); // Clear search results when a suggestion is selected, or re-run search
         setShowSuggestions(false);
-        // Optionally trigger search or just update input
-        // onSearch({ location: place.description, category });
+        // You might want to auto-add or select the item here
+        // For now, let's format it to look like a suggestion for the list
+        // But wait, the list below is mockSuggestions. We should probably update the list
     };
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         onSearch({ location, category });
-        setShowSuggestions(false);
+        setShowSuggestions(false); // Hide suggestions after explicit search
     };
 
     const toggleWishlist = (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
         setWishlist(prev => {
-            const next = new Set(prev);
-            if (next.has(id)) {
-                next.delete(id);
+            const newWishlist = new Set(prev);
+            if (newWishlist.has(id)) {
+                newWishlist.delete(id);
             } else {
-                next.add(id);
+                newWishlist.add(id);
             }
-            return next;
+            return newWishlist;
         });
     };
-
-
-
-    // Mock suggestions with real images and coordinates
-    const mockSuggestions = [
-        {
-            id: 's1',
-            text: 'Guided City Walking Tour',
-            type: 'activity',
-            duration: '3h',
-            price: '$45',
-            image: 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-            rating: 4.9,
-            reviews: 128,
-            coordinates: { top: 40, left: 30 }
-        },
-        {
-            id: 's2',
-            text: 'Authentic Local Food Tasting',
-            type: 'meal',
-            duration: '2h',
-            price: '$60',
-            image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-            rating: 4.8,
-            reviews: 85,
-            coordinates: { top: 20, left: 70 }
-        },
-        {
-            id: 's3',
-            text: 'Louvre Museum Skip-the-Line',
-            type: 'activity',
-            duration: '4h',
-            price: '$25',
-            image: 'https://images.unsplash.com/photo-1544531586-fde5298cdd40?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-            rating: 4.7,
-            reviews: 210,
-            coordinates: { top: 60, left: 45 }
-        },
-        {
-            id: 's4',
-            text: 'Sunset Seine River Cruise',
-            type: 'activity',
-            duration: '1.5h',
-            price: '$35',
-            image: 'https://images.unsplash.com/photo-1506477331477-33d5d8b3dc85?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-            rating: 4.6,
-            reviews: 95,
-            coordinates: { top: 75, left: 20 }
-        }
-    ];
-
-    // Determine search scope status for UI
-    const searchScope = searchBounds
-        ? { label: `Searching in ${destination}`, active: true }
-        : { label: "Global Search", active: false };
 
     return (
         <div className="h-full flex flex-col bg-white overflow-hidden animate-slide-in-right">
@@ -255,7 +209,7 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
                             )}
 
                             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                                {/* Mic Icon: Mute Toggle (Only visible when Active) */}
+                                {/* Mic Icon */}
                                 {isVoiceActive && (
                                     <button
                                         type="button"
@@ -276,7 +230,7 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
                                     </button>
                                 )}
 
-                                {/* Robot Icon: Start/Stop Agent */}
+                                {/* Robot Icon */}
                                 <button
                                     type="button"
                                     onClick={toggleVoice}
@@ -286,7 +240,7 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
                                     <span className={`text-base ${isVoiceActive ? 'animate-pulse' : ''}`}>🤖</span>
                                 </button>
                             </div>
-                            {/* Status Tooltip for Voice Agent */}
+                            {/* Status Tooltip */}
                             {voiceStatus !== 'Idle' && (
                                 <div className="absolute top-full left-0 mt-2 w-full flex justify-center pointer-events-none">
                                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full bg-white border shadow-sm ${voiceStatus.startsWith('Error') ? 'text-red-500 border-red-200' : 'text-indigo-600 border-indigo-200'}`}>
@@ -304,67 +258,86 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
                         </div>
                     </div>
 
-                    {/* Main List: Grid of Vertical Cards */}
+                    {/* Main List */}
                     <div className="grid grid-cols-2 gap-4">
-                        {mockSuggestions.map(item => (
-                            <div
-                                key={item.id}
-                                className={`group bg-white border rounded-2xl overflow-hidden hover:border-indigo-300 hover:shadow-lg transition-all cursor-pointer relative flex flex-col ${hoveredId === item.id ? 'border-indigo-400 shadow-md ring-1 ring-indigo-400/20' : 'border-neutral-200'}`}
-                                onMouseEnter={() => setHoveredId(item.id)}
-                                onMouseLeave={() => setHoveredId(null)}
-                            >
-                                {/* Image Section */}
-                                <div className="relative aspect-[4/3] overflow-hidden">
-                                    <img src={item.image} alt={item.text} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                                    <button
-                                        onClick={(e) => toggleWishlist(item.id, e)}
-                                        className={`absolute top-2 right-2 p-1.5 rounded-full backdrop-blur-md transition-all ${wishlist.has(item.id) ? 'bg-white text-red-500 shadow-sm' : 'bg-white/30 text-white hover:bg-white hover:text-red-500'}`}
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
-                                        </svg>
-                                    </button>
-                                    <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded text-[10px] font-bold text-white">
-                                        {item.type === 'meal' ? 'Culinary' : 'Experience'}
-                                    </div>
-                                </div>
-
-                                {/* Content Section */}
-                                <div className="p-3 flex flex-col flex-1">
-                                    <div className="mb-2">
-                                        <div className="flex justify-between items-start mb-1 h-10">
-                                            <h4 className="font-bold text-slate-800 text-sm leading-tight line-clamp-2">{item.text}</h4>
-                                        </div>
-                                        <div className="flex items-center gap-1 mb-2">
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
-                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                            </svg>
-                                            <span className="text-xs font-bold text-slate-700">{item.rating}</span>
-                                            <span className="text-[10px] text-slate-400">({item.reviews})</span>
-                                        </div>
-                                        <p className="text-xs text-slate-500 line-clamp-1">{item.duration} • Guided</p>
-                                    </div>
-
-                                    <div className="mt-auto pt-2 border-t border-slate-50 flex items-end justify-between">
-                                        <div className="text-slate-900">
-                                            <span className="text-lg font-bold">{item.price}</span>
-                                        </div>
+                        {isSearching ? (
+                            <div className="col-span-2 text-center py-10 text-slate-400">Searching...</div>
+                        ) : searchResults.length > 0 ? (
+                            searchResults.map((item, idx) => (
+                                <div
+                                    key={item.id || idx}
+                                    className={`group bg-white border rounded-2xl overflow-hidden hover:border-indigo-300 hover:shadow-lg transition-all cursor-pointer relative flex flex-col ${hoveredId === item.id ? 'border-indigo-400 shadow-md ring-1 ring-indigo-400/20' : 'border-neutral-200'}`}
+                                    onMouseEnter={() => setHoveredId(item.id)}
+                                    onMouseLeave={() => setHoveredId(null)}
+                                >
+                                    {/* Image Section */}
+                                    <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
+                                        {item.metadata?.image || item.image ? (
+                                            <img src={item.metadata?.image || item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-slate-300">
+                                                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                            </div>
+                                        )}
                                         <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                onAddActivity(item);
-                                            }}
-                                            className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm active:scale-95"
+                                            onClick={(e) => toggleWishlist(item.id, e)}
+                                            className={`absolute top-2 right-2 p-1.5 rounded-full backdrop-blur-md transition-all ${wishlist.has(item.id) ? 'bg-white text-red-500 shadow-sm' : 'bg-white/30 text-white hover:bg-white hover:text-red-500'}`}
                                         >
-                                            Add
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                                            </svg>
                                         </button>
+                                        <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded text-[10px] font-bold text-white">
+                                            {item.metadata?.type || item.type || 'Activity'}
+                                        </div>
+                                    </div>
+
+                                    {/* Content Section */}
+                                    <div className="p-3 flex flex-col flex-1">
+                                        <div className="mb-2">
+                                            <div className="flex justify-between items-start mb-1 h-10">
+                                                <h4 className="font-bold text-slate-800 text-sm leading-tight line-clamp-2">{item.name}</h4>
+                                            </div>
+                                            <div className="flex items-center gap-1 mb-2">
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                </svg>
+                                                <span className="text-xs font-bold text-slate-700">{item.metadata?.rating || item.rating || '4.5'}</span>
+                                                <span className="text-[10px] text-slate-400">({item.metadata?.reviews || item.reviews || '100+'})</span>
+                                            </div>
+                                            <p className="text-xs text-slate-500 line-clamp-1">{item.metadata?.duration || item.duration || '2h'} • Guided</p>
+                                        </div>
+
+                                        <div className="mt-auto pt-2 border-t border-slate-50 flex items-end justify-between">
+                                            <div className="text-slate-900">
+                                                <span className="text-lg font-bold">{item.metadata?.price || item.price || '$30'}</span>
+                                            </div>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onAddActivity({
+                                                        activity: item.name,
+                                                        location: item.location,
+                                                        description: item.description,
+                                                        coordinates: [item.coordinates?.lng || 0, item.coordinates?.lat || 0],
+                                                        ...item
+                                                    });
+                                                }}
+                                                className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm active:scale-95"
+                                            >
+                                                Add
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
+                            ))) : (
+                            <div className="col-span-2 text-center py-10 text-slate-400">
+                                No activities found. Try searching for something!
                             </div>
-                        ))}
+                        )}
                     </div>
                     <div className="py-8 text-center text-xs text-slate-400">
-                        End of results
+                        {searchResults.length > 0 ? "End of results" : ""}
                     </div>
                 </div>
 

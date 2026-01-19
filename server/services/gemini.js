@@ -174,3 +174,64 @@ export const generateQuickItinerary = async (destination, days = 3, selectedInte
         throw error;
     }
 };
+
+export const searchActivitiesWithGemini = async (query, destination) => {
+    try {
+        const model = "gemini-2.0-flash-exp";
+        const prompt = `
+        The user is searching for: "${query}" in "${destination || 'anywhere'}".
+        Provide a list of 5-8 specific activities/places that match this search.
+        Return the response in JSON format.
+        Each item should have:
+        - name (string)
+        - description (string, short)
+        - location (string)
+        - coordinates (array [lng, lat], optional but preferred if known)
+        - price (string, estimate)
+        - rating (number, 1-5 estimate)
+        - type (string: "activity", "meal", "landmark")
+        `;
+
+        const response = await ai.models.generateContent({
+            model: model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: "ARRAY",
+                    items: {
+                        type: "OBJECT",
+                        properties: {
+                            name: { type: "STRING" },
+                            description: { type: "STRING" },
+                            location: { type: "STRING" },
+                            coordinates: { type: "ARRAY", items: { type: "NUMBER" } },
+                            price: { type: "STRING" },
+                            rating: { type: "NUMBER" },
+                            type: { type: "STRING" }
+                        },
+                        required: ["name", "description", "location", "type"]
+                    }
+                }
+            }
+        });
+
+        let textResponse;
+        if (typeof response.text === 'function') {
+            textResponse = response.text();
+        } else if (typeof response.text === 'string') {
+            textResponse = response.text;
+        } else {
+            textResponse = response.candidates[0].content.parts[0].text;
+        }
+
+        const cleanedText = textResponse.replace(/```json\n|\n```/g, '').trim();
+        const data = JSON.parse(cleanedText);
+
+        return data;
+
+    } catch (error) {
+        console.error("Gemini Search Error:", error);
+        return [];
+    }
+};

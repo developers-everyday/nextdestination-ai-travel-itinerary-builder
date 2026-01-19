@@ -69,6 +69,8 @@ const SortableActivityItem = ({ id, item, index, dayIndex, onRemove, onUpdate, i
   const [editTitle, setEditTitle] = useState(item.activity);
   const [editDesc, setEditDesc] = useState(item.description);
   const [editTime, setEditTime] = useState(item.time);
+  const [editCoordinates, setEditCoordinates] = useState<[number, number] | undefined>(item.coordinates);
+  const [editLocation, setEditLocation] = useState(item.location);
 
   // Search State
   const [searchValue, setSearchValue] = useState("");
@@ -122,7 +124,9 @@ const SortableActivityItem = ({ id, item, index, dayIndex, onRemove, onUpdate, i
     onUpdate(dayIndex, index, {
       activity: editTitle,
       description: editDesc,
-      time: editTime
+      time: editTime,
+      coordinates: editCoordinates,
+      location: editLocation
     });
     setIsEditing(false);
   };
@@ -131,6 +135,8 @@ const SortableActivityItem = ({ id, item, index, dayIndex, onRemove, onUpdate, i
     setEditTitle(item.activity);
     setEditDesc(item.description);
     setEditTime(item.time);
+    setEditCoordinates(item.coordinates);
+    setEditLocation(item.location);
     setIsEditing(false);
   };
 
@@ -163,18 +169,21 @@ const SortableActivityItem = ({ id, item, index, dayIndex, onRemove, onUpdate, i
         fields: ['geometry', 'formatted_address']
       }, (placeDetails, status) => {
         if (status === google.maps.places.PlacesServiceStatus.OK && placeDetails?.geometry?.location) {
-          updates.coordinates = [
+          const coords: [number, number] = [
             placeDetails.geometry.location.lng(),
             placeDetails.geometry.location.lat()
           ];
-          updates.location = placeDetails.formatted_address; // Also save specific address
-        }
-        onUpdate(dayIndex, index, updates);
-      });
-    } else {
-      onUpdate(dayIndex, index, updates);
-    }
+          const loc = placeDetails.formatted_address || updates.location;
 
+          setEditCoordinates(coords);
+          setEditLocation(loc);
+
+          // We don't call onUpdate here for everything, just local state until save.
+          // However, if we want immediate map feedback while editing?
+          // For now, let's keep local state as the source of truth for the edit form.
+        }
+      });
+    }
 
     setSearchValue("");
     setShowSuggestions(false);
@@ -493,11 +502,15 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
   const handleAddActivityFromPanel = (activity: any) => {
     // activity object from panel: { id, text, type, duration, price, image }
     // Map to ItineraryItem format
+    // Map to ItineraryItem format
     const newItem = {
-      activity: activity.text,
-      description: `Duration: ${activity.duration}, Price: ${activity.price}`,
+      activity: activity.name || activity.activity || activity.text, // Handle different property names
+      description: activity.description || `Duration: ${activity.duration || 'N/A'}, Price: ${activity.price || 'N/A'}`,
       type: 'activity',
-      time: '10:00' // Default time for suggestion
+      time: '10:00', // Default time for suggestion
+      location: activity.location,
+      coordinates: activity.coordinates,
+      ...activity // Spread rest to keep metadata
     };
     onAddActivity(safeDayIndex, newItem);
     // setRightPanelMode('MAP'); // Optional: keep open to add more?
