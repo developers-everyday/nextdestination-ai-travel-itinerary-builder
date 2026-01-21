@@ -199,12 +199,22 @@ const SortableActivityItem = ({ id, item, index, dayIndex, onRemove, onUpdate, i
 
   return (
     <div ref={setNodeRef} style={style} className="mb-4">
-      <div className={`border rounded-xl p-5 bg-white transition-all group shadow-sm hover:shadow-md relative ${isEditing ? 'border-indigo-500 ring-4 ring-indigo-500/10' : 'border-slate-200 hover:border-indigo-300'}`}>
+      <div
+        onClick={(e) => {
+          if (!isEditing && item.coordinates) {
+            onFocusMap(item.coordinates);
+          }
+        }}
+        className={`border rounded-xl p-5 bg-white transition-all group shadow-sm hover:shadow-md relative ${isEditing ? 'border-indigo-500 ring-4 ring-indigo-500/10' : 'border-slate-200 hover:border-indigo-300'} ${!isEditing && item.coordinates ? 'cursor-pointer hover:bg-slate-50' : ''}`}
+      >
 
         {/* Delete Button (X) - Only show when not editing */}
         {!isEditing && (
           <button
-            onClick={() => onRemove(dayIndex, index)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove(dayIndex, index);
+            }}
             className="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 z-20"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -313,9 +323,15 @@ const SortableActivityItem = ({ id, item, index, dayIndex, onRemove, onUpdate, i
               </>
             ) : (
               <>
-                <button onClick={() => setIsEditing(true)} className="py-1 px-3 rounded-lg border border-slate-200 font-semibold text-slate-600 text-[10px] hover:bg-slate-50 transition-all">Edit</button>
+                <button onClick={(e) => {
+                  e.stopPropagation();
+                  setIsEditing(true);
+                }} className="py-1 px-3 rounded-lg border border-slate-200 font-semibold text-slate-600 text-[10px] hover:bg-slate-50 transition-all">Edit</button>
                 <button
-                  onClick={() => item.coordinates && onFocusMap(item.coordinates)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    item.coordinates && onFocusMap(item.coordinates);
+                  }}
                   disabled={!item.coordinates}
                   className={`py-1 px-3 rounded-lg border border-slate-200 font-semibold text-[10px] transition-all flex items-center gap-1 ${item.coordinates ? 'text-indigo-600 bg-indigo-50 border-indigo-200 hover:bg-indigo-100' : 'text-slate-400 cursor-not-allowed'}`}
                 >

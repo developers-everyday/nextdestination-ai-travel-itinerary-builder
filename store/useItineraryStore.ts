@@ -5,12 +5,14 @@ import { Itinerary, DayPlan, ItineraryItem } from '../types';
 interface ItineraryState {
     itinerary: Itinerary | null;
     focusedLocation: [number, number] | null; // [lng, lat]
+    focusedPlace: any | null; // Detailed place info for preview
     zoomLevel: number;
     theme: 'light' | 'dark';
 
     // Actions
     setItinerary: (itinerary: Itinerary | null) => void;
     setFocusedLocation: (location: [number, number] | null) => void;
+    setFocusedPlace: (place: any | null) => void;
     setZoomLevel: (zoom: number) => void;
     setTheme: (theme: 'light' | 'dark') => void;
 
@@ -52,11 +54,13 @@ interface ItineraryState {
 export const useItineraryStore = create<ItineraryState>((set, get) => ({
     itinerary: null,
     focusedLocation: null,
+    focusedPlace: null,
     zoomLevel: 12,
     theme: 'light',
 
     setItinerary: (itinerary) => set({ itinerary }),
     setFocusedLocation: (location) => set({ focusedLocation: location }),
+    setFocusedPlace: (place) => set({ focusedPlace: place }),
     setZoomLevel: (zoom) => set({ zoomLevel: zoom }),
     setTheme: (theme) => set({ theme }),
 

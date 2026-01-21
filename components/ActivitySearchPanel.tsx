@@ -13,7 +13,7 @@ interface ActivitySearchPanelProps {
 }
 
 const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onCancel, onAddActivity, isScriptLoaded, destination, activeDay }) => {
-    const { toggleVoice, isVoiceActive, voiceStatus, isMuted, toggleMute } = useItineraryStore();
+    const { toggleVoice, isVoiceActive, voiceStatus, isMuted, toggleMute, setFocusedLocation, setFocusedPlace } = useItineraryStore();
     const { setSettingsOpen } = useSettingsStore();
 
     const [location, setLocation] = useState('');
@@ -269,6 +269,14 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
                                     className={`group bg-white border rounded-2xl overflow-hidden hover:border-indigo-300 hover:shadow-lg transition-all cursor-pointer relative flex flex-col ${hoveredId === item.id ? 'border-indigo-400 shadow-md ring-1 ring-indigo-400/20' : 'border-neutral-200'}`}
                                     onMouseEnter={() => setHoveredId(item.id)}
                                     onMouseLeave={() => setHoveredId(null)}
+                                    onClick={() => {
+                                        const lat = item.coordinates?.lat || item.coordinates?.[1];
+                                        const lng = item.coordinates?.lng || item.coordinates?.[0];
+                                        if (lat && lng) {
+                                            setFocusedLocation([lng, lat]);
+                                            setFocusedPlace(item);
+                                        }
+                                    }}
                                 >
                                     {/* Image Section */}
                                     <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
@@ -316,11 +324,11 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     onAddActivity({
+                                                        ...item,
                                                         activity: item.name,
                                                         location: item.location,
                                                         description: item.description,
-                                                        coordinates: [item.coordinates?.lng || 0, item.coordinates?.lat || 0],
-                                                        ...item
+                                                        coordinates: [item.coordinates?.lng || 0, item.coordinates?.lat || 0]
                                                     });
                                                 }}
                                                 className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm active:scale-95"

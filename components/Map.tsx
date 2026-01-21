@@ -7,7 +7,7 @@ import { MapPin } from 'lucide-react';
 const MapComponent = ({ activeDay, onAddActivity }: { activeDay?: number; onAddActivity?: (item: ItineraryItem) => void }) => {
     console.log("MapComponent Props:", { activeDay, onAddActivityFn: !!onAddActivity });
     const map = useMap();
-    const { itinerary, focusedLocation, zoomLevel, theme, setZoomLevel } = useItineraryStore();
+    const { itinerary, focusedLocation, focusedPlace, zoomLevel, theme, setZoomLevel } = useItineraryStore();
     const [selectedStop, setSelectedStop] = useState<ItineraryItem | null>(null);
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; latLng: any; placeId?: string } | null>(null);
 
@@ -31,6 +31,16 @@ const MapComponent = ({ activeDay, onAddActivity }: { activeDay?: number; onAddA
                 .map(act => ({ ...act, dayIndex: day.day }))
         );
     }, [itinerary]);
+
+    // Check if the focused location matches an existing stop
+    const isFocusedLocationSaved = useMemo(() => {
+        if (!focusedLocation) return false;
+        return stops.some(s =>
+            s.coordinates &&
+            Math.abs(s.coordinates[0] - focusedLocation[0]) < 0.0001 &&
+            Math.abs(s.coordinates[1] - focusedLocation[1]) < 0.0001
+        );
+    }, [focusedLocation, stops]);
 
     useEffect(() => {
         if (focusedLocation && map) {
@@ -57,6 +67,28 @@ const MapComponent = ({ activeDay, onAddActivity }: { activeDay?: number; onAddA
             }
         }
     }, [focusedLocation, map, stops]);
+
+    // Sync focusedPlace from store to local state for InfoWindow
+    useEffect(() => {
+        if (focusedPlace) {
+            // Transform store place to Google Maps Place format if needed
+            const googlePlacesFormat = {
+                name: focusedPlace.name || focusedPlace.activity,
+                formatted_address: focusedPlace.formatted_address || focusedPlace.location || focusedPlace.description,
+                geometry: {
+                    location: {
+                        lat: () => focusedPlace.coordinates?.lat || focusedPlace.coordinates?.[1] || 0,
+                        lng: () => focusedPlace.coordinates?.lng || focusedPlace.coordinates?.[0] || 0
+                    }
+                },
+                rating: focusedPlace.rating,
+                user_ratings_total: focusedPlace.user_ratings_total || focusedPlace.reviews,
+                place_id: focusedPlace.place_id || focusedPlace.id
+            };
+            setSelectedPlace(googlePlacesFormat);
+            setSelectedStop(null);
+        }
+    }, [focusedPlace]);
 
     // Handle Map Right Click (Custom Context Menu for arbitrary points)
     useEffect(() => {
