@@ -9,9 +9,10 @@ interface ActivitySearchPanelProps {
     onAddActivity: (activity: any) => void;
     isScriptLoaded?: boolean;
     destination?: string;
+    activeDay?: number;
 }
 
-const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onCancel, onAddActivity, isScriptLoaded, destination }) => {
+const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onCancel, onAddActivity, isScriptLoaded, destination, activeDay }) => {
     const { toggleVoice, isVoiceActive, voiceStatus, isMuted, toggleMute } = useItineraryStore();
     const { setSettingsOpen } = useSettingsStore();
 
@@ -20,7 +21,6 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
     const [hoveredId, setHoveredId] = useState<string | null>(null);
     const [wishlist, setWishlist] = useState<Set<string>>(new Set());
 
-    // New State for Backend Search
     // New State for Backend Search
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [suggestions, setSuggestions] = useState<any[]>([]);
@@ -343,7 +343,7 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
 
                 {/* Right Panel: Map */}
                 <div className="flex-1 bg-[#e2e8f0] relative overflow-hidden hidden lg:block h-full">
-                    <MapComponent />
+                    <MapComponent activeDay={activeDay} onAddActivity={onAddActivity} />
                 </div>
             </div>
         </div>

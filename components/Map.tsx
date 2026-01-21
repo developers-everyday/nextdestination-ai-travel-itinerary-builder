@@ -4,10 +4,14 @@ import { useItineraryStore } from '../store/useItineraryStore';
 import { ItineraryItem } from '../types';
 import { MapPin } from 'lucide-react';
 
-const MapComponent = () => {
+const MapComponent = ({ activeDay, onAddActivity }: { activeDay?: number; onAddActivity?: (item: ItineraryItem) => void }) => {
+    console.log("MapComponent Props:", { activeDay, onAddActivityFn: !!onAddActivity });
     const map = useMap();
     const { itinerary, focusedLocation, zoomLevel, theme, setZoomLevel } = useItineraryStore();
     const [selectedStop, setSelectedStop] = useState<ItineraryItem | null>(null);
+    const [contextMenu, setContextMenu] = useState<{ x: number; y: number; latLng: any; placeId?: string } | null>(null);
+
+    const [selectedPlace, setSelectedPlace] = useState<any | null>(null);
 
     // Filter activities that have valid coordinates
     const stops = useMemo(() => {
@@ -46,6 +50,7 @@ const MapComponent = () => {
 
                 if (matchingStop) {
                     setSelectedStop(matchingStop);
+                    setSelectedPlace(null); // Clear selected place if focusing on itinerary item
                 }
             } else {
                 console.warn("Invalid focusedLocation ignored:", focusedLocation);
@@ -53,14 +58,158 @@ const MapComponent = () => {
         }
     }, [focusedLocation, map, stops]);
 
-    // Handle Zoom Changes (manual listener since onZoomChanged prop is also available but hook is cleaner if map instance needed)
-    // Actually Map component has onZoomChanged. using that is easier.
+    // Handle Map Right Click (Custom Context Menu for arbitrary points)
+    useEffect(() => {
+        if (!map) return;
+
+        const listener = map.addListener('contextmenu', (e: any) => {
+            console.log("Right click event:", e);
+            if (e.latLng && e.domEvent) {
+                e.stop(); // Prevent default browser context menu
+                // For POIs, we now prefer left-click, so we might want to ignore placeId here or support both.
+                // Keeping basic coordinates functionality for right-click.
+                setContextMenu({
+                    x: e.domEvent.clientX,
+                    y: e.domEvent.clientY,
+                    latLng: e.latLng,
+                    placeId: e.placeId
+                });
+            }
+        });
+
+        // Handle Left Click on POIs
+        const clickListener = map.addListener('click', (e: any) => {
+            if (e.placeId) {
+                e.stop(); // Prevent default Google Maps InfoWindow
+                console.log("POI Clicked:", e.placeId);
+
+                if (window.google && window.google.maps) {
+                    const placesService = new google.maps.places.PlacesService(map);
+                    placesService.getDetails({
+                        placeId: e.placeId,
+                        fields: ['name', 'formatted_address', 'geometry', 'types', 'rating', 'user_ratings_total', 'photos']
+                    }, (place: any, status: any) => {
+                        if (status === google.maps.places.PlacesServiceStatus.OK && place) {
+                            setSelectedPlace(place);
+                            setSelectedStop(null); // Deselect itinerary stops
+                            setContextMenu(null); // Close context menu
+                        }
+                    });
+                }
+            } else {
+                setContextMenu(null);
+                setSelectedPlace(null); // Clear selection on map click
+            }
+        });
+
+        const dragListener = map.addListener('dragstart', () => {
+            setContextMenu(null);
+            setSelectedPlace(null); // Clear selection on map drag
+        });
+
+        return () => {
+            if (window.google && window.google.maps) {
+                google.maps.event.removeListener(listener);
+                google.maps.event.removeListener(clickListener);
+                google.maps.event.removeListener(dragListener);
+            }
+        };
+    }, [map]);
+
+    const handleAddToItinerary = () => {
+        if (!contextMenu || !onAddActivity || !activeDay) return;
+
+        if (window.google && window.google.maps) {
+            const placesService = new google.maps.places.PlacesService(map!);
+
+            if (contextMenu.placeId) {
+                // Fetch details using Place ID for better accuracy (POI name, reviews, etc.)
+                placesService.getDetails({
+                    placeId: contextMenu.placeId,
+                    fields: ['name', 'formatted_address', 'geometry', 'types', 'rating', 'user_ratings_total']
+                }, (place: any, status: any) => {
+                    if (status === google.maps.places.PlacesServiceStatus.OK && place) {
+                        const newItem: ItineraryItem = {
+                            id: Math.random().toString(36).substr(2, 9),
+                            activity: place.name || "New Location",
+                            description: place.formatted_address,
+                            location: place.formatted_address,
+                            time: "10:00",
+                            type: 'activity',
+                            coordinates: [
+                                place.geometry.location.lng(),
+                                place.geometry.location.lat()
+                            ]
+                        };
+                        onAddActivity(newItem);
+                        setContextMenu(null);
+                    } else {
+                        // Fallback to geocoder if place details fail
+                        fallbackGeocode();
+                    }
+                });
+            } else {
+                fallbackGeocode();
+            }
+        }
+    };
+
+    const handleAddPlaceToItinerary = () => {
+        if (!selectedPlace || !onAddActivity || !activeDay) return;
+        const newItem: ItineraryItem = {
+            id: Math.random().toString(36).substr(2, 9),
+            activity: selectedPlace.name || "New Location",
+            description: selectedPlace.formatted_address,
+            location: selectedPlace.formatted_address,
+            time: "10:00",
+            type: 'activity',
+            coordinates: [
+                selectedPlace.geometry.location.lng(),
+                selectedPlace.geometry.location.lat()
+            ]
+        };
+        onAddActivity(newItem);
+        setSelectedPlace(null);
+    }
+
+    const fallbackGeocode = () => {
+        if (!contextMenu || !onAddActivity) return;
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ location: contextMenu.latLng }, (results: any, status: any) => {
+            if (status === 'OK' && results && results[0]) {
+                const place = results[0];
+                const newItem: ItineraryItem = {
+                    id: Math.random().toString(36).substr(2, 9),
+                    activity: place.address_components[0]?.long_name || "New Location",
+                    description: place.formatted_address,
+                    location: place.formatted_address,
+                    time: "10:00",
+                    type: 'activity',
+                    coordinates: [contextMenu.latLng.lng(), contextMenu.latLng.lat()]
+                };
+                onAddActivity(newItem);
+            } else {
+                // Fallback if geocoding fails
+                const newItem: ItineraryItem = {
+                    id: Math.random().toString(36).substr(2, 9),
+                    activity: "Custom Location",
+                    description: `Lat: ${contextMenu.latLng.lat().toFixed(4)}, Lng: ${contextMenu.latLng.lng().toFixed(4)}`,
+                    location: `${contextMenu.latLng.lat()}, ${contextMenu.latLng.lng()}`,
+                    time: "10:00",
+                    type: 'activity',
+                    coordinates: [contextMenu.latLng.lng(), contextMenu.latLng.lat()]
+                };
+                onAddActivity(newItem);
+            }
+            setContextMenu(null);
+        });
+    };
 
     // Default Center (Paris)
     const defaultCenter = { lat: 48.8566, lng: 2.3522 };
 
     return (
-        <div className="w-full h-full relative">
+        <div className="w-full h-full relative" onContextMenu={(e) => e.preventDefault()}>
             <Map
                 defaultCenter={defaultCenter}
                 defaultZoom={zoomLevel}
@@ -97,7 +246,7 @@ const MapComponent = () => {
                     );
                 })}
 
-                {/* InfoWindow for Selected Marker */}
+                {/* InfoWindow for Selected Itinerary Item */}
                 {selectedStop && selectedStop.coordinates && (
                     <InfoWindow
                         position={{ lat: selectedStop.coordinates[1], lng: selectedStop.coordinates[0] }}
@@ -112,7 +261,70 @@ const MapComponent = () => {
                         </div>
                     </InfoWindow>
                 )}
+
+                {/* InfoWindow for Selected POI */}
+                {selectedPlace && selectedPlace.geometry && (
+                    <InfoWindow
+                        position={{ lat: selectedPlace.geometry.location.lat(), lng: selectedPlace.geometry.location.lng() }}
+                        onCloseClick={() => setSelectedPlace(null)}
+                        maxWidth={300}
+                        pixelOffset={[0, -20]}
+                    >
+                        <div className="flex flex-col gap-2 p-1 min-w-[200px]">
+                            <h3 className="font-bold text-sm text-gray-900">{selectedPlace.name}</h3>
+                            <p className="text-xs text-gray-600">{selectedPlace.formatted_address}</p>
+                            <div className="flex items-center gap-1">
+                                <span className="text-xs font-bold text-amber-500">{selectedPlace.rating || 'N/A'}</span>
+                                <span className="text-[10px] text-gray-400">({selectedPlace.user_ratings_total || 0})</span>
+                            </div>
+                            {activeDay && onAddActivity ? (
+                                <button
+                                    onClick={handleAddPlaceToItinerary}
+                                    className="mt-2 w-full py-1.5 bg-indigo-600 text-white text-xs font-bold rounded hover:bg-indigo-700 transition-colors"
+                                >
+                                    Add to Day {activeDay}
+                                </button>
+                            ) : (
+                                <div className="mt-2 text-xs text-red-500 italic">
+                                    Select a day to add this place
+                                </div>
+                            )}
+                        </div>
+                    </InfoWindow>
+                )}
             </Map>
+
+            {/* Context Menu */}
+            {contextMenu && (
+                <div
+                    className="fixed z-[9999] bg-white shadow-2xl rounded-lg border border-gray-200 py-1 min-w-[160px] animate-fade-in"
+                    style={{ left: contextMenu.x, top: contextMenu.y }}
+                >
+                    {activeDay && onAddActivity ? (
+                        <>
+                            <button
+                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 font-medium flex items-center gap-2"
+                                onClick={handleAddToItinerary}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                                Add to Day {activeDay}
+                            </button>
+                            <button
+                                className="w-full text-left px-4 py-2 text-sm text-gray-500 hover:bg-gray-50 hover:text-gray-700 font-medium"
+                                onClick={() => setContextMenu(null)}
+                            >
+                                Cancel
+                            </button>
+                        </>
+                    ) : (
+                        <div className="px-4 py-2 text-xs text-red-500">
+                            Action unavailable
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Dev Tool: Zoom Level Indicator */}
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-sm border border-slate-200 px-3 py-1.5 rounded-full shadow-lg text-xs font-mono text-slate-500 pointer-events-none z-10">

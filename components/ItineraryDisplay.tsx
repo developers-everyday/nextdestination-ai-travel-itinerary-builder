@@ -1136,7 +1136,10 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
           {/* Always render Map if mode is MAP, or hidden but mounted for state preservation if desired, 
               but typically we switch. Let's simplifiy: if MAP, show MapComponent. */}
           {rightPanelMode === 'MAP' && (
-            <MapComponent />
+            <MapComponent
+              activeDay={currentDay.day}
+              onAddActivity={(item) => onAddActivity(safeDayIndex, item)}
+            />
           )}
 
           {rightPanelMode === 'FLIGHT_SEARCH' && (
@@ -1162,6 +1165,7 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
               onAddActivity={handleAddActivityFromPanel}
               isScriptLoaded={isLoaded}
               destination={data.destination}
+              activeDay={currentDay.day}
             />
           )}
 
