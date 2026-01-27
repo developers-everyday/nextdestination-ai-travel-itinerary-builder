@@ -608,6 +608,25 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
             </svg>
           </button>
 
+          <div className="flex flex-col">
+            <h1 className="text-lg font-bold text-slate-900 leading-tight hidden md:block">
+              {data.destination ? `Trip to ${data.destination}` : 'New Trip'}
+            </h1>
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Start Date:</span>
+              <input
+                type="date"
+                value={data.startDate || ''}
+                onChange={(e) => {
+                  if (onItineraryChange) {
+                    onItineraryChange({ ...data, startDate: e.target.value });
+                  }
+                }}
+                className="text-[10px] bg-transparent border-b border-transparent hover:border-slate-300 focus:border-indigo-500 outline-none font-bold text-slate-600 transition-all w-24"
+              />
+            </div>
+          </div>
+
           <button
             onClick={onBackToHome}
             className="text-slate-500 hover:text-indigo-600 transition-colors p-2 hover:bg-slate-100 rounded-lg flex items-center gap-2 group"

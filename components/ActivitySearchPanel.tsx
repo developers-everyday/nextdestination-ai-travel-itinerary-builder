@@ -23,9 +23,7 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
 
     // New State for Backend Search
     const [searchResults, setSearchResults] = useState<any[]>([]);
-    const [suggestions, setSuggestions] = useState<any[]>([]);
     const [isSearching, setIsSearching] = useState(false);
-    const [showSuggestions, setShowSuggestions] = useState(false);
 
     // Fetch Initial Suggestions
     React.useEffect(() => {
@@ -75,7 +73,6 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
     React.useEffect(() => {
         if (!location || location.length < 3) {
             setSearchResults([]);
-            setShowSuggestions(false);
             return;
         }
 
@@ -102,15 +99,6 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
                             },
                             ...item // Keep all other props
                         })));
-                        setSuggestions(data.results.map((item: any) => ({ // Also update suggestions for the dropdown
-                            place_id: item.id || Math.random().toString(),
-                            structured_formatting: {
-                                main_text: item.name,
-                                secondary_text: item.location || item.description
-                            },
-                            ...item
-                        })));
-                        setShowSuggestions(true);
                     }
                 }
             } catch (error) {
@@ -123,19 +111,9 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
         return () => clearTimeout(timer);
     }, [location, destination]);
 
-    const handleSelectSuggestion = (item: any) => {
-        setLocation(item.name);
-        setSearchResults([]); // Clear search results when a suggestion is selected, or re-run search
-        setShowSuggestions(false);
-        // You might want to auto-add or select the item here
-        // For now, let's format it to look like a suggestion for the list
-        // But wait, the list below is mockSuggestions. We should probably update the list
-    };
-
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         onSearch({ location, category });
-        setShowSuggestions(false); // Hide suggestions after explicit search
     };
 
     const toggleWishlist = (id: string, e: React.MouseEvent) => {
@@ -200,25 +178,7 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
                                 placeholder="Search activities..."
                                 value={location}
                                 onChange={(e) => setLocation(e.target.value)}
-                                onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-                                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                             />
-
-                            {/* Dropdown for Suggestions */}
-                            {showSuggestions && suggestions.length > 0 && (
-                                <div className="absolute top-full left-0 mt-2 w-full bg-white border border-slate-200 rounded-xl shadow-xl z-[60] overflow-hidden">
-                                    {suggestions.map((place, idx) => (
-                                        <div
-                                            key={place.place_id || idx}
-                                            className="px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 hover:text-indigo-600 cursor-pointer transition-colors font-medium border-b border-slate-50 last:border-none flex flex-col"
-                                            onClick={() => handleSelectSuggestion(place)}
-                                        >
-                                            <span className="font-bold">{place.structured_formatting.main_text}</span>
-                                            <span className="text-xs text-slate-400">{place.structured_formatting.secondary_text}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
 
                             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
                                 {/* Mic Icon */}

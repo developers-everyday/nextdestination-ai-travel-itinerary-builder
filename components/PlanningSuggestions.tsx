@@ -108,7 +108,10 @@ const PlanningSuggestions: React.FC = () => {
             // We can pass a map instance if we had one, but providing null/undefined will use a dummy element
             const hydratedData = await hydrateItinerary(rawData);
 
-            const sanitized = sanitizeItinerary(hydratedData);
+            const sanitized = sanitizeItinerary({
+                ...hydratedData,
+                startDate: startDate.toISOString().split('T')[0] // Format as YYYY-MM-DD
+            });
             navigate('/builder', { state: { itinerary: sanitized } });
         } catch (err: any) {
             console.error(err);

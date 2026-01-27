@@ -45,7 +45,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
         });
-        if (error) console.error('Error logging in with Google:', error.message);
+        if (error) {
+            console.error('Error logging in with Google:', error.message);
+            if (error.message.includes('Unsupported provider')) {
+                alert('Google Login is not enabled. Please enable the Google provider in your Supabase Dashboard under Authentication > Providers.');
+            } else {
+                alert(`Login failed: ${error.message}`);
+            }
+        }
     };
 
     const signOut = async () => {

@@ -22,6 +22,7 @@ export interface Itinerary {
   hasArrivalFlight?: boolean;
   hasDepartureFlight?: boolean;
   id?: string;
+  startDate?: string; // ISO Date String
 }
 
 export interface Destination {

@@ -16,8 +16,8 @@ import SourceToggle from './components/home/SourceToggle';
 import PlanningSuggestions from './components/PlanningSuggestions';
 import LoginPage from './components/LoginPage';
 import SignupPage from './components/SignupPage';
-import MyItineraries from './components/MyItineraries';
 import SharedItineraryPage from './components/SharedItineraryPage';
+import ProfilePage from './components/ProfilePage';
 
 // Store & Agent
 import { useItineraryStore } from './store/useItineraryStore';
@@ -198,8 +198,9 @@ const TravelApp: React.FC = () => {
           {/* Signup Page Route */}
           <Route path="/signup" element={<SignupPage />} />
 
-          {/* Saved Trips Route */}
-          <Route path="/saved-trips" element={<MyItineraries />} />
+
+          {/* Profile Page Route */}
+          <Route path="/profile" element={<ProfilePage />} />
 
           {/* Shared Itinerary Route */}
           <Route path="/share/:id" element={<SharedItineraryPage isScriptLoaded={isGoogleMapsLoaded} />} />

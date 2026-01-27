@@ -2,19 +2,28 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from './Navbar';
 import { SavedItinerary, getSavedItineraries, deleteSavedItinerary } from '../services/localStorageService';
+import { useAuth } from './AuthContext';
 
 const MyItineraries: React.FC = () => {
     const navigate = useNavigate();
+    const { user, loading } = useAuth();
     const [itineraries, setItineraries] = useState<SavedItinerary[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        // Simulate loading for better UX
-        setTimeout(() => {
-            setItineraries(getSavedItineraries());
-            setIsLoading(false);
-        }, 500);
-    }, []);
+        if (!loading && !user) {
+            navigate('/login');
+            return;
+        }
+
+        if (user) {
+            // Simulate loading for better UX
+            setTimeout(() => {
+                setItineraries(getSavedItineraries());
+                setIsLoading(false);
+            }, 500);
+        }
+    }, [user, loading, navigate]);
 
     const handleOpenItinerary = (itinerary: SavedItinerary) => {
         navigate('/builder', { state: { itinerary } });
@@ -40,7 +49,7 @@ const MyItineraries: React.FC = () => {
                     </p>
                 </div>
 
-                {isLoading ? (
+                {(isLoading || loading) ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {[1, 2, 3].map(i => (
                             <div key={i} className="h-64 bg-slate-200 rounded-3xl animate-pulse"></div>
