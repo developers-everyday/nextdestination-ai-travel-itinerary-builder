@@ -1,44 +1,97 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { CommunityItinerary } from '../types';
+import { supabase } from '../services/supabaseClient';
 
 interface CommunityItineraryCardProps {
     itinerary: CommunityItinerary;
     onClick: () => void;
+    onRemix?: (e: React.MouseEvent) => void;
 }
 
-const CommunityItineraryCard: React.FC<CommunityItineraryCardProps & { onRemix?: (e: React.MouseEvent) => void }> = ({ itinerary, onClick, onRemix }) => {
+const CommunityItineraryCard: React.FC<CommunityItineraryCardProps> = ({ itinerary, onClick, onRemix }) => {
+    const [isSaved, setIsSaved] = useState(false);
+    const [saveCount, setSaveCount] = useState(itinerary.saveCount);
+    const [isHovered, setIsHovered] = useState(false);
+
+    // Check initial wishlist status
+    useEffect(() => {
+        const checkWishlistStatus = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const { data } = await supabase
+                .from('wishlists')
+                .select('id')
+                .eq('user_id', user.id)
+                .eq('itinerary_id', itinerary.id)
+                .single();
+
+            if (data) setIsSaved(true);
+        };
+
+        // Only check if it's a real ID (not a mock)
+        if (itinerary.id && !itinerary.id.startsWith('mock-')) {
+            checkWishlistStatus();
+        }
+    }, [itinerary.id]);
+
+    const handleToggleWishlist = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            alert("Please log in to save trips to your wishlist!");
+            return;
+        }
+
+        // Optimistic Update
+        const newSavedState = !isSaved;
+        setIsSaved(newSavedState);
+        setSaveCount(prev => newSavedState ? prev + 1 : Math.max(0, prev - 1));
+
+        try {
+            // Using the API endpoint we created
+            const { data: { session } } = await supabase.auth.getSession();
+
+            const response = await fetch('http://localhost:3001/api/wishlist/toggle', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify({ itineraryId: itinerary.id })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to update wishlist');
+            }
+        } catch (error) {
+            console.error("Error toggling wishlist:", error);
+            // Revert on error
+            setIsSaved(!newSavedState);
+            setSaveCount(prev => !newSavedState ? prev + 1 : Math.max(0, prev - 1));
+        }
+    };
+
     return (
         <div
             onClick={onClick}
             className="group relative rounded-[2.5rem] overflow-hidden bg-white border border-slate-200 hover:border-indigo-400 transition-all duration-500 cursor-pointer hover:shadow-2xl hover:-translate-y-2 active:translate-y-0"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
         >
-            {onRemix && (
-                <div className="absolute top-6 right-6 z-10 transition-transform transform hover:scale-105 duration-300">
-                    <div
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onRemix(e);
-                        }}
-                        className="bg-white/90 backdrop-blur-md px-4 py-2.5 rounded-2xl flex items-center gap-2 shadow-lg hover:bg-white hover:text-indigo-600 transition-all text-slate-900 font-bold"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                        </svg>
-                        <span>Remix</span>
-                    </div>
-                </div>
-            )}
-
             {/* Image Section */}
             <div className="h-80 relative overflow-hidden">
                 <img
                     src={itinerary.image}
                     alt={itinerary.name}
+                    loading="lazy"
+                    decoding="async"
                     className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/20 to-transparent" />
 
-                {/* Trending Badge */}
+                {/* Trending Badge - Top Left */}
                 {itinerary.trending && (
                     <div className="absolute top-6 left-6">
                         <div className="bg-white/10 backdrop-blur-md px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 text-white">
@@ -49,20 +102,28 @@ const CommunityItineraryCard: React.FC<CommunityItineraryCardProps & { onRemix?:
                 )}
 
                 {/* Heart Icon with Save Count - Top Right */}
-                <div className="absolute top-6 right-6">
-                    <div className="bg-white/90 backdrop-blur-md px-4 py-2.5 rounded-2xl flex items-center gap-2 shadow-lg group-hover:bg-white transition-all">
+                <div className="absolute top-6 right-6 z-20">
+                    <button
+                        onClick={handleToggleWishlist}
+                        className={`backdrop-blur-md px-4 py-2.5 rounded-2xl flex items-center gap-2 shadow-lg transition-all active:scale-95 ${isSaved ? 'bg-white text-red-500' : 'bg-white/90 text-slate-900 hover:bg-white'
+                            }`}
+                    >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            className="h-5 w-5 text-red-500 group-hover:scale-110 transition-transform"
+                            className={`h-5 w-5 transition-transform ${isSaved ? 'fill-current scale-110' : 'text-red-500 group-hover:scale-110'}`}
                             viewBox="0 0 20 20"
-                            fill="currentColor"
+                            fill={isSaved ? "currentColor" : "currentColor"}
                         >
-                            <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                            {isSaved ? (
+                                <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                            ) : (
+                                <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                            )}
                         </svg>
-                        <span className="text-sm font-black text-slate-900">
-                            {itinerary.saveCount.toLocaleString()}
+                        <span className={`text-sm font-black ${isSaved ? 'text-red-500' : 'text-slate-900'}`}>
+                            {saveCount.toLocaleString()}
                         </span>
-                    </div>
+                    </button>
                 </div>
 
                 {/* Duration Badge - Bottom Left */}
@@ -71,6 +132,24 @@ const CommunityItineraryCard: React.FC<CommunityItineraryCardProps & { onRemix?:
                         {itinerary.duration} {itinerary.duration === 1 ? 'Day' : 'Days'}
                     </div>
                 </div>
+
+                {/* Remix Button - Bottom Right */}
+                {onRemix && (
+                    <div className="absolute bottom-6 right-6 z-20">
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onRemix(e);
+                            }}
+                            className="bg-white/90 backdrop-blur-md px-4 py-2.5 rounded-2xl flex items-center gap-2 shadow-lg hover:bg-white hover:text-indigo-600 transition-all text-slate-900 font-bold"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                            </svg>
+                            <span>Remix</span>
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Content Section */}
@@ -87,8 +166,6 @@ const CommunityItineraryCard: React.FC<CommunityItineraryCardProps & { onRemix?:
                     </svg>
                     {itinerary.location}
                 </p>
-
-
 
                 {/* Creator Info */}
                 <div className="flex items-center justify-between pt-6 border-t border-slate-200">
@@ -110,7 +187,6 @@ const CommunityItineraryCard: React.FC<CommunityItineraryCardProps & { onRemix?:
                             </div>
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>

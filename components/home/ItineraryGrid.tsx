@@ -1,8 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import ItineraryCard, { ItineraryCardProps } from './ItineraryCard';
 import { communityItineraries } from '../../services/communityData';
 import CommunityItineraryCard from '../CommunityItineraryCard';
 import { useNavigate } from 'react-router-dom';
+import { CommunityItinerary } from '../../types';
 
 interface ItineraryGridProps {
     category: string;
@@ -146,14 +147,56 @@ const MOCK_ITINERARIES: ItineraryCardProps[] = [
 
 const ItineraryGrid: React.FC<ItineraryGridProps> = ({ category, source }) => {
     const navigate = useNavigate();
+    const [fetchedItineraries, setFetchedItineraries] = useState<CommunityItinerary[]>([]);
+    const [loading, setLoading] = useState(false);
 
-    const filteredItineraries = useMemo(() => {
+    useEffect(() => {
         if (source === 'community') {
-            // Filter community itineraries
-            // First show trending ones
-            let itineraries = communityItineraries.filter(it => it.trending);
+            const fetchTrending = async () => {
+                setLoading(true);
+                try {
+                    const response = await fetch('http://localhost:3001/api/itineraries/trending');
+                    if (response.ok) {
+                        const data = await response.json();
+                        // Map backend data to CommunityItinerary format
+                        const mapped: CommunityItinerary[] = data.map((item: any) => ({
+                            id: item.id,
+                            name: item.metadata?.destination ? `Trip to ${item.metadata.destination}` : 'Trip',
+                            location: item.metadata?.destination || 'Unknown',
+                            destination: item.metadata?.destination || 'Unknown',
+                            image: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=800&auto=format&fit=crop',
+                            creator: {
+                                id: 'community',
+                                name: 'Explorer',
+                                avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + item.id,
+                                verified: true
+                            },
+                            saveCount: item.metadata?.saveCount || Math.floor(Math.random() * 500),
+                            duration: item.metadata?.days?.length || 3,
+                            tags: ['Trending'],
+                            category: 'Adventure', // Mock category if missing
+                            itinerary: item.metadata,
+                            createdAt: item.created_at,
+                            trending: true
+                        }));
+                        setFetchedItineraries(mapped);
+                    }
+                } catch (error) {
+                    console.error("Error fetching trending itineraries:", error);
+                } finally {
+                    setLoading(false);
+                }
+            };
+            fetchTrending();
+        }
+    }, [source]);
 
-            // If category is not 'all', filter by category as well
+    const displayItineraries = useMemo(() => {
+        if (source === 'community') {
+            // Prioritize fetched itineraries (Real DB data), fallback to static mocks
+            let itineraries = fetchedItineraries.length > 0 ? fetchedItineraries : communityItineraries;
+
+            // Filter
             if (category !== 'all') {
                 itineraries = itineraries.filter(it =>
                     it.category.toLowerCase() === category.toLowerCase() ||
@@ -162,15 +205,27 @@ const ItineraryGrid: React.FC<ItineraryGridProps> = ({ category, source }) => {
             }
             return itineraries;
         } else {
-            // Filter AI mock itineraries
+            // Mock AI Itineraries
             if (category === 'all') return MOCK_ITINERARIES;
             return MOCK_ITINERARIES.filter(it => it.category === category);
         }
-    }, [category, source]);
+    }, [category, source, fetchedItineraries]);
+
+    const handleRemix = (itinerary: CommunityItinerary) => {
+        // Clone and navigate
+        const newItinerary = {
+            ...itinerary.itinerary,
+            id: undefined, // Clear ID to ensure it's treated as new/unsaved
+            days: itinerary.itinerary.days?.map((d: any) => ({
+                ...d,
+                activities: d.activities?.map((a: any) => ({ ...a, id: Math.random().toString(36).substr(2, 9) }))
+            })) || []
+        };
+        navigate('/builder', { state: { itinerary: newItinerary } });
+    };
 
     const handleCommunityCardClick = (itinerary: any) => {
-        // Navigate to builder with this itinerary
-        navigate('/builder', { state: { itinerary: itinerary.itinerary } });
+        handleRemix(itinerary);
     };
 
     return (
@@ -191,25 +246,33 @@ const ItineraryGrid: React.FC<ItineraryGridProps> = ({ category, source }) => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-10">
                 {source === 'community' ? (
-                    filteredItineraries.map((itinerary: any) => (
+                    displayItineraries.map((itinerary: any) => (
                         <CommunityItineraryCard
                             key={itinerary.id}
                             itinerary={itinerary}
                             onClick={() => handleCommunityCardClick(itinerary)}
+                            onRemix={() => handleRemix(itinerary)}
                         />
                     ))
                 ) : (
-                    filteredItineraries.map((itinerary: any) => (
+                    displayItineraries.map((itinerary: any) => (
                         <ItineraryCard key={itinerary.id} {...itinerary} />
                     ))
                 )}
             </div>
 
-            {filteredItineraries.length === 0 && (
+            {displayItineraries.length === 0 && !loading && (
                 <div className="text-center py-20">
                     <div className="text-4xl mb-4">🏝️</div>
                     <h3 className="text-xl font-bold text-slate-900 mb-2">No trips found in this category yet.</h3>
                     <p className="text-slate-500">Try selecting a different category or search for a destination.</p>
+                </div>
+            )}
+
+            {loading && source === 'community' && (
+                <div className="text-center py-20">
+                    <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-slate-500">Loading community trips...</p>
                 </div>
             )}
 

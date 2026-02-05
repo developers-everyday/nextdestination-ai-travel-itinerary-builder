@@ -3,21 +3,66 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import Navbar from './Navbar';
 import { SavedItinerary, getSavedItineraries, deleteSavedItinerary } from '../services/localStorageService';
+import { supabase } from '../services/supabaseClient';
+import { CommunityItinerary } from '../types';
+import CommunityItineraryCard from './CommunityItineraryCard';
 
 const ProfilePage: React.FC = () => {
     const { user, signOut } = useAuth();
     const navigate = useNavigate();
     const [itineraries, setItineraries] = useState<SavedItinerary[]>([]);
+    const [bucketList, setBucketList] = useState<CommunityItinerary[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming');
+    const [activeTab, setActiveTab] = useState<'upcoming' | 'past' | 'bucketlist'>('upcoming');
 
     useEffect(() => {
-        if (user) {
-            setTimeout(() => {
-                setItineraries(getSavedItineraries());
-                setIsLoading(false);
-            }, 500);
-        }
+        const loadData = async () => {
+            if (user) {
+                try {
+                    // Load local saved itineraries
+                    setItineraries(getSavedItineraries());
+
+                    // Load bucket list from Supabase
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const response = await fetch('http://localhost:3001/api/wishlist', {
+                        headers: {
+                            'Authorization': `Bearer ${session?.access_token}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        // Transform wishlist data to match CommunityItinerary if needed
+                        const mapped = data.map((item: any) => ({
+                            id: item.id,
+                            name: item.destination ? `Trip to ${item.destination}` : 'Trip',
+                            location: item.destination,
+                            destination: item.destination,
+                            image: item.image || 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=800&auto=format&fit=crop',
+                            creator: {
+                                id: 'community',
+                                name: 'Community Member',
+                                avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + item.id,
+                                verified: true
+                            },
+                            saveCount: item.saveCount || 0,
+                            duration: item.days?.length || 0,
+                            tags: ['Wislisted'],
+                            category: 'Adventure',
+                            itinerary: item,
+                            createdAt: item.wishlistedAt,
+                            trending: false
+                        }));
+                        setBucketList(mapped);
+                    }
+                } catch (error) {
+                    console.error("Failed to load profile data", error);
+                } finally {
+                    setIsLoading(false);
+                }
+            }
+        };
+        loadData();
     }, [user]);
 
     const handleLogout = async () => {
@@ -27,6 +72,18 @@ const ProfilePage: React.FC = () => {
 
     const handleOpenItinerary = (itinerary: SavedItinerary) => {
         navigate('/builder', { state: { itinerary } });
+    };
+
+    const handleRemix = (itinerary: CommunityItinerary) => {
+        const newItinerary = {
+            ...itinerary.itinerary,
+            id: undefined,
+            days: itinerary.itinerary.days?.map((d: any) => ({
+                ...d,
+                activities: d.activities?.map((a: any) => ({ ...a, id: Math.random().toString(36).substr(2, 9) }))
+            })) || []
+        };
+        navigate('/builder', { state: { itinerary: newItinerary } });
     };
 
     const handleDelete = (e: React.MouseEvent, id: string) => {
@@ -58,8 +115,8 @@ const ProfilePage: React.FC = () => {
         <div className="min-h-screen bg-slate-50">
             <Navbar />
 
-            <main className="pt-32 px-6 max-w-6xl mx-auto pb-12">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <main className="pt-32 px-6 max-w-7xl mx-auto pb-12">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                     {/* User Details Sidebar */}
                     <div className="lg:col-span-1">
                         <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 sticky top-32">
@@ -102,9 +159,11 @@ const ProfilePage: React.FC = () => {
                     </div>
 
                     {/* Saved Trips Section */}
-                    <div className="lg:col-span-2">
+                    <div className="lg:col-span-3">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                            <h2 className="text-2xl font-black text-slate-900 tracking-tight">My Saved Trips</h2>
+                            <h2 className="text-3xl font-black text-slate-900 tracking-tight">
+                                {activeTab === 'bucketlist' ? 'My Bucket List' : 'My Saved Trips'}
+                            </h2>
 
                             <div className="flex bg-slate-100 p-1 rounded-xl self-start md:self-auto">
                                 <button
@@ -118,6 +177,12 @@ const ProfilePage: React.FC = () => {
                                     className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'past' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                                 >
                                     Past
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('bucketlist')}
+                                    className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'bucketlist' ? 'bg-white text-pink-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                >
+                                    Bucket List
                                 </button>
                             </div>
 
@@ -138,6 +203,11 @@ const ProfilePage: React.FC = () => {
                                     <div key={i} className="h-48 bg-slate-200 rounded-3xl animate-pulse"></div>
                                 ))}
                             </div>
+                        ) : activeTab === 'bucketlist' ? (
+                            <BucketListSection
+                                trips={bucketList}
+                                onRemix={handleRemix}
+                            />
                         ) : (
                             <TripsList
                                 trips={itineraries}
@@ -149,6 +219,45 @@ const ProfilePage: React.FC = () => {
                     </div>
                 </div>
             </main>
+        </div>
+    );
+};
+
+// Component to render Bucket List items grouped by destination (Airbnb style)
+const BucketListSection: React.FC<{
+    trips: CommunityItinerary[],
+    onRemix: (item: CommunityItinerary) => void
+}> = ({ trips, onRemix }) => {
+
+    if (trips.length === 0) {
+        return (
+            <div className="text-center py-20 bg-white rounded-3xl border border-slate-100 shadow-sm">
+                <div className="w-16 h-16 bg-pink-50 rounded-full flex items-center justify-center text-pink-400 mx-auto mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                    </svg>
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">Your Bucket List is empty</h3>
+                <p className="text-slate-500 mb-4 max-w-sm mx-auto text-sm">
+                    Explore community trips and click the heart icon to save your dream destinations here.
+                </p>
+                <a href="/" className="text-indigo-600 font-bold hover:underline">Explore Trips</a>
+            </div>
+        );
+    }
+
+    return (
+        <div className="animate-fade-in">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {trips.map(item => (
+                    <CommunityItineraryCard
+                        key={item.id}
+                        itinerary={item}
+                        onClick={() => onRemix(item)}
+                        onRemix={() => onRemix(item)}
+                    />
+                ))}
+            </div>
         </div>
     );
 };
@@ -178,7 +287,7 @@ const TripsList: React.FC<{
 
     if (filteredTrips.length === 0) {
         return (
-            <div className="text-center py-16 bg-white rounded-3xl border border-slate-100 shadow-sm">
+            <div className="text-center py-20 bg-white rounded-3xl border border-slate-100 shadow-sm">
                 <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 mx-auto mb-4">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -195,30 +304,30 @@ const TripsList: React.FC<{
     }
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
             {filteredTrips.map((item) => (
                 <div
                     key={item.id}
                     onClick={() => onOpen(item)}
                     className="group bg-white rounded-3xl border border-slate-100 overflow-hidden hover:shadow-xl hover:shadow-indigo-100 transition-all cursor-pointer hover:-translate-y-1 relative flex flex-col"
                 >
-                    <div className="h-40 bg-slate-200 relative overflow-hidden">
+                    <div className="h-56 bg-slate-200 relative overflow-hidden">
                         <div
                             className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 group-hover:scale-105 transition-transform duration-500"
                             style={{
-                                filter: `hue-rotate(${item.destination.split('').reduce((a, b) => a + b.charCodeAt(0), 0) % 360}deg)`
+                                filter: `hue-rotate(${item.destination.split('').reduce((a: number, b: string) => a + b.charCodeAt(0), 0) % 360}deg)`
                             }}
                         />
                         <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-white font-black text-2xl drop-shadow-lg tracking-tight uppercase text-center px-4">{item.destination}</span>
+                            <span className="text-white font-black text-3xl drop-shadow-lg tracking-tight uppercase text-center px-4">{item.destination}</span>
                         </div>
-                        <div className="absolute top-3 right-3 bg-white/20 backdrop-blur-md px-2 py-1 rounded-full text-white text-[10px] font-bold border border-white/30">
+                        <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full text-white text-xs font-bold border border-white/30">
                             {item.days.length} Days
                         </div>
 
                         {item.startDate && (
-                            <div className="absolute bottom-3 left-3 bg-black/40 backdrop-blur-md px-2 py-1 rounded-lg text-white text-[10px] font-bold border border-white/10 flex items-center gap-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <div className="absolute bottom-4 left-4 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-lg text-white text-xs font-bold border border-white/10 flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                 </svg>
                                 {new Date(item.startDate).toLocaleDateString()}
@@ -226,28 +335,28 @@ const TripsList: React.FC<{
                         )}
                     </div>
 
-                    <div className="p-5 flex-1 flex flex-col">
-                        <h3 className="text-lg font-bold text-slate-900 mb-1 group-hover:text-indigo-600 transition-colors line-clamp-1">
+                    <div className="p-6 flex-1 flex flex-col">
+                        <h3 className="text-xl font-bold text-slate-900 mb-1 group-hover:text-indigo-600 transition-colors line-clamp-1">
                             {item.name || `Trip to ${item.destination}`}
                         </h3>
                         {item.startDate ? (
-                            <p className="text-slate-500 text-xs font-medium mb-4">
+                            <p className="text-slate-500 text-sm font-medium mb-4">
                                 Starts on {new Date(item.startDate).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                             </p>
                         ) : (
-                            <p className="text-slate-400 text-xs font-medium italic mb-4">No date set</p>
+                            <p className="text-slate-400 text-sm font-medium italic mb-4">No date set</p>
                         )}
 
                         <div className="mt-auto flex items-center justify-between pt-4 border-t border-slate-100">
-                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+                            <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">
                                 Created {new Date(item.createdAt || Date.now()).toLocaleDateString()}
                             </span>
                             <button
                                 onClick={(e) => onDelete(e, item.id)}
-                                className="text-slate-300 hover:text-red-500 transition-colors p-1.5 hover:bg-red-50 rounded-full"
+                                className="text-slate-300 hover:text-red-500 transition-colors p-2 hover:bg-red-50 rounded-full"
                                 title="Delete Trip"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
                             </button>

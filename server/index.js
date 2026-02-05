@@ -27,6 +27,9 @@ app.use('/api/itineraries', itineraryRoutes);
 app.use('/api/suggestions', suggestionRoutes);
 app.use('/api/activities', activityRoutes);
 
+import wishlistRoutes from './routes/wishlist.js';
+app.use('/api/wishlist', wishlistRoutes);
+
 // Health Check
 app.get('/', (req, res) => {
     res.send('NextDestination API is running');
