@@ -10,6 +10,8 @@ import { differenceInDays } from 'date-fns';
 import CommunityItineraryCard from './CommunityItineraryCard';
 import { CommunityItinerary } from '../types';
 
+import { getCoordinates, getWeather } from '../services/weatherService';
+
 const PlanningSuggestions: React.FC = () => {
     const location = useLocation();
     const navigate = useNavigate();
@@ -26,6 +28,32 @@ const PlanningSuggestions: React.FC = () => {
     const [attractions, setAttractions] = useState<string[]>([]);
     const [selectedAttractions, setSelectedAttractions] = useState<string[]>([]);
     const [isLoadingAttractions, setIsLoadingAttractions] = useState(true);
+
+    // Weather State
+    const [weatherData, setWeatherData] = useState<any>(null);
+    const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
+
+    // Fetch Coordinates on Mount
+    useEffect(() => {
+        const fetchCoords = async () => {
+            if (destination) {
+                const coords = await getCoordinates(destination);
+                setCoordinates(coords);
+            }
+        };
+        fetchCoords();
+    }, [destination]);
+
+    // Fetch Weather when Coords or Dates change
+    useEffect(() => {
+        const fetchWeatherData = async () => {
+            if (coordinates) {
+                const data = await getWeather(coordinates.lat, coordinates.lng, startDate || undefined, endDate || undefined);
+                setWeatherData(data);
+            }
+        };
+        fetchWeatherData();
+    }, [coordinates, startDate, endDate]);
 
     useEffect(() => {
         const fetchAttractions = async () => {
@@ -132,15 +160,6 @@ const PlanningSuggestions: React.FC = () => {
         );
     };
 
-
-    const mockWeather = {
-        temp: 24,
-        condition: 'Sunny',
-        icon: '☀️',
-        high: 26,
-        low: 18
-    };
-
     return (
         <div className="min-h-screen bg-slate-50">
             <Navbar onOpenBuilder={() => navigate('/')} />
@@ -166,21 +185,37 @@ const PlanningSuggestions: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
                     {/* Weather Widget (Swapped to first position) */}
                     <div className="bg-white rounded-3xl p-8 shadow-xl shadow-slate-200/50 border border-slate-100 relative overflow-hidden group hover:shadow-2xl hover:shadow-indigo-100 transition-all cursor-default">
-                        <div className="absolute top-0 right-0 bg-indigo-50 text-indigo-600 px-4 py-1 rounded-bl-2xl text-xs font-bold tracking-widest uppercase">{destination} Current Weather</div>
-                        <div className="flex items-center justify-between mt-4">
-                            <div>
-                                <div className="text-7xl mb-2">{mockWeather.icon}</div>
-                                <div className="text-slate-900 font-black text-4xl">{mockWeather.temp}°C</div>
-                                <div className="text-slate-500 font-medium text-lg">{mockWeather.condition}</div>
-                            </div>
-                            <div className="text-right">
-                                <div className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">High / Low</div>
-                                <div className="text-2xl font-bold text-slate-800">{mockWeather.high}° / {mockWeather.low}°</div>
-                                <div className="mt-4 text-xs font-medium text-slate-400 bg-slate-50 px-3 py-1 rounded-full inline-block">
-                                    Updates live
+                        <div className="absolute top-0 right-0 bg-indigo-50 text-indigo-600 px-4 py-1 rounded-bl-2xl text-xs font-bold tracking-widest uppercase">
+                            {destination} {weatherData?.isHistorical ? 'Typical Weather' : (weatherData?.isForecast ? 'Forecast' : 'Current Weather')}
+                        </div>
+                        {weatherData ? (
+                            <div className="flex items-center justify-between mt-4">
+                                <div>
+                                    <div className="text-7xl mb-2">{weatherData.icon}</div>
+                                    <div className="text-slate-900 font-black text-4xl">{weatherData.temp}°C</div>
+                                    <div className="text-slate-500 font-medium text-lg">{weatherData.condition}</div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">High / Low</div>
+                                    <div className="text-2xl font-bold text-slate-800">{weatherData.high}° / {weatherData.low}°</div>
+                                    <div className="mt-4 flex flex-col items-end gap-1">
+                                        {weatherData.isHistorical ? (
+                                            <span className="text-xs font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-100">
+                                                Typical Weather
+                                            </span>
+                                        ) : (
+                                            <span className="text-xs font-medium text-slate-400 bg-slate-50 px-3 py-1 rounded-full inline-block">
+                                                {weatherData.isForecast ? 'Avg for trip' : 'Updates live'}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        ) : (
+                            <div className="flex items-center justify-center h-40">
+                                <span className="text-slate-400">Loading weather...</span>
+                            </div>
+                        )}
                     </div>
 
                     {/* Travelling Dates Trigger (Swapped to second position) */}
@@ -260,9 +295,14 @@ const PlanningSuggestions: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Only 'Done/Save' action here, Generate is moved to main page */}
+                            {/* Allow setting dates even if only one is selected (1-day trip) */}
                             <button
-                                onClick={() => setIsCalendarOpen(false)}
+                                onClick={() => {
+                                    if (startDate && !endDate) {
+                                        setEndDate(startDate);
+                                    }
+                                    setIsCalendarOpen(false);
+                                }}
                                 className="w-full py-4 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200"
                             >
                                 Set Dates
@@ -271,65 +311,85 @@ const PlanningSuggestions: React.FC = () => {
                     </div>
                 )}
 
-                {/* Things to Do Section */}
-                <div className="mb-16">
-                    <h2 className="text-2xl font-black text-slate-900 mb-6">Things to do in {destination}</h2>
-                    <p className="text-slate-500 mb-8 max-w-2xl">Select the experiences you'd like to include in your trip.</p>
+                {/* Content Grid: Things to Do (1 part) + Community Trips (2 parts) */}
+                <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 mb-20 h-[800px] items-stretch">
 
-                    {isLoadingAttractions ? (
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                                <div key={i} className="h-32 bg-slate-100 rounded-2xl animate-pulse"></div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {attractions.map((attraction, index) => {
-                                const isSelected = selectedAttractions.includes(attraction);
-                                return (
-                                    <button
-                                        key={index}
-                                        onClick={() => toggleAttraction(attraction)}
-                                        className={`p-6 rounded-2xl text-left transition-all border-2 relative overflow-hidden group ${isSelected
-                                            ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200 scale-[1.02]'
-                                            : 'bg-white border-slate-100 hover:border-indigo-200 text-slate-700 hover:shadow-md'
-                                            }`}
-                                    >
-                                        <div className={`text-lg font-bold mb-1 ${isSelected ? 'text-white' : 'text-slate-900'}`}>
-                                            {attraction}
-                                        </div>
-                                        <div className={`text-xs font-semibold uppercase tracking-wider ${isSelected ? 'text-indigo-200' : 'text-slate-400'}`}>
-                                            {isSelected ? 'Selected' : 'Add to trip'}
-                                        </div>
-                                        {isSelected && (
-                                            <div className="absolute top-2 right-2">
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                                </svg>
+                    {/* Left Column: Things to Do (4 cols) - 1 Part */}
+                    <div className="xl:col-span-4 flex flex-col h-full">
+                        <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm h-full flex flex-col">
+                            <div className="mb-6">
+                                <h2 className="text-2xl font-black text-slate-900 mb-2">Things to do</h2>
+                                <p className="text-slate-500 text-sm">Select experiences for your trip.</p>
+                            </div>
+
+                            <div className="flex-1">
+                                {isLoadingAttractions ? (
+                                    <div className="grid grid-cols-1 gap-3">
+                                        {[1, 2, 3, 4, 5, 6].map((i) => (
+                                            <div key={i} className="h-24 bg-slate-100 rounded-2xl animate-pulse"></div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 gap-3">
+                                        {attractions.slice(0, 5).map((attraction, index) => {
+                                            const isSelected = selectedAttractions.includes(attraction);
+                                            return (
+                                                <button
+                                                    key={index}
+                                                    onClick={() => toggleAttraction(attraction)}
+                                                    className={`p-4 rounded-2xl text-left transition-all border-2 relative group w-full ${isSelected
+                                                        ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200'
+                                                        : 'bg-white border-slate-100 hover:border-indigo-200 text-slate-700 hover:shadow-md'
+                                                        }`}
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <span className={`font-bold ${isSelected ? 'text-white' : 'text-slate-900'}`}>{attraction}</span>
+                                                        {isSelected && (
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                            </svg>
+                                                        )}
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+
+                                        {/* Generate Button as 6th Item */}
+                                        {startDate && endDate && selectedAttractions.length > 0 && (
+                                            <button
+                                                onClick={handleSelectPlan}
+                                                className="w-full p-4 rounded-2xl font-black text-lg shadow-xl shadow-indigo-200 bg-indigo-600 text-white hover:bg-indigo-700 
+                                                         transition-all transform hover:scale-[1.02] active:scale-95 flex items-center justify-between animate-fade-in"
+                                            >
+                                                <span>Generate My Plan</span>
+                                                <div className="bg-white/20 p-1.5 rounded-full">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                                    </svg>
+                                                </div>
+                                            </button>
+                                        )}
+
+                                        {/* Helper message as 6th item if button not ready (Optional, but better UX to avoid empty space if strictly 6 items expected) */}
+                                        {(!startDate || !endDate || selectedAttractions.length === 0) && (
+                                            <div className="p-4 rounded-2xl border-2 border-dashed border-slate-200 text-center text-slate-400 flex flex-col items-center justify-center gap-2 h-[88px] animate-pulse">
+                                                <span className="text-xs font-bold uppercase tracking-wider">Next Step</span>
+                                                <span className="text-sm font-semibold text-slate-500">
+                                                    {!startDate || !endDate ? "Pick dates to continue" : "Select an activity"}
+                                                </span>
                                             </div>
                                         )}
-                                    </button>
-                                );
-                            })}
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    )}
-                </div>
+                    </div>
 
-                {/* Generate Button (Moved to bottom) */}
-                <div className="flex justify-center pb-20">
-                    <button
-                        onClick={handleSelectPlan}
-                        disabled={!startDate || !endDate}
-                        className={`py-5 px-12 rounded-full font-black text-xl shadow-xl transition-all transform hover:scale-105 active:scale-95 flex items-center gap-3 ${startDate && endDate
-                            ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200'
-                            : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                            }`}
-                    >
-                        <span>Generate My Plan</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                        </svg>
-                    </button>
+                    {/* Right Column: Community Trips (8 cols) - 2 Parts */}
+                    <div className="xl:col-span-8 h-full">
+                        <CommunityItinerariesSection destination={destination} compact={true} scrollable={true} />
+                    </div>
+
                 </div>
 
                 {error && (
@@ -343,9 +403,21 @@ const PlanningSuggestions: React.FC = () => {
                 )}
             </main>
 
-            <CommunityItinerariesSection destination={destination} />
-
             <style>{`
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 6px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: #f1f5f9;
+                    border-radius: 8px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: #cbd5e1;
+                    border-radius: 8px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: #94a3b8;
+                }
                 .react-datepicker {
                     font-family: inherit;
                     border: none;
@@ -373,37 +445,107 @@ const PlanningSuggestions: React.FC = () => {
 
 export default PlanningSuggestions;
 
-const CommunityItinerariesSection: React.FC<{ destination: string }> = ({ destination }) => {
+const MOCK_COMMUNITY_ITINERARIES: CommunityItinerary[] = [
+    {
+        id: 'mock-1',
+        name: 'Hidden Gems of Tokyo',
+        location: 'Tokyo, Japan',
+        destination: 'Japan',
+        image: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?q=80&w=2000&auto=format&fit=crop',
+        creator: { id: 'm1', name: 'SakuraTraveler', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sakura', verified: true },
+        saveCount: 1240,
+        duration: 5,
+        tags: ['Cultural', 'Foodie'],
+        category: 'Cultural',
+        itinerary: { destination: 'Japan', days: [] } as any, // minimal/empty for mock, ensuring UI renders
+        createdAt: new Date().toISOString(),
+        trending: true
+    },
+    {
+        id: 'mock-2',
+        name: 'Kyoto zen Gardens',
+        location: 'Kyoto, Japan',
+        destination: 'Japan',
+        image: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=2000&auto=format&fit=crop',
+        creator: { id: 'm2', name: 'ZenMaster', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Zen', verified: true },
+        saveCount: 850,
+        duration: 4,
+        tags: ['Relaxing', 'Nature'],
+        category: 'Romantic',
+        itinerary: { destination: 'Japan', days: [] } as any,
+        createdAt: new Date().toISOString(),
+        trending: true
+    },
+    {
+        id: 'mock-3',
+        name: 'Osaka Food Adventure',
+        location: 'Osaka, Japan',
+        destination: 'Japan',
+        image: 'https://images.unsplash.com/photo-1590559899731-a382839e5549?q=80&w=2000&auto=format&fit=crop',
+        creator: { id: 'm3', name: 'FoodieFan', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Foodie', verified: false },
+        saveCount: 2300,
+        duration: 3,
+        tags: ['Foodie', 'Urban'],
+        category: 'Adventure',
+        itinerary: { destination: 'Japan', days: [] } as any,
+        createdAt: new Date().toISOString(),
+        trending: true
+    }
+];
+
+const CommunityItinerariesSection: React.FC<{ destination: string, compact?: boolean, scrollable?: boolean }> = ({ destination, compact, scrollable }) => {
     const [itineraries, setItineraries] = useState<CommunityItinerary[]>([]);
     const [loading, setLoading] = useState(false);
+    const [isTrendingFallback, setIsTrendingFallback] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
         const fetchCommunityItineraries = async () => {
             setLoading(true);
             try {
-                const response = await fetch('http://localhost:3001/api/itineraries/search', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ destination }) // Automatically matches vector search
-                });
+                // 1. Try Specific Search
+                let data = [];
+                let isFallback = false;
 
-                if (response.ok) {
-                    const data = await response.json();
+                try {
+                    const searchResponse = await fetch('http://localhost:3001/api/itineraries/search', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ destination })
+                    });
+                    if (searchResponse.ok) {
+                        data = await searchResponse.json();
+                    }
+                } catch (e) { console.warn('Search API failed', e); }
+
+                // 2. Fallback to Trending if no results
+                if (!data || data.length === 0) {
+                    console.log('No specific matches found, fetching trending...');
+                    try {
+                        const trendingResponse = await fetch('http://localhost:3001/api/itineraries/trending');
+                        if (trendingResponse.ok) {
+                            data = await trendingResponse.json();
+                            isFallback = true;
+                        }
+                    } catch (e) { console.warn('Trending API failed', e); }
+                }
+
+                if (data && data.length > 0) {
+                    setIsTrendingFallback(isFallback);
                     // Map raw metadata to CommunityItinerary type
                     const mapped: CommunityItinerary[] = data.map((item: any) => ({
                         id: item.id || Math.random().toString(),
                         name: item.metadata?.destination ? `Trip to ${item.metadata.destination}` : 'Amazing Trip',
-                        location: item.metadata?.destination || destination,
+                        location: item.metadata?.destination || (isFallback ? item.metadata?.destination || 'Global' : destination),
                         destination: item.metadata?.destination || destination,
-                        image: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=2070&auto=format&fit=crop', // Placeholder or dynamic if possible
+                        image: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=2070&auto=format&fit=crop',
                         creator: {
                             id: 'ai',
                             name: 'Community Traveler',
-                            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
+                            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + (item.id || 'Felix'),
                             verified: true
                         },
-                        saveCount: Math.floor(Math.random() * 1000) + 50, // Mock stats
+                        saveCount: Math.floor(Math.random() * 1000) + 50,
                         duration: item.metadata?.days?.length || 3,
                         tags: ['Community', 'Adventure'],
                         category: 'Adventure',
@@ -412,9 +554,17 @@ const CommunityItinerariesSection: React.FC<{ destination: string }> = ({ destin
                         trending: Math.random() > 0.8
                     }));
                     setItineraries(mapped);
+                } else {
+                    // 3. Fallback to Mock Data if API totally fails
+                    console.log('API failed or empty, using mocks');
+                    setItineraries(MOCK_COMMUNITY_ITINERARIES);
+                    setIsTrendingFallback(true);
                 }
             } catch (err) {
                 console.error("Failed to fetch community itineraries", err);
+                // Safety net
+                setItineraries(MOCK_COMMUNITY_ITINERARIES);
+                setIsTrendingFallback(true);
             } finally {
                 setLoading(false);
             }
@@ -429,39 +579,46 @@ const CommunityItinerariesSection: React.FC<{ destination: string }> = ({ destin
         // Clone and navigate
         const newItinerary = {
             ...itinerary.itinerary,
-            id: undefined, // Clear ID to ensure it's treated as new/unsaved or generates new ID
-            days: itinerary.itinerary.days.map(d => ({
+            id: undefined, // Clear ID to ensure it's treated as new/unsaved
+            days: itinerary.itinerary.days?.map((d: any) => ({
                 ...d,
-                activities: d.activities.map(a => ({ ...a, id: Math.random().toString(36).substr(2, 9) }))
-            }))
+                activities: d.activities?.map((a: any) => ({ ...a, id: Math.random().toString(36).substr(2, 9) }))
+            })) || []
         };
         navigate('/builder', { state: { itinerary: newItinerary } });
     };
 
-    if (loading) return null; // Or skeleton
+    if (loading) return null;
     if (itineraries.length === 0) return null;
 
     return (
-        <section className="bg-white py-20 border-t border-slate-100">
-            <div className="max-w-7xl mx-auto px-6">
-                <div className="mb-12 flex items-end justify-between">
+        <section className={`h-full flex flex-col ${compact ? 'bg-slate-50/50 rounded-[2.5rem] p-6 border border-slate-200' : 'bg-white py-20 border-t border-slate-100'}`}>
+            <div className={`flex flex-col h-full ${compact ? '' : 'max-w-7xl mx-auto px-6'}`}>
+                <div className="mb-6 items-start justify-between flex-shrink-0">
                     <div>
-                        <h2 className="text-3xl font-black text-slate-900 mb-4 tracking-tight">Community Trips</h2>
-                        <p className="text-slate-500 font-medium max-w-2xl">
-                            Explore popular itineraries for <span className="text-indigo-600 font-bold">{destination}</span> created by other travelers.
+                        <h2 className="text-2xl font-black text-slate-900 mb-2 tracking-tight">
+                            {isTrendingFallback ? "Trending Community Trips" : "Community Trips"}
+                        </h2>
+                        <p className="text-slate-500 font-medium text-sm">
+                            {isTrendingFallback
+                                ? "Check out what's trending and remix!"
+                                : <span>Trips to <span className="text-indigo-600 font-bold">{destination}</span> by others.</span>
+                            }
                         </p>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {itineraries.map(itinerary => (
-                        <CommunityItineraryCard
-                            key={itinerary.id}
-                            itinerary={itinerary}
-                            onClick={() => handleRemix(itinerary)}
-                            onRemix={() => handleRemix(itinerary)}
-                        />
-                    ))}
+                <div className={`flex-1 ${scrollable ? 'overflow-y-auto pr-2 custom-scrollbar' : ''}`}>
+                    <div className={`grid ${compact ? 'grid-cols-1 md:grid-cols-2 gap-6' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8'}`}>
+                        {itineraries.map(itinerary => (
+                            <CommunityItineraryCard
+                                key={itinerary.id}
+                                itinerary={itinerary}
+                                onClick={() => handleRemix(itinerary)}
+                                onRemix={() => handleRemix(itinerary)}
+                            />
+                        ))}
+                    </div>
                 </div>
             </div>
         </section>

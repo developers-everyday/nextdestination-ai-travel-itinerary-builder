@@ -58,8 +58,37 @@ router.post('/search', async (req, res) => {
     }
 });
 
+// GET /api/itineraries/trending - Get trending/recent itineraries
+router.get('/trending', async (req, res) => {
+    try {
+        // For now, just return the 10 most recently added itineraries
+        const { data, error } = await supabase
+            .from('itineraries')
+            .select('id, metadata')
+            .order('id', { ascending: false }) // Using UUID as proxy for time if no createdAt, or just random
+            .limit(10);
+
+        if (error) {
+            throw error;
+        }
+
+        // Map to expected format if needed, but client handles metadata
+        const results = data.map(item => ({
+            id: item.id,
+            ...item.metadata, // flatten if client expects metadata props at top level or match vector format
+            metadata: item.metadata // keep metadata object for consistency with vector search result structure
+        }));
+
+        res.json(results);
+    } catch (error) {
+        console.error('Error fetching trending itineraries:', error);
+        res.status(500).json({ error: 'Internal Server Error', details: error.message });
+    }
+});
+
 // POST /api/itineraries - Save itinerary
 router.post('/', async (req, res) => {
+
     const itineraryData = req.body;
 
     // Validate
