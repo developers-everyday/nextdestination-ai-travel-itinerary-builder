@@ -61,22 +61,34 @@ router.post('/search', async (req, res) => {
 // GET /api/itineraries/trending - Get trending/recent itineraries
 router.get('/trending', async (req, res) => {
     try {
-        // For now, just return the 10 most recently added itineraries
-        const { data, error } = await supabase
+        const { destination } = req.query;
+
+        let query = supabase
             .from('itineraries')
             .select('id, metadata')
-            .order('id', { ascending: false }) // Using UUID as proxy for time if no createdAt, or just random
+            .order('id', { ascending: false })
             .limit(10);
+
+        // If destination is provided, filter by it
+        if (destination) {
+            // Using the JSONB contained operator to matching destination in metadata
+            console.log(`Fetching trending itineraries for destination: ${destination}`);
+            // Note: We use the arrow operator ->> for text comparison if simple, or we can use metadata object match
+            // query = query.contains('metadata', { destination }); // Flexible match
+            // OR strictly match string value:
+            query = query.eq('metadata->>destination', destination);
+        }
+
+        const { data, error } = await query;
 
         if (error) {
             throw error;
         }
 
-        // Map to expected format if needed, but client handles metadata
         const results = data.map(item => ({
             id: item.id,
-            ...item.metadata, // flatten if client expects metadata props at top level or match vector format
-            metadata: item.metadata // keep metadata object for consistency with vector search result structure
+            ...item.metadata,
+            metadata: item.metadata
         }));
 
         res.json(results);

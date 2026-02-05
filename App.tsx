@@ -12,7 +12,6 @@ import { Itinerary } from './types';
 import SearchHeader from './components/home/SearchHeader';
 import CategoryBar from './components/home/CategoryBar';
 import ItineraryGrid from './components/home/ItineraryGrid';
-import SourceToggle from './components/home/SourceToggle';
 import PlanningSuggestions from './components/PlanningSuggestions';
 import LoginPage from './components/LoginPage';
 import SignupPage from './components/SignupPage';
@@ -62,7 +61,6 @@ const TravelApp: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [itinerarySource, setItinerarySource] = useState<'community' | 'model'>('community');
 
   const removeArrivalFlightWrapper = useCallback(() => setHasArrivalFlight(false), [setHasArrivalFlight]);
   const removeDepartureFlightWrapper = useCallback(() => setHasDepartureFlight(false), [setHasDepartureFlight]);
@@ -116,17 +114,13 @@ const TravelApp: React.FC = () => {
                   onSearch={handleSearchAndRedirect}
                   isScriptLoaded={isGoogleMapsLoaded}
                 />
-                <SourceToggle
-                  selectedSource={itinerarySource}
-                  onSelectSource={setItinerarySource}
-                />
                 <CategoryBar
                   selectedCategory={selectedCategory}
                   onSelectCategory={setSelectedCategory}
                 />
                 <ItineraryGrid
                   category={selectedCategory}
-                  source={itinerarySource}
+                  source="community"
                 />
 
                 {/* Dynamic AI Loading Overlay */}

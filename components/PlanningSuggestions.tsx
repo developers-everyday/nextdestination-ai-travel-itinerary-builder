@@ -312,7 +312,7 @@ const PlanningSuggestions: React.FC = () => {
                 )}
 
                 {/* Content Grid: Things to Do (1 part) + Community Trips (2 parts) */}
-                <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 mb-20 h-[800px] items-stretch">
+                <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 mb-20 h-auto xl:h-[800px] items-stretch">
 
                     {/* Left Column: Things to Do (4 cols) - 1 Part */}
                     <div className="xl:col-span-4 flex flex-col h-full">
@@ -518,13 +518,14 @@ const CommunityItinerariesSection: React.FC<{ destination: string, compact?: boo
                     }
                 } catch (e) { console.warn('Search API failed', e); }
 
-                // 2. Fallback to Trending if no results
+                // 2. If no search results, try Trending for THIS destination
                 if (!data || data.length === 0) {
-                    console.log('No specific matches found, fetching trending...');
+                    console.log(`No specific matches found, fetching trending for ${destination}...`);
                     try {
-                        const trendingResponse = await fetch('http://localhost:3001/api/itineraries/trending');
+                        const trendingResponse = await fetch(`http://localhost:3001/api/itineraries/trending?destination=${encodeURIComponent(destination)}`);
                         if (trendingResponse.ok) {
                             data = await trendingResponse.json();
+                            // If we found data here, it's technically a fallback from "Search" but still relevant to the destination
                             isFallback = true;
                         }
                     } catch (e) { console.warn('Trending API failed', e); }
@@ -532,11 +533,10 @@ const CommunityItinerariesSection: React.FC<{ destination: string, compact?: boo
 
                 if (data && data.length > 0) {
                     setIsTrendingFallback(isFallback);
-                    // Map raw metadata to CommunityItinerary type
                     const mapped: CommunityItinerary[] = data.map((item: any) => ({
                         id: item.id || Math.random().toString(),
                         name: item.metadata?.destination ? `Trip to ${item.metadata.destination}` : 'Amazing Trip',
-                        location: item.metadata?.destination || (isFallback ? item.metadata?.destination || 'Global' : destination),
+                        location: item.metadata?.destination || destination,
                         destination: item.metadata?.destination || destination,
                         image: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=2070&auto=format&fit=crop',
                         creator: {
@@ -555,16 +555,23 @@ const CommunityItinerariesSection: React.FC<{ destination: string, compact?: boo
                     }));
                     setItineraries(mapped);
                 } else {
-                    // 3. Fallback to Mock Data if API totally fails
-                    console.log('API failed or empty, using mocks');
-                    setItineraries(MOCK_COMMUNITY_ITINERARIES);
-                    setIsTrendingFallback(true);
+                    // 3. Fallback to Mock Data ONLY if it matches the destination
+                    console.log('API failed or empty, checking mocks...');
+                    const matchingMocks = MOCK_COMMUNITY_ITINERARIES.filter(
+                        mock => mock.destination?.toLowerCase() === destination?.toLowerCase() ||
+                            mock.location?.toLowerCase().includes(destination?.toLowerCase())
+                    );
+
+                    if (matchingMocks.length > 0) {
+                        setItineraries(matchingMocks);
+                        setIsTrendingFallback(true);
+                    } else {
+                        setItineraries([]); // Strict: show nothing if no matches
+                    }
                 }
             } catch (err) {
                 console.error("Failed to fetch community itineraries", err);
-                // Safety net
-                setItineraries(MOCK_COMMUNITY_ITINERARIES);
-                setIsTrendingFallback(true);
+                setItineraries([]);
             } finally {
                 setLoading(false);
             }
@@ -601,7 +608,7 @@ const CommunityItinerariesSection: React.FC<{ destination: string, compact?: boo
                         </h2>
                         <p className="text-slate-500 font-medium text-sm">
                             {isTrendingFallback
-                                ? "Check out what's trending and remix!"
+                                ? <span>Trending in <span className="text-indigo-600 font-bold">{destination}</span></span>
                                 : <span>Trips to <span className="text-indigo-600 font-bold">{destination}</span> by others.</span>
                             }
                         </p>
