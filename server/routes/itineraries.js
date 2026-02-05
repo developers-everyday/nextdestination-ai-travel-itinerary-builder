@@ -22,6 +22,42 @@ const generateItineraryText = (itinerary) => {
     return parts.join('\n');
 };
 
+// POST /api/itineraries/search - Search for similar itineraries
+// Expects: { query: string } or { destination: string, interests: string[] }
+router.post('/search', async (req, res) => {
+    try {
+        const { query, destination, interests } = req.body;
+        console.log('Search request received:', { query, destination, interests });
+
+        let searchText = query;
+        if (!searchText && destination) {
+            searchText = `Trip to ${destination}`;
+            if (interests && interests.length > 0) {
+                searchText += ` with interests: ${interests.join(', ')}`;
+            }
+        }
+
+        if (!searchText) {
+            return res.status(400).json({ error: 'Search query or destination required' });
+        }
+
+        console.log('Generating embedding for:', searchText);
+        const embedding = await generateEmbedding(searchText);
+
+        // Import dynamically to avoid circular dependencies if any, though here it's fine
+        const { searchSimilarItineraries } = await import('../services/vectorService.js');
+
+        console.log('Searching vector store...');
+        const results = await searchSimilarItineraries(embedding, 0.6, 10); // Lower threshold for exploration, higher limit
+
+        console.log(`Found ${results?.length || 0} matches`);
+        res.json(results || []);
+    } catch (error) {
+        console.error('Error searching itineraries:', error);
+        res.status(500).json({ error: 'Internal Server Error', details: error.message });
+    }
+});
+
 // POST /api/itineraries - Save itinerary
 router.post('/', async (req, res) => {
     const itineraryData = req.body;

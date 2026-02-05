@@ -6,12 +6,29 @@ interface CommunityItineraryCardProps {
     onClick: () => void;
 }
 
-const CommunityItineraryCard: React.FC<CommunityItineraryCardProps> = ({ itinerary, onClick }) => {
+const CommunityItineraryCard: React.FC<CommunityItineraryCardProps & { onRemix?: (e: React.MouseEvent) => void }> = ({ itinerary, onClick, onRemix }) => {
     return (
         <div
             onClick={onClick}
             className="group relative rounded-[2.5rem] overflow-hidden bg-white border border-slate-200 hover:border-indigo-400 transition-all duration-500 cursor-pointer hover:shadow-2xl hover:-translate-y-2 active:translate-y-0"
         >
+            {onRemix && (
+                <div className="absolute top-6 right-6 z-10 transition-transform transform hover:scale-105 duration-300">
+                    <div
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onRemix(e);
+                        }}
+                        className="bg-white/90 backdrop-blur-md px-4 py-2.5 rounded-2xl flex items-center gap-2 shadow-lg hover:bg-white hover:text-indigo-600 transition-all text-slate-900 font-bold"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                        </svg>
+                        <span>Remix</span>
+                    </div>
+                </div>
+            )}
+
             {/* Image Section */}
             <div className="h-80 relative overflow-hidden">
                 <img

@@ -246,14 +246,30 @@ const SortableActivityItem = ({ id, item, index, dayIndex, onRemove, onUpdate, i
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
                   className="flex-1 px-2 py-1 bg-slate-50 border border-slate-200 rounded font-bold text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                  placeholder="Activity Name"
+                  placeholder={item.type === 'flight' ? "Flight No. / Route" : item.type === 'hotel' ? "Hotel Name" : "Activity Name"}
                   autoFocus
                 />
               </div>
             ) : (
               <>
-                <span className="px-2 py-0.5 bg-slate-100 rounded text-[10px] font-black text-slate-500">{item.time}</span>
-                <h3 className="font-bold text-slate-800 text-sm max-w-[240px] truncate">{item.activity}</h3>
+                <div className="flex items-center gap-2 max-w-[240px]">
+                  {item.type === 'flight' && (
+                    <span className="p-1 rounded bg-blue-50 text-blue-500 shrink-0">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 transform rotate-45" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                      </svg>
+                    </span>
+                  )}
+                  {item.type === 'hotel' && (
+                    <span className="p-1 rounded bg-rose-50 text-rose-500 shrink-0">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+                      </svg>
+                    </span>
+                  )}
+                  <span className="px-2 py-0.5 bg-slate-100 rounded text-[10px] font-black text-slate-500 shrink-0">{item.time}</span>
+                  <h3 className="font-bold text-slate-800 text-sm truncate">{item.activity}</h3>
+                </div>
               </>
             )}
           </div>
@@ -396,6 +412,7 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
   const [shareStatus, setShareStatus] = useState<'idle' | 'sharing' | 'shared' | 'error'>('idle');
   const [searchBounds, setSearchBounds] = useState<google.maps.LatLngBounds | null>(null);
   const [placesService, setPlacesService] = useState<google.maps.places.PlacesService | null>(null);
+  const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
 
   // Initialize PlacesService for ItineraryBuilder
   React.useEffect(() => {
@@ -1141,14 +1158,71 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
                 )}
 
 
-                {/* Manual Add Button */}
+                {/* Manual Add Button Dropdown */}
                 <div className="flex gap-3 mt-4">
-                  <button
-                    onClick={() => onAddActivity(safeDayIndex)}
-                    className="flex-1 py-4 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 font-bold text-sm hover:border-indigo-300 hover:text-indigo-600 transition-all flex items-center justify-center gap-2"
-                  >
-                    + Add Manual Item
-                  </button>
+                  <div className="flex-1 relative">
+                    <button
+                      onClick={() => setIsAddMenuOpen(!isAddMenuOpen)}
+                      className="w-full h-full py-4 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 font-bold text-sm hover:border-indigo-300 hover:text-indigo-600 transition-all flex items-center justify-center gap-2"
+                    >
+                      + Add Manual Item
+                    </button>
+                    {isAddMenuOpen && (
+                      <div className="absolute bottom-full left-0 mb-2 w-full bg-white rounded-xl shadow-xl border border-slate-100 py-2 z-50 animate-fade-in-up">
+                        <button
+                          onClick={() => {
+                            setIsAddMenuOpen(false);
+                            onAddActivity(safeDayIndex);
+                          }}
+                          className="w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition-colors flex items-center gap-3"
+                        >
+                          <span className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                          </span>
+                          Activity
+                        </button>
+                        <button
+                          onClick={() => {
+                            setIsAddMenuOpen(false);
+                            onAddActivity(safeDayIndex, {
+                              type: 'flight',
+                              activity: 'New Flight',
+                              description: 'Flight Description',
+                            });
+                          }}
+                          className="w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center gap-3"
+                        >
+                          <span className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 transform rotate-45" viewBox="0 0 20 20" fill="currentColor">
+                              <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                            </svg>
+                          </span>
+                          Flight
+                        </button>
+                        <button
+                          onClick={() => {
+                            setIsAddMenuOpen(false);
+                            onAddActivity(safeDayIndex, {
+                              type: 'hotel',
+                              activity: 'Hotel Stay',
+                              description: 'Hotel Description',
+                            });
+                          }}
+                          className="w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-rose-50 hover:text-rose-600 transition-colors flex items-center gap-3"
+                        >
+                          <span className="w-6 h-6 rounded-full bg-rose-100 flex items-center justify-center text-rose-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                              <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+                            </svg>
+                          </span>
+                          Hotel
+                        </button>
+                      </div>
+                    )}
+                  </div>
                   <button
                     onClick={() => setRightPanelMode('ACTIVITY_SEARCH')}
                     className="flex-1 py-4 bg-indigo-50 border-2 border-indigo-100 rounded-xl text-indigo-600 font-bold text-sm hover:bg-indigo-100 transition-all flex items-center justify-center gap-2"

@@ -7,6 +7,8 @@ import { Itinerary } from '../types';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import { differenceInDays } from 'date-fns';
+import CommunityItineraryCard from './CommunityItineraryCard';
+import { CommunityItinerary } from '../types';
 
 const PlanningSuggestions: React.FC = () => {
     const location = useLocation();
@@ -341,6 +343,8 @@ const PlanningSuggestions: React.FC = () => {
                 )}
             </main>
 
+            <CommunityItinerariesSection destination={destination} />
+
             <style>{`
                 .react-datepicker {
                     font-family: inherit;
@@ -368,3 +372,98 @@ const PlanningSuggestions: React.FC = () => {
 };
 
 export default PlanningSuggestions;
+
+const CommunityItinerariesSection: React.FC<{ destination: string }> = ({ destination }) => {
+    const [itineraries, setItineraries] = useState<CommunityItinerary[]>([]);
+    const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const fetchCommunityItineraries = async () => {
+            setLoading(true);
+            try {
+                const response = await fetch('http://localhost:3001/api/itineraries/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ destination }) // Automatically matches vector search
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    // Map raw metadata to CommunityItinerary type
+                    const mapped: CommunityItinerary[] = data.map((item: any) => ({
+                        id: item.id || Math.random().toString(),
+                        name: item.metadata?.destination ? `Trip to ${item.metadata.destination}` : 'Amazing Trip',
+                        location: item.metadata?.destination || destination,
+                        destination: item.metadata?.destination || destination,
+                        image: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=2070&auto=format&fit=crop', // Placeholder or dynamic if possible
+                        creator: {
+                            id: 'ai',
+                            name: 'Community Traveler',
+                            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
+                            verified: true
+                        },
+                        saveCount: Math.floor(Math.random() * 1000) + 50, // Mock stats
+                        duration: item.metadata?.days?.length || 3,
+                        tags: ['Community', 'Adventure'],
+                        category: 'Adventure',
+                        itinerary: item.metadata,
+                        createdAt: new Date().toISOString(),
+                        trending: Math.random() > 0.8
+                    }));
+                    setItineraries(mapped);
+                }
+            } catch (err) {
+                console.error("Failed to fetch community itineraries", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (destination) {
+            fetchCommunityItineraries();
+        }
+    }, [destination]);
+
+    const handleRemix = (itinerary: CommunityItinerary) => {
+        // Clone and navigate
+        const newItinerary = {
+            ...itinerary.itinerary,
+            id: undefined, // Clear ID to ensure it's treated as new/unsaved or generates new ID
+            days: itinerary.itinerary.days.map(d => ({
+                ...d,
+                activities: d.activities.map(a => ({ ...a, id: Math.random().toString(36).substr(2, 9) }))
+            }))
+        };
+        navigate('/builder', { state: { itinerary: newItinerary } });
+    };
+
+    if (loading) return null; // Or skeleton
+    if (itineraries.length === 0) return null;
+
+    return (
+        <section className="bg-white py-20 border-t border-slate-100">
+            <div className="max-w-7xl mx-auto px-6">
+                <div className="mb-12 flex items-end justify-between">
+                    <div>
+                        <h2 className="text-3xl font-black text-slate-900 mb-4 tracking-tight">Community Trips</h2>
+                        <p className="text-slate-500 font-medium max-w-2xl">
+                            Explore popular itineraries for <span className="text-indigo-600 font-bold">{destination}</span> created by other travelers.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {itineraries.map(itinerary => (
+                        <CommunityItineraryCard
+                            key={itinerary.id}
+                            itinerary={itinerary}
+                            onClick={() => handleRemix(itinerary)}
+                            onRemix={() => handleRemix(itinerary)}
+                        />
+                    ))}
+                </div>
+            </div>
+        </section>
+    );
+};
