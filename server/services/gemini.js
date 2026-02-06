@@ -19,8 +19,11 @@ const ai = new GoogleGenAI({ apiKey: apiKey || '' });
 export const generateEmbedding = async (text) => {
     try {
         const response = await ai.models.embedContent({
-            model: "text-embedding-004",
+            model: "gemini-embedding-001",
             contents: text,
+            config: {
+                outputDimensionality: 768
+            }
         });
         return response.embeddings[0].values;
     } catch (error) {
@@ -31,7 +34,7 @@ export const generateEmbedding = async (text) => {
 
 export const generateQuickItinerary = async (destination, days = 3, selectedInterests = []) => {
     try {
-        const model = "gemini-2.0-flash-exp";
+        const model = "gemini-2.0-flash";
         const prompt = `
         Create a detailed ${days}-day luxury travel itinerary for ${destination}. 
         The user is interested in: ${selectedInterests.length > 0 ? selectedInterests.join(", ") : "general highlights"}.
@@ -177,7 +180,7 @@ export const generateQuickItinerary = async (destination, days = 3, selectedInte
 
 export const searchActivitiesWithGemini = async (query, destination) => {
     try {
-        const model = "gemini-2.0-flash-exp";
+        const model = "gemini-2.0-flash";
         const prompt = `
         The user is searching for: "${query}" in "${destination || 'anywhere'}".
         Provide a list of 5-8 specific activities/places that match this search.

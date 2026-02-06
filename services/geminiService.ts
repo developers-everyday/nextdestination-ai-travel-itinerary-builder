@@ -2,11 +2,13 @@
 import { GoogleGenAI } from "@google/genai";
 import { GEMINI_CONFIG } from "./geminiConfig";
 
-if (!process.env.API_KEY) {
-  console.error("API_KEY is missing. Please set GEMINI_API_KEY in your .env file.");
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_GOOGLE_AI_API_KEY || '';
+
+if (!API_KEY) {
+  console.error("API_KEY is missing. Please set VITE_GEMINI_API_KEY in your .env file.");
 }
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 export const generateQuickItinerary = async (destination: string, days: number = 3, selectedInterests: string[] = []) => {
   try {
@@ -38,12 +40,71 @@ export const generateQuickItinerary = async (destination: string, days: number =
   }
 };
 
+export const analyzeTravelQuery = async (query: string) => {
+  try {
+    // System instruction for the travel assistant
+    const prompt = `
+      You are an expert travel assistant for "NextDestination.ai".
+      Your goal is to helpfuly interact with users to understand their travel plans.
+      
+      User Query: "${query}"
+      
+      Analyze the query and extract:
+      1. Destination (City/Country)
+      2. Duration (in days, default to 3 if not specified but implied short trip, or null if unknown)
+      3. Interests (list of strings like "Food", "History", "Adventure")
+      4. Intent: 
+         - "generate_itinerary": User wants a plan now and has provided enough info (at least destination).
+         - "explore_suggestions": User is asking for ideas, general browsing, or vague queries better served by community lists.
+         - "continue_chat": User context is still unclear, ask for more details.
+      5. Response: A natural, friendly, brief reply to the user.
+         - If "generate_itinerary": "Great! logic... I can plan that for you." (Don't say "I have generated", say "I can generate")
+         - If "continue_chat": Ask for the missing key info (Destination is most important).
+
+      Output strictly JSON:
+      {
+        "destination": "Paris" | null,
+        "days": 3 | null,
+        "interests": ["Food", "Museums"] | [],
+        "intent": "generate_itinerary" | "explore_suggestions" | "continue_chat",
+        "response": "String response to show user"
+      }
+    `;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.0-flash",
+      contents: prompt
+    });
+
+    const text = response.text || "";
+
+    // Extract JSON block (robust against markdown and preamble)
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    const jsonString = jsonMatch ? jsonMatch[0] : text;
+
+    return JSON.parse(jsonString);
+  } catch (error) {
+    console.error("Error analyzing query:", error);
+    // Fallback based on simple keyword matching could go here
+    return {
+      destination: null,
+      days: null,
+      interests: [],
+      intent: "continue_chat",
+      response: "I'm having a bit of trouble connecting to my brain right now. Could you try asking that again?"
+    };
+  }
+};
+
 export const generateEmbedding = async (text: string): Promise<number[]> => {
   try {
     const config = GEMINI_CONFIG.models;
     const response = await ai.models.embedContent({
       model: config.embedding,
       contents: text,
+      config: {
+        outputDimensionality: 768
+      }
     });
     return response.embeddings[0].values;
   } catch (error) {

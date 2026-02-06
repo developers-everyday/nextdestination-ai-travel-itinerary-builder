@@ -17,6 +17,7 @@ import LoginPage from './components/LoginPage';
 import SignupPage from './components/SignupPage';
 import SharedItineraryPage from './components/SharedItineraryPage';
 import ProfilePage from './components/ProfilePage';
+import HomeChatWidget from './components/home/HomeChatWidget';
 
 // Store & Agent
 import { useItineraryStore } from './store/useItineraryStore';
@@ -114,6 +115,7 @@ const TravelApp: React.FC = () => {
                   onSearch={handleSearchAndRedirect}
                   isScriptLoaded={isGoogleMapsLoaded}
                 />
+
                 <CategoryBar
                   selectedCategory={selectedCategory}
                   onSelectCategory={setSelectedCategory}
@@ -121,6 +123,24 @@ const TravelApp: React.FC = () => {
                 <ItineraryGrid
                   category={selectedCategory}
                   source="community"
+                />
+
+                <HomeChatWidget
+                  onGenerate={(data) => {
+                    if (data.destination) {
+                      setIsLoading(true);
+                      generateQuickItinerary(data.destination, data.days || 3, data.interests || [])
+                        .then((itineraryData: any) => {
+                          setItinerary(sanitizeItinerary(itineraryData));
+                          navigate('/builder', { state: { itinerary: sanitizeItinerary(itineraryData) } });
+                        })
+                        .catch((err: any) => setError(err.message))
+                        .finally(() => setIsLoading(false));
+                    }
+                  }}
+                  onBrowse={(data) => {
+                    navigate('/planning-suggestions', { state: { destination: data.destination || "Paris" } });
+                  }}
                 />
 
                 {/* Dynamic AI Loading Overlay */}

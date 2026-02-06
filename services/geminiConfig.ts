@@ -2,12 +2,12 @@ import { Type, Schema } from "@google/genai";
 
 export const GEMINI_CONFIG = {
     models: {
-        standard: "gemini-2.0-flash-exp",
-        embedding: "text-embedding-004",
+        standard: "gemini-2.0-flash",
+        embedding: "gemini-embedding-001",
     },
     endpoints: {
         generateItinerary: {
-            model: "gemini-2.0-flash-exp",
+            model: "gemini-2.0-flash",
             buildPrompt: (destination: string, days: number, selectedInterests: string[] = []) => `
         Create a detailed ${days}-day luxury travel itinerary for ${destination}. 
         The user is interested in: ${selectedInterests.length > 0 ? selectedInterests.join(", ") : "general highlights"}.
@@ -57,7 +57,7 @@ export const GEMINI_CONFIG = {
             }
         },
         getAttractions: {
-            model: "gemini-2.0-flash-exp",
+            model: "gemini-2.0-flash",
             buildPrompt: (destination: string) => `
         List 10 top specific tourist attractions, famous places, or must-do activities in ${destination}.
         Return ONLY a raw JSON array of strings. Do not include markdown formatting or backticks.
