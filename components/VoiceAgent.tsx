@@ -29,6 +29,11 @@ export default function VoiceAgent() {
         },
         onDisconnect: (...args) => {
             console.warn("Disconnected from ElevenLabs", args);
+            // Stop all microphone tracks to release the mic
+            if (mediaStreamRef.current) {
+                mediaStreamRef.current.getTracks().forEach(track => track.stop());
+                mediaStreamRef.current = null;
+            }
             setVoiceState(false, "Disconnected");
         },
         onMessage: (message) => {

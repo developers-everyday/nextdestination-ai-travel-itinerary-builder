@@ -23,6 +23,7 @@ import HomeChatWidget from './components/home/HomeChatWidget';
 import { useItineraryStore } from './store/useItineraryStore';
 import VoiceAgent from './components/VoiceAgent';
 import SettingsModal from './components/SettingsModal';
+import RequireAuth from './components/RequireAuth';
 
 import { APIProvider } from '@vis.gl/react-google-maps';
 
@@ -219,56 +220,58 @@ const TravelApp: React.FC = () => {
           {/* Shared Itinerary Route */}
           <Route path="/share/:id" element={<SharedItineraryPage isScriptLoaded={isGoogleMapsLoaded} />} />
 
-          {/* Builder Page Route */}
+          {/* Builder Page Route - Protected */}
           <Route path="/builder" element={
-            <div className="min-h-screen bg-slate-50 selection:bg-indigo-100">
-              <main>
-                {isLoading && (
-                  <div className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center p-6 text-center animate-fade-in">
-                    <div className="w-24 h-24 border-[10px] border-indigo-50 border-t-indigo-600 rounded-full animate-spin mb-10"></div>
-                    <h2 className="text-5xl font-black text-slate-900 tracking-tight mb-4">Initializing Your Journey...</h2>
-                    <p className="text-xl text-slate-500 font-semibold max-w-lg">Our AI is synchronizing global travel data and optimizing your personal route.</p>
-                  </div>
-                )}
-
-                <BuilderPageContent
-                  itinerary={itinerary}
-                  setItinerary={setItinerary}
-                  handleAddDay={addDay}
-                  handleRemoveDay={removeDay}
-                  handleReorderActivity={reorderActivity}
-                  handleRemoveActivity={removeActivity}
-                  handleUpdateActivity={updateActivity}
-                  handleRemoveArrivalFlight={removeArrivalFlightWrapper}
-                  handleRemoveDepartureFlight={removeDepartureFlightWrapper}
-                  handleRemoveHotel={removeHotelWrapper}
-                  handleUpdateDay={updateDay}
-                  handleAddActivity={(dayIndex, initialData) => {
-                    const newItem = {
-                      id: Math.random().toString(36).substr(2, 9),
-                      time: "09:00",
-                      activity: "",
-                      description: "",
-                      location: "",
-                      type: "activity" as "activity",
-                      ...(initialData || {})
-                    };
-                    addActivity(dayIndex, newItem);
-                  }}
-                  isScriptLoaded={isGoogleMapsLoaded}
-                />
-
-                {error && (
-                  <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] max-w-md w-full px-6">
-                    <div className="bg-red-50 border border-red-100 p-6 rounded-[2rem] text-center shadow-2xl animate-bounce">
-                      <p className="text-red-900 font-bold text-lg mb-1">System Error</p>
-                      <p className="text-red-700 font-medium text-sm">{error}</p>
-                      <button onClick={() => setError(null)} className="mt-4 text-xs font-black text-red-900 uppercase tracking-widest border-b-2 border-red-200 hover:border-red-900 transition-all">Dismiss</button>
+            <RequireAuth>
+              <div className="min-h-screen bg-slate-50 selection:bg-indigo-100">
+                <main>
+                  {isLoading && (
+                    <div className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center p-6 text-center animate-fade-in">
+                      <div className="w-24 h-24 border-[10px] border-indigo-50 border-t-indigo-600 rounded-full animate-spin mb-10"></div>
+                      <h2 className="text-5xl font-black text-slate-900 tracking-tight mb-4">Initializing Your Journey...</h2>
+                      <p className="text-xl text-slate-500 font-semibold max-w-lg">Our AI is synchronizing global travel data and optimizing your personal route.</p>
                     </div>
-                  </div>
-                )}
-              </main>
-            </div>
+                  )}
+
+                  <BuilderPageContent
+                    itinerary={itinerary}
+                    setItinerary={setItinerary}
+                    handleAddDay={addDay}
+                    handleRemoveDay={removeDay}
+                    handleReorderActivity={reorderActivity}
+                    handleRemoveActivity={removeActivity}
+                    handleUpdateActivity={updateActivity}
+                    handleRemoveArrivalFlight={removeArrivalFlightWrapper}
+                    handleRemoveDepartureFlight={removeDepartureFlightWrapper}
+                    handleRemoveHotel={removeHotelWrapper}
+                    handleUpdateDay={updateDay}
+                    handleAddActivity={(dayIndex, initialData) => {
+                      const newItem = {
+                        id: Math.random().toString(36).substr(2, 9),
+                        time: "09:00",
+                        activity: "",
+                        description: "",
+                        location: "",
+                        type: "activity" as "activity",
+                        ...(initialData || {})
+                      };
+                      addActivity(dayIndex, newItem);
+                    }}
+                    isScriptLoaded={isGoogleMapsLoaded}
+                  />
+
+                  {error && (
+                    <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] max-w-md w-full px-6">
+                      <div className="bg-red-50 border border-red-100 p-6 rounded-[2rem] text-center shadow-2xl animate-bounce">
+                        <p className="text-red-900 font-bold text-lg mb-1">System Error</p>
+                        <p className="text-red-700 font-medium text-sm">{error}</p>
+                        <button onClick={() => setError(null)} className="mt-4 text-xs font-black text-red-900 uppercase tracking-widest border-b-2 border-red-200 hover:border-red-900 transition-all">Dismiss</button>
+                      </div>
+                    </div>
+                  )}
+                </main>
+              </div>
+            </RequireAuth>
           } />
           <Route path="/how-it-works" element={<><Navbar onOpenBuilder={handleOpenDemo} /><HowItWorks /></>} />
           <Route path="/contact" element={<><Navbar onOpenBuilder={handleOpenDemo} /><ContactUs /></>} />
