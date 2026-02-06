@@ -19,8 +19,8 @@ const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
 export const verifyAuth = async (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
 
-  if (!token) {
-    return res.status(401).json({ error: 'Unauthorized: No token provided' });
+  if (!token || token === 'undefined' || token === 'null') {
+    return res.status(401).json({ error: 'Unauthorized: No valid token provided' });
   }
 
   try {

@@ -500,11 +500,9 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
   // Inline Search State
   const [arrivalFrom, setArrivalFrom] = useState("");
   const [arrivalTo, setArrivalTo] = useState("");
-  const [arrivalTravelers, setArrivalTravelers] = useState(1);
   const [arrivalDate, setArrivalDate] = useState("");
   const [departureFrom, setDepartureFrom] = useState("");
   const [departureTo, setDepartureTo] = useState("");
-  const [departureTravelers, setDepartureTravelers] = useState(1);
   const [departureDate, setDepartureDate] = useState("");
 
   // Hotel Search State
@@ -524,8 +522,31 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
   };
 
   const handleSelectFlight = (flight: any) => {
-    console.log("Selected flight:", flight);
-    // Ideally update state here
+    // console.log("Selected flight:", flight);
+
+    const context = searchData?.context || 'activity'; // 'arrival', 'departure', or 'activity'
+
+    // Construct the activity object
+    const newItem = {
+      type: 'flight' as 'flight', // Type assertion
+      activity: `${flight.airline} ${flight.flightNumber}`,
+      description: `Departure: ${flight.departure} (${searchData?.from}) \nArrival: ${flight.arrival} (${searchData?.to}) \nDuration: ${flight.duration} \nPrice: ${flight.price}`,
+      time: flight.departure,
+      location: `${searchData?.from || 'Origin'} -> ${searchData?.to || 'Destination'}`,
+      coordinates: null, // Flights don't have a single coordinate
+      ...flight // Keep raw data
+    };
+
+    console.log("Adding flight for context:", context);
+
+    if (context === 'arrival') {
+      onAddActivity(0, newItem); // Add to Day 1
+    } else if (context === 'departure') {
+      onAddActivity(totalDays - 1, newItem); // Add to Last Day
+    } else {
+      onAddActivity(safeDayIndex, newItem); // Add to Current Day
+    }
+
     setRightPanelMode('MAP');
   };
 
@@ -956,18 +977,7 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
                         />
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3">
-                        {/* Pax */}
-                        <div className="relative">
-                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">Pax</label>
-                          <input
-                            type="number"
-                            min="1"
-                            value={arrivalTravelers}
-                            onChange={(e) => setArrivalTravelers(parseInt(e.target.value))}
-                            className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
-                          />
-                        </div>
+                      <div className="grid grid-cols-1 gap-3">
                         {/* Date */}
                         <div className="relative">
                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">Date</label>
@@ -981,7 +991,7 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
                       </div>
                     </div>
                     <button
-                      onClick={() => handleFlightSearch({ from: arrivalFrom, to: arrivalTo, passengers: arrivalTravelers, date: arrivalDate })}
+                      onClick={() => handleFlightSearch({ from: arrivalFrom, to: arrivalTo, date: arrivalDate, context: 'arrival' })}
                       className="w-full bg-[#eff6ff] hover:bg-blue-50 transition-colors rounded-lg py-2.5 text-center group/btn"
                     >
                       <span className="text-[#3b82f6] font-mono text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 group-hover/btn:scale-105 transition-transform">
@@ -1150,18 +1160,7 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
                         />
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3">
-                        {/* Pax */}
-                        <div className="relative">
-                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">Pax</label>
-                          <input
-                            type="number"
-                            min="1"
-                            value={departureTravelers}
-                            onChange={(e) => setDepartureTravelers(parseInt(e.target.value))}
-                            className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
-                          />
-                        </div>
+                      <div className="grid grid-cols-1 gap-3">
                         {/* Date */}
                         <div className="relative">
                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">Date</label>
@@ -1175,7 +1174,7 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
                       </div>
                     </div>
                     <button
-                      onClick={() => handleFlightSearch({ from: departureFrom, to: departureTo, passengers: departureTravelers, date: departureDate })}
+                      onClick={() => handleFlightSearch({ from: departureFrom, to: departureTo, date: departureDate, context: 'departure' })}
                       className="w-full bg-[#eff6ff] hover:bg-blue-50 transition-colors rounded-lg py-2.5 text-center group/btn"
                     >
                       <span className="text-[#3b82f6] font-mono text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 group-hover/btn:scale-105 transition-transform">
@@ -1214,42 +1213,6 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
                             </svg>
                           </span>
                           Activity
-                        </button>
-                        <button
-                          onClick={() => {
-                            setIsAddMenuOpen(false);
-                            onAddActivity(safeDayIndex, {
-                              type: 'flight',
-                              activity: 'New Flight',
-                              description: 'Flight Description',
-                            });
-                          }}
-                          className="w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center gap-3"
-                        >
-                          <span className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 transform rotate-45" viewBox="0 0 20 20" fill="currentColor">
-                              <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
-                            </svg>
-                          </span>
-                          Flight
-                        </button>
-                        <button
-                          onClick={() => {
-                            setIsAddMenuOpen(false);
-                            onAddActivity(safeDayIndex, {
-                              type: 'hotel',
-                              activity: 'Hotel Stay',
-                              description: 'Hotel Description',
-                            });
-                          }}
-                          className="w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-rose-50 hover:text-rose-600 transition-colors flex items-center gap-3"
-                        >
-                          <span className="w-6 h-6 rounded-full bg-rose-100 flex items-center justify-center text-rose-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                              <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-                            </svg>
-                          </span>
-                          Hotel
                         </button>
                       </div>
                     )}

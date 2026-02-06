@@ -15,6 +15,12 @@ router.post('/toggle', verifyAuth, async (req, res) => {
             return res.status(400).json({ error: 'Itinerary ID is required' });
         }
 
+        // Validate UUID format to prevent database errors
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(itineraryId)) {
+            return res.status(400).json({ error: 'Invalid Itinerary ID format' });
+        }
+
         // 1. Check if already wishlisted
         const { data: existing, error: fetchError } = await supabase
             .from('wishlists')
@@ -76,6 +82,12 @@ router.post('/toggle', verifyAuth, async (req, res) => {
 
     } catch (error) {
         console.error('Error toggling wishlist:', error);
+
+        // Handle Foreign Key Violation (Itinerary doesn't exist)
+        if (error.code === '23503') {
+            return res.status(404).json({ error: 'Itinerary not found or cannot be wishlisted' });
+        }
+
         res.status(500).json({ error: 'Internal Server Error', details: error.message });
     }
 });

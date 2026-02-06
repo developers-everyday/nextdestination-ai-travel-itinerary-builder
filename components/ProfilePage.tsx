@@ -24,6 +24,12 @@ const ProfilePage: React.FC = () => {
 
                     // Load bucket list from Supabase
                     const { data: { session } } = await supabase.auth.getSession();
+
+                    if (!session?.access_token) {
+                        console.error("No active session for wishlist fetch");
+                        setIsLoading(false);
+                        return;
+                    }
                     const response = await fetch('http://localhost:3001/api/wishlist', {
                         headers: {
                             'Authorization': `Bearer ${session?.access_token}`

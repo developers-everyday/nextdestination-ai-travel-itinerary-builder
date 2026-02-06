@@ -138,6 +138,25 @@ export const getDestinationAttractions = async (destination: string): Promise<st
   }
 };
 
+export const searchFlights = async (origin: string, destination: string, date: string) => {
+  try {
+    const config = GEMINI_CONFIG.endpoints.searchFlights;
+
+    const response = await ai.models.generateContent({
+      model: config.model,
+      contents: config.buildPrompt(origin, destination, date),
+      config: config.generationConfig
+    });
+
+    const text = response.text || "[]";
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Error searching flights:", error);
+    // Return empty array on error to allow frontend to handle gracefully
+    return [];
+  }
+};
+
 export const getDemoItinerary = () => {
   return {
     destination: "Paris, France",

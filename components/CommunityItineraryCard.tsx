@@ -38,9 +38,22 @@ const CommunityItineraryCard: React.FC<CommunityItineraryCardProps> = ({ itinera
     const handleToggleWishlist = async (e: React.MouseEvent) => {
         e.stopPropagation();
 
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
+        try {
+            const { data, error } = await supabase.auth.getUser();
+            if (error || !data?.user) {
+                alert("Please log in to save trips to your wishlist!");
+                return;
+            }
+        } catch (err) {
+            console.error("Auth check failed:", err);
             alert("Please log in to save trips to your wishlist!");
+            return;
+        }
+
+        // Validate UUID
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!itinerary.id || itinerary.id.startsWith('mock-') || !uuidRegex.test(itinerary.id)) {
+            alert("This itinerary cannot be added to wishlist yet (Community/Mock item).");
             return;
         }
 
@@ -52,6 +65,11 @@ const CommunityItineraryCard: React.FC<CommunityItineraryCardProps> = ({ itinera
         try {
             // Using the API endpoint we created
             const { data: { session } } = await supabase.auth.getSession();
+
+            if (!session?.access_token) {
+                console.error("No active session found");
+                throw new Error("No active session");
+            }
 
             const response = await fetch('http://localhost:3001/api/wishlist/toggle', {
                 method: 'POST',

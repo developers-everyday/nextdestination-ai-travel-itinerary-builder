@@ -63,6 +63,35 @@ export const GEMINI_CONFIG = {
         Return ONLY a raw JSON array of strings. Do not include markdown formatting or backticks.
         Example: ["Eiffel Tower", "Louvre Museum", "Seine Cruise"]
       `,
+        },
+        searchFlights: {
+            model: "gemini-3-flash-preview",
+            buildPrompt: (origin: string, destination: string, date: string) => `
+                Find 5 realistic flight options from ${origin} to ${destination} for travel on ${date}.
+                Return the response as a JSON array of flight objects.
+                Each object should include: airline, flight number, departure time, arrival time, duration, price, and stops.
+                Price should be in a realistic range for the route.
+                Example format: [{"airline": "Air France", "flightNumber": "AF123", "departure": "10:00 AM", "arrival": "02:00 PM", "duration": "4h 00m", "price": "$350", "stops": "Non-stop"}]
+            `,
+            generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            airline: { type: Type.STRING },
+                            flightNumber: { type: Type.STRING },
+                            departure: { type: Type.STRING },
+                            arrival: { type: Type.STRING },
+                            duration: { type: Type.STRING },
+                            price: { type: Type.STRING },
+                            stops: { type: Type.STRING }
+                        },
+                        required: ["airline", "flightNumber", "departure", "arrival", "duration", "price", "stops"]
+                    }
+                } as Schema
+            }
         }
     }
 };
