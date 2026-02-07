@@ -509,7 +509,7 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
   const [selectedDepartureFlight, setSelectedDepartureFlight] = useState<any>(null);
 
   // Hotel Search State
-  const [hotelLocation, setHotelLocation] = useState("");
+
   const [hotelCheckIn, setHotelCheckIn] = useState("");
   const [hotelCheckOut, setHotelCheckOut] = useState("");
   const [hotelGuests, setHotelGuests] = useState(1);
@@ -1077,19 +1077,6 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
 
                     <div className="flex flex-col gap-3">
                       {/* Where */}
-                      <div className="relative">
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">Where</label>
-                        <input
-                          type="text"
-                          placeholder="City, Hotel, etc."
-                          value={hotelLocation}
-                          onChange={(e) => setHotelLocation(e.target.value)}
-                          className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-[#ff385c] focus:ring-1 focus:ring-[#ff385c] transition-all placeholder:font-normal placeholder:text-slate-400"
-                        />
-                      </div>
-
-
-
                       <button
                         onClick={() => {
                           // Best effort to get coordinates for the search
@@ -1102,7 +1089,7 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
                           }
 
                           handleHotelSearch({
-                            location: hotelLocation || data.destination, // Default to trip destination if empty
+                            location: data.destination, // Default to trip destination
                             coordinates: coordinates
                           });
                         }}
