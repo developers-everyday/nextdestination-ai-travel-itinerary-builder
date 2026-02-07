@@ -21,7 +21,7 @@ interface ItineraryState {
     removeDay: (dayNum: number) => void;
 
     // Activity Actions
-    addActivity: (dayIndex: number, activity: ItineraryItem) => void;
+    addActivity: (dayIndex: number, activity: ItineraryItem, index?: number) => void;
     removeActivity: (dayIndex: number, activityIndex: number) => void;
     updateActivity: (dayIndex: number, activityIndex: number, updates: Partial<ItineraryItem>) => void;
     reorderActivity: (dayIndex: number, oldIndex: number, newIndex: number) => void;
@@ -101,7 +101,7 @@ export const useItineraryStore = create<ItineraryState>((set, get) => ({
         };
     }),
 
-    addActivity: (dayIndex, activity) => set((state) => {
+    addActivity: (dayIndex, activity, index) => set((state) => {
         if (!state.itinerary) return state;
         const newDays = [...state.itinerary.days];
         const day = { ...newDays[dayIndex] };
@@ -109,10 +109,16 @@ export const useItineraryStore = create<ItineraryState>((set, get) => ({
         // Ensure day exists
         if (!day) return state;
 
-        day.activities = [
-            ...day.activities,
-            { ...activity, id: activity.id || Math.random().toString(36).substr(2, 9) }
-        ];
+        const newActivities = [...day.activities];
+        const newActivity = { ...activity, id: activity.id || Math.random().toString(36).substr(2, 9) };
+
+        if (typeof index === 'number' && index >= 0 && index <= newActivities.length) {
+            newActivities.splice(index, 0, newActivity);
+        } else {
+            newActivities.push(newActivity);
+        }
+
+        day.activities = newActivities;
         newDays[dayIndex] = day;
 
         return {

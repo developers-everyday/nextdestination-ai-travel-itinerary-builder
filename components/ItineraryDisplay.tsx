@@ -32,7 +32,7 @@ import { saveItineraryToBackend } from '../services/itineraryService';
 interface Props {
   data: Itinerary;
   onBackToHome: () => void;
-  onAddActivity: (dayIndex: number, initialData?: any) => void;
+  onAddActivity: (dayIndex: number, activity: any, index?: number) => void;
   onAddDay: () => void;
   onRemoveDay: (day: number) => void;
   onReorderActivity: (dayIndex: number, oldIndex: number, newIndex: number) => void;
@@ -577,8 +577,8 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
     // For now, let's add it to the current day or ask user?
     // The current flow implies adding to the itinerary. Let's add to the first day or current active day.
     // Given it's a "Stay", maybe add to Day 1?
-    // Let's stick to safeDayIndex (active day) similar to activities.
-    onAddActivity(safeDayIndex, newItem);
+    // Insert at the beginning of the list (index 0) to replace "Where to stay?" position
+    onAddActivity(safeDayIndex, newItem, 0);
 
     // Do not switch to MAP mode, keep the hotel panel open for more browsing
     // setRightPanelMode('MAP');
@@ -1053,8 +1053,8 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
                   </div>
                 )}
 
-                {/* Daily Hotel Integration (Airbnb Style) */}
-                {currentDay.hasHotel !== false && (
+                {/* Daily Hotel Integration (Airbnb Style) - Show only if no hotel added */}
+                {currentDay.hasHotel !== false && !currentDay.activities.some(a => a.type === 'hotel') && (
                   <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 relative group mb-4 hover:shadow-md transition-shadow">
                     {/* Delete Button */}
                     <button
@@ -1239,7 +1239,7 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
                         <button
                           onClick={() => {
                             setIsAddMenuOpen(false);
-                            onAddActivity(safeDayIndex);
+                            onAddActivity(safeDayIndex, {});
                           }}
                           className="w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition-colors flex items-center gap-3"
                         >

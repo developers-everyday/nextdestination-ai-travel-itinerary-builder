@@ -245,7 +245,7 @@ const TravelApp: React.FC = () => {
                     handleRemoveDepartureFlight={removeDepartureFlightWrapper}
                     handleRemoveHotel={removeHotelWrapper}
                     handleUpdateDay={updateDay}
-                    handleAddActivity={(dayIndex, initialData) => {
+                    handleAddActivity={(dayIndex, initialData, index) => {
                       const newItem = {
                         id: Math.random().toString(36).substr(2, 9),
                         time: "09:00",
@@ -255,7 +255,7 @@ const TravelApp: React.FC = () => {
                         type: "activity" as "activity",
                         ...(initialData || {})
                       };
-                      addActivity(dayIndex, newItem);
+                      addActivity(dayIndex, newItem, index);
                     }}
                     isScriptLoaded={isGoogleMapsLoaded}
                   />
@@ -299,7 +299,7 @@ interface BuilderPageContentProps {
   handleRemoveDepartureFlight: () => void;
   handleRemoveHotel: (dayIndex: number) => void;
   handleUpdateDay: (dayIndex: number, newDayData: any) => void;
-  handleAddActivity: (dayIndex: number, initialData?: any) => void;
+  handleAddActivity: (dayIndex: number, initialData?: any, index?: number) => void;
   isScriptLoaded: boolean;
 }
 
