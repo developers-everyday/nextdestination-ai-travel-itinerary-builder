@@ -43,7 +43,7 @@ const HotelDetailsPanel: React.FC<HotelDetailsPanelProps> = ({ onBack, onSelect,
                     name: place.name,
                     rating: place.rating,
                     user_ratings_total: place.user_ratings_total,
-                    price: place.price_level ? '💰'.repeat(place.price_level) : 'Check availability',
+                    price: place.price_level ? '💰'.repeat(place.price_level) : '',
                     // Get first photo if available
                     image: place.photos && place.photos.length > 0
                         ? place.photos[0].getUrl({ maxWidth: 400 })
