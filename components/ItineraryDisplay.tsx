@@ -1088,40 +1088,7 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
                         />
                       </div>
 
-                      <div className="flex gap-3">
-                        {/* When */}
-                        <div className="relative flex-1">
-                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">Check-in</label>
-                          <input
-                            type="date"
-                            value={hotelCheckIn}
-                            onChange={(e) => setHotelCheckIn(e.target.value)}
-                            className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-700 outline-none focus:border-[#ff385c] focus:ring-1 focus:ring-[#ff385c] transition-all"
-                          />
-                        </div>
-                        <div className="relative flex-1">
-                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">Check-out</label>
-                          <input
-                            type="date"
-                            value={hotelCheckOut}
-                            onChange={(e) => setHotelCheckOut(e.target.value)}
-                            className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-700 outline-none focus:border-[#ff385c] focus:ring-1 focus:ring-[#ff385c] transition-all"
-                          />
-                        </div>
-                      </div>
 
-                      {/* Who */}
-                      <div className="relative">
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">Who</label>
-                        <input
-                          type="number"
-                          min="1"
-                          value={hotelGuests}
-                          onChange={(e) => setHotelGuests(parseInt(e.target.value))}
-                          className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-[#ff385c] focus:ring-1 focus:ring-[#ff385c] transition-all"
-                        />
-                        <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-medium pointer-events-none">Guests</span>
-                      </div>
 
                       <button
                         onClick={() => {
@@ -1136,10 +1103,7 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
 
                           handleHotelSearch({
                             location: hotelLocation || data.destination, // Default to trip destination if empty
-                            coordinates: coordinates,
-                            checkIn: hotelCheckIn,
-                            checkOut: hotelCheckOut,
-                            guests: hotelGuests
+                            coordinates: coordinates
                           });
                         }}
                         className="w-full mt-2 bg-gradient-to-r from-[#ff385c] to-[#bd1e59] hover:from-[#d93250] hover:to-[#a0184a] text-white font-bold py-3 rounded-lg shadow-md shadow-rose-200 transition-all active:scale-95 flex items-center justify-center gap-2"

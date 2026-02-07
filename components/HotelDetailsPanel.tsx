@@ -146,7 +146,7 @@ const HotelDetailsPanel: React.FC<HotelDetailsPanelProps> = ({ onBack, onSelect,
                 <div>
                     <h2 className="text-lg font-bold text-slate-800 leading-tight">Stays in {searchData?.location || 'Area'}</h2>
                     <p className="text-xs text-slate-500 font-medium">
-                        {searchData?.location || 'Anywhere'} • {searchData?.checkIn ? `${searchData.checkIn} - ${searchData.checkOut}` : 'Any dates'} • {searchData?.guests || 2} Guest(s)
+                        {searchData?.location || 'Anywhere'}
                     </p>
                 </div>
             </div>
