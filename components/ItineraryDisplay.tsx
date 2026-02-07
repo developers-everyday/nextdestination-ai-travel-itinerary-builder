@@ -394,7 +394,7 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
   // useJsApiLoader removed - passed from parent
   const isLoaded = isScriptLoaded;
 
-  const { setFocusedLocation } = useItineraryStore(); // Use global store for map focus
+  const { setFocusedLocation, focusedLocation } = useItineraryStore(); // Use global store for map focus
 
   const handleFocusMap = (coords: [number, number]) => {
     setFocusedLocation(coords);
@@ -505,6 +505,9 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
   const [departureTo, setDepartureTo] = useState("");
   const [departureDate, setDepartureDate] = useState("");
 
+  const [selectedArrivalFlight, setSelectedArrivalFlight] = useState<any>(null);
+  const [selectedDepartureFlight, setSelectedDepartureFlight] = useState<any>(null);
+
   // Hotel Search State
   const [hotelLocation, setHotelLocation] = useState("");
   const [hotelCheckIn, setHotelCheckIn] = useState("");
@@ -552,8 +555,34 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
 
   const handleSelectHotel = (hotel: any) => {
     console.log("Selected hotel:", hotel);
-    // Ideally update state here
-    setRightPanelMode('MAP');
+
+    // Create itinerary item from hotel data
+    const newItem = {
+      type: 'hotel' as 'hotel',
+      activity: hotel.name || "Selected Hotel",
+      description: hotel.formatted_address || hotel.location || "Hotel Stay",
+      time: "14:00", // Standard check-in time
+      location: hotel.formatted_address || hotel.location,
+      coordinates: [
+        (hotel.geometry?.location?.lng && typeof hotel.geometry.location.lng === 'function') ? hotel.geometry.location.lng() : (hotel.coordinates?.lng || 0),
+        (hotel.geometry?.location?.lat && typeof hotel.geometry.location.lat === 'function') ? hotel.geometry.location.lat() : (hotel.coordinates?.lat || 0)
+      ],
+      price: hotel.price_level ? '💰'.repeat(hotel.price_level) : undefined,
+      rating: hotel.rating,
+      image: hotel.photos && hotel.photos.length > 0 && typeof hotel.photos[0].getUrl === 'function' ? hotel.photos[0].getUrl() : undefined,
+      ...hotel
+    };
+
+    // Add to all days or specific day? Usually hotels are for the trip duration.
+    // For now, let's add it to the current day or ask user?
+    // The current flow implies adding to the itinerary. Let's add to the first day or current active day.
+    // Given it's a "Stay", maybe add to Day 1?
+    // Let's stick to safeDayIndex (active day) similar to activities.
+    onAddActivity(safeDayIndex, newItem);
+
+    // Do not switch to MAP mode, keep the hotel panel open for more browsing
+    // setRightPanelMode('MAP');
+    alert("Hotel added to your itinerary!"); // Simple feedback for now
   };
 
   const handleActivitySearch = (data: any) => {
@@ -953,54 +982,74 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
                       <h4 className="text-sm font-bold text-slate-800">Flight</h4>
                     </div>
 
-                    <div className="flex flex-col gap-3 mb-4">
-                      {/* From */}
-                      <div className="relative">
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">From</label>
-                        <input
-                          type="text"
-                          value={arrivalFrom}
-                          onChange={(e) => setArrivalFrom(e.target.value)}
-                          placeholder="Origin City or Airport"
-                          className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:font-normal placeholder:text-slate-400"
-                        />
-                      </div>
-                      {/* To */}
-                      <div className="relative">
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">To</label>
-                        <input
-                          type="text"
-                          value={arrivalTo}
-                          onChange={(e) => setArrivalTo(e.target.value)}
-                          placeholder="Destination City or Airport"
-                          className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:font-normal placeholder:text-slate-400"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-3">
-                        {/* Date */}
-                        <div className="relative">
-                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">Date</label>
-                          <input
-                            type="date"
-                            value={arrivalDate}
-                            onChange={(e) => setArrivalDate(e.target.value)}
-                            className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
-                          />
+                    {selectedArrivalFlight ? (
+                      <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <h5 className="font-bold text-slate-800">{selectedArrivalFlight.airline} <span className="text-xs font-normal text-slate-500">({selectedArrivalFlight.flightNumber})</span></h5>
+                            <p className="text-xs text-slate-500">{selectedArrivalFlight.departure} - {selectedArrivalFlight.arrival}</p>
+                          </div>
+                          <span className="text-sm font-bold text-slate-900">{selectedArrivalFlight.price}</span>
                         </div>
+                        <button
+                          onClick={() => setSelectedArrivalFlight(null)}
+                          className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline mt-2"
+                        >
+                          Change Flight
+                        </button>
                       </div>
-                    </div>
-                    <button
-                      onClick={() => handleFlightSearch({ from: arrivalFrom, to: arrivalTo, date: arrivalDate, context: 'arrival' })}
-                      className="w-full bg-[#eff6ff] hover:bg-blue-50 transition-colors rounded-lg py-2.5 text-center group/btn"
-                    >
-                      <span className="text-[#3b82f6] font-mono text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 group-hover/btn:scale-105 transition-transform">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                        Search Flights
-                      </span>
-                    </button>
+                    ) : (
+                      <>
+                        <div className="flex flex-col gap-3 mb-4">
+                          {/* From */}
+                          <div className="relative">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">From</label>
+                            <input
+                              type="text"
+                              value={arrivalFrom}
+                              onChange={(e) => setArrivalFrom(e.target.value)}
+                              placeholder="Origin City or Airport"
+                              className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:font-normal placeholder:text-slate-400"
+                            />
+                          </div>
+                          {/* To */}
+                          <div className="relative">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">To</label>
+                            <input
+                              type="text"
+                              value={arrivalTo}
+                              onChange={(e) => setArrivalTo(e.target.value)}
+                              placeholder="Destination City or Airport"
+                              className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:font-normal placeholder:text-slate-400"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-1 gap-3">
+                            {/* Date */}
+                            <div className="relative">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">Date</label>
+                              <input
+                                type="date"
+                                value={arrivalDate}
+                                onChange={(e) => setArrivalDate(e.target.value)}
+                                className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleFlightSearch({ from: arrivalFrom, to: arrivalTo, date: arrivalDate, context: 'arrival' })}
+                          className="w-full bg-[#eff6ff] hover:bg-blue-50 transition-colors rounded-lg py-2.5 text-center group/btn"
+                        >
+                          <span className="text-[#3b82f6] font-mono text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 group-hover/btn:scale-105 transition-transform">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            Search Flights
+                          </span>
+                        </button>
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -1075,7 +1124,24 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
                       </div>
 
                       <button
-                        onClick={() => handleHotelSearch({ location: hotelLocation, checkIn: hotelCheckIn, checkOut: hotelCheckOut, guests: hotelGuests })}
+                        onClick={() => {
+                          // Best effort to get coordinates for the search
+                          let coordinates = undefined;
+                          if (searchBounds) {
+                            const center = searchBounds.getCenter();
+                            coordinates = [center.lng(), center.lat()];
+                          } else if (focusedLocation) {
+                            coordinates = focusedLocation;
+                          }
+
+                          handleHotelSearch({
+                            location: hotelLocation || data.destination, // Default to trip destination if empty
+                            coordinates: coordinates,
+                            checkIn: hotelCheckIn,
+                            checkOut: hotelCheckOut,
+                            guests: hotelGuests
+                          });
+                        }}
                         className="w-full mt-2 bg-gradient-to-r from-[#ff385c] to-[#bd1e59] hover:from-[#d93250] hover:to-[#a0184a] text-white font-bold py-3 rounded-lg shadow-md shadow-rose-200 transition-all active:scale-95 flex items-center justify-center gap-2"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1136,54 +1202,74 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
                       <h4 className="text-sm font-bold text-slate-800">Flight</h4>
                     </div>
 
-                    <div className="flex flex-col gap-3 mb-4">
-                      {/* From */}
-                      <div className="relative">
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">From</label>
-                        <input
-                          type="text"
-                          value={departureFrom}
-                          onChange={(e) => setDepartureFrom(e.target.value)}
-                          placeholder="Origin City or Airport"
-                          className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:font-normal placeholder:text-slate-400"
-                        />
-                      </div>
-                      {/* To */}
-                      <div className="relative">
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">To</label>
-                        <input
-                          type="text"
-                          value={departureTo}
-                          onChange={(e) => setDepartureTo(e.target.value)}
-                          placeholder="Destination City or Airport"
-                          className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:font-normal placeholder:text-slate-400"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-3">
-                        {/* Date */}
-                        <div className="relative">
-                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">Date</label>
-                          <input
-                            type="date"
-                            value={departureDate}
-                            onChange={(e) => setDepartureDate(e.target.value)}
-                            className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
-                          />
+                    {selectedDepartureFlight ? (
+                      <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <h5 className="font-bold text-slate-800">{selectedDepartureFlight.airline} <span className="text-xs font-normal text-slate-500">({selectedDepartureFlight.flightNumber})</span></h5>
+                            <p className="text-xs text-slate-500">{selectedDepartureFlight.departure} - {selectedDepartureFlight.arrival}</p>
+                          </div>
+                          <span className="text-sm font-bold text-slate-900">{selectedDepartureFlight.price}</span>
                         </div>
+                        <button
+                          onClick={() => setSelectedDepartureFlight(null)}
+                          className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline mt-2"
+                        >
+                          Change Flight
+                        </button>
                       </div>
-                    </div>
-                    <button
-                      onClick={() => handleFlightSearch({ from: departureFrom, to: departureTo, date: departureDate, context: 'departure' })}
-                      className="w-full bg-[#eff6ff] hover:bg-blue-50 transition-colors rounded-lg py-2.5 text-center group/btn"
-                    >
-                      <span className="text-[#3b82f6] font-mono text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 group-hover/btn:scale-105 transition-transform">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                        Search Flights
-                      </span>
-                    </button>
+                    ) : (
+                      <>
+                        <div className="flex flex-col gap-3 mb-4">
+                          {/* From */}
+                          <div className="relative">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">From</label>
+                            <input
+                              type="text"
+                              value={departureFrom}
+                              onChange={(e) => setDepartureFrom(e.target.value)}
+                              placeholder="Origin City or Airport"
+                              className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:font-normal placeholder:text-slate-400"
+                            />
+                          </div>
+                          {/* To */}
+                          <div className="relative">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">To</label>
+                            <input
+                              type="text"
+                              value={departureTo}
+                              onChange={(e) => setDepartureTo(e.target.value)}
+                              placeholder="Destination City or Airport"
+                              className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:font-normal placeholder:text-slate-400"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-1 gap-3">
+                            {/* Date */}
+                            <div className="relative">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">Date</label>
+                              <input
+                                type="date"
+                                value={departureDate}
+                                onChange={(e) => setDepartureDate(e.target.value)}
+                                className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleFlightSearch({ from: departureFrom, to: departureTo, date: departureDate, context: 'departure' })}
+                          className="w-full bg-[#eff6ff] hover:bg-blue-50 transition-colors rounded-lg py-2.5 text-center group/btn"
+                        >
+                          <span className="text-[#3b82f6] font-mono text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 group-hover/btn:scale-105 transition-transform">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            Search Flights
+                          </span>
+                        </button>
+                      </>
+                    )}
                   </div>
                 )}
 
