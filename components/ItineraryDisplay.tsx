@@ -22,8 +22,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { Itinerary, ItineraryItem } from '../types';
 import { saveItinerary } from '../services/localStorageService';
-import FlightSearchPanel from './FlightSearchPanel';
-import FlightDetailsPanel from './FlightDetailsPanel';
+import TransportInfoPanel from './TransportInfoPanel';
 
 import ActivitySearchPanel from './ActivitySearchPanel';
 import HotelDetailsPanel from './HotelDetailsPanel';
@@ -388,7 +387,7 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
   const { user } = useAuth();
   const [activeDay, setActiveDay] = useState(1);
   const [leftPanelMode, setLeftPanelMode] = useState<'LIST' | 'Map'>('LIST');
-  const [rightPanelMode, setRightPanelMode] = useState<'MAP' | 'FLIGHT_SEARCH' | 'ACTIVITY_SEARCH' | 'FLIGHT_DETAILS' | 'HOTEL_DETAILS'>('ACTIVITY_SEARCH');
+  const [rightPanelMode, setRightPanelMode] = useState<'MAP' | 'TRANSPORT_INFO' | 'ACTIVITY_SEARCH' | 'HOTEL_DETAILS'>('ACTIVITY_SEARCH');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   // useJsApiLoader removed - passed from parent
@@ -514,10 +513,7 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
   const [hotelCheckOut, setHotelCheckOut] = useState("");
   const [hotelGuests, setHotelGuests] = useState(1);
 
-  const handleFlightSearch = (data: any) => {
-    setSearchData(data);
-    setRightPanelMode('FLIGHT_DETAILS');
-  };
+  // setRightPanelMode('FLIGHT_DETAILS'); // Deprecated
 
   const handleHotelSearch = (data: any) => {
     setSearchData(data);
@@ -979,7 +975,7 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
                           <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
                         </svg>
                       </div>
-                      <h4 className="text-sm font-bold text-slate-800">Flight</h4>
+                      <h4 className="text-sm font-bold text-slate-800">Transport and Info</h4>
                     </div>
 
                     {selectedArrivalFlight ? (
@@ -1000,54 +996,20 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
                       </div>
                     ) : (
                       <>
-                        <div className="flex flex-col gap-3 mb-4">
-                          {/* From */}
-                          <div className="relative">
-                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">From</label>
-                            <input
-                              type="text"
-                              value={arrivalFrom}
-                              onChange={(e) => setArrivalFrom(e.target.value)}
-                              placeholder="Origin City or Airport"
-                              className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:font-normal placeholder:text-slate-400"
-                            />
-                          </div>
-                          {/* To */}
-                          <div className="relative">
-                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">To</label>
-                            <input
-                              type="text"
-                              value={arrivalTo}
-                              onChange={(e) => setArrivalTo(e.target.value)}
-                              placeholder="Destination City or Airport"
-                              className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:font-normal placeholder:text-slate-400"
-                            />
-                          </div>
-
-                          <div className="grid grid-cols-1 gap-3">
-                            {/* Date */}
-                            <div className="relative">
-                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">Date</label>
-                              <input
-                                type="date"
-                                value={arrivalDate}
-                                onChange={(e) => setArrivalDate(e.target.value)}
-                                className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
-                              />
-                            </div>
-                          </div>
+                        <div className="mb-4">
+                          <p className="text-xs text-slate-500 mb-3 leading-relaxed">Need to get here? Let AI find the best flights, trains, and travel tips for you.</p>
+                          <button
+                            onClick={() => setRightPanelMode('TRANSPORT_INFO')}
+                            className="w-full bg-[#eff6ff] hover:bg-blue-50 transition-colors rounded-lg py-3 text-center group/btn border border-blue-100"
+                          >
+                            <span className="text-[#3b82f6] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 group-hover/btn:scale-105 transition-transform">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                              </svg>
+                              Explore Transport Options
+                            </span>
+                          </button>
                         </div>
-                        <button
-                          onClick={() => handleFlightSearch({ from: arrivalFrom, to: arrivalTo, date: arrivalDate, context: 'arrival' })}
-                          className="w-full bg-[#eff6ff] hover:bg-blue-50 transition-colors rounded-lg py-2.5 text-center group/btn"
-                        >
-                          <span className="text-[#3b82f6] font-mono text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 group-hover/btn:scale-105 transition-transform">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                            Search Flights
-                          </span>
-                        </button>
                       </>
                     )}
                   </div>
@@ -1150,7 +1112,7 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
                           <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
                         </svg>
                       </div>
-                      <h4 className="text-sm font-bold text-slate-800">Flight</h4>
+                      <h4 className="text-sm font-bold text-slate-800">Transport and Info</h4>
                     </div>
 
                     {selectedDepartureFlight ? (
@@ -1171,54 +1133,20 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
                       </div>
                     ) : (
                       <>
-                        <div className="flex flex-col gap-3 mb-4">
-                          {/* From */}
-                          <div className="relative">
-                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">From</label>
-                            <input
-                              type="text"
-                              value={departureFrom}
-                              onChange={(e) => setDepartureFrom(e.target.value)}
-                              placeholder="Origin City or Airport"
-                              className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:font-normal placeholder:text-slate-400"
-                            />
-                          </div>
-                          {/* To */}
-                          <div className="relative">
-                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">To</label>
-                            <input
-                              type="text"
-                              value={departureTo}
-                              onChange={(e) => setDepartureTo(e.target.value)}
-                              placeholder="Destination City or Airport"
-                              className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:font-normal placeholder:text-slate-400"
-                            />
-                          </div>
-
-                          <div className="grid grid-cols-1 gap-3">
-                            {/* Date */}
-                            <div className="relative">
-                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider absolute -top-1.5 left-2 bg-white px-1">Date</label>
-                              <input
-                                type="date"
-                                value={departureDate}
-                                onChange={(e) => setDepartureDate(e.target.value)}
-                                className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
-                              />
-                            </div>
-                          </div>
+                        <div className="mb-4">
+                          <p className="text-xs text-slate-500 mb-3 leading-relaxed">Heading home or to your next stop? Check available options.</p>
+                          <button
+                            onClick={() => setRightPanelMode('TRANSPORT_INFO')}
+                            className="w-full bg-[#eff6ff] hover:bg-blue-50 transition-colors rounded-lg py-3 text-center group/btn border border-blue-100"
+                          >
+                            <span className="text-[#3b82f6] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 group-hover/btn:scale-105 transition-transform">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                              </svg>
+                              Explore Transport Options
+                            </span>
+                          </button>
                         </div>
-                        <button
-                          onClick={() => handleFlightSearch({ from: departureFrom, to: departureTo, date: departureDate, context: 'departure' })}
-                          className="w-full bg-[#eff6ff] hover:bg-blue-50 transition-colors rounded-lg py-2.5 text-center group/btn"
-                        >
-                          <span className="text-[#3b82f6] font-mono text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 group-hover/btn:scale-105 transition-transform">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                            Search Flights
-                          </span>
-                        </button>
                       </>
                     )}
                   </div>
@@ -1282,18 +1210,14 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
             />
           )}
 
-          {rightPanelMode === 'FLIGHT_SEARCH' && (
-            <FlightSearchPanel
-              onSearch={handleFlightSearch}
-              onCancel={() => setRightPanelMode('MAP')}
-            />
-          )}
-
-          {rightPanelMode === 'FLIGHT_DETAILS' && (
-            <FlightDetailsPanel
-              searchData={searchData}
-              onBack={() => setRightPanelMode('MAP')}
-              onSelect={handleSelectFlight}
+          {rightPanelMode === 'TRANSPORT_INFO' && (
+            <TransportInfoPanel
+              destination={data.destination}
+              dayActivities={data.days[safeDayIndex]?.activities || []}
+              currentDay={activeDay}
+              isFirstDay={activeDay === 1}
+              isLastDay={activeDay === totalDays}
+              onClose={() => setRightPanelMode('MAP')}
             />
           )}
 

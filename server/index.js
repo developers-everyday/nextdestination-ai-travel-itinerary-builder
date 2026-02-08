@@ -18,6 +18,7 @@ import recommendationRoutes from './routes/recommendations.js';
 import itineraryRoutes from './routes/itineraries.js';
 import suggestionRoutes from './routes/suggestions.js';
 import activityRoutes from './routes/activities.js';
+import transportRoutes from './routes/transport.js';
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -25,7 +26,9 @@ app.use(express.json({ limit: '10mb' }));
 app.use('/api/recommend', recommendationRoutes);
 app.use('/api/itineraries', itineraryRoutes);
 app.use('/api/suggestions', suggestionRoutes);
+
 app.use('/api/activities', activityRoutes);
+app.use('/api/transport', transportRoutes);
 
 import wishlistRoutes from './routes/wishlist.js';
 app.use('/api/wishlist', wishlistRoutes);

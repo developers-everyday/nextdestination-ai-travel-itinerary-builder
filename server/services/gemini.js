@@ -238,3 +238,156 @@ export const searchActivitiesWithGemini = async (query, destination) => {
         return [];
     }
 };
+
+export const generateTransportOptions = async (destination, dayActivities, userLocation) => {
+    try {
+        const model = "gemini-3-flash-preview";
+        const prompt = `
+        Provide a list of transport options for traveling to/around ${destination}.
+        User location (optional context): ${userLocation || 'International Arrival'}.
+        Activities planned: ${JSON.stringify(dayActivities)}.
+        
+        Return JSON with key 'options' containing an array of transport modes.
+        Each mode should have:
+        - mode (string, e.g., "Flight", "Train", "Bus", "Taxi", "Rental Car")
+        - description (string, brief)
+        - estimatedCost (string, e.g., "$50 - $100")
+        - estimatedTime (string, e.g., "2h 30m")
+        - bestFor (string, e.g., "Budget", "Speed", "Comfort")
+        - pros (array of strings)
+        - cons (array of strings)
+        - bookingLink (string, optional URL or "Check Local")
+        `;
+
+        const response = await ai.models.generateContent({
+            model: model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: "OBJECT",
+                    properties: {
+                        options: {
+                            type: "ARRAY",
+                            items: {
+                                type: "OBJECT",
+                                properties: {
+                                    mode: { type: "STRING" },
+                                    description: { type: "STRING" },
+                                    estimatedCost: { type: "STRING" },
+                                    estimatedTime: { type: "STRING" },
+                                    bestFor: { type: "STRING" },
+                                    pros: { type: "ARRAY", items: { type: "STRING" } },
+                                    cons: { type: "ARRAY", items: { type: "STRING" } },
+                                    bookingLink: { type: "STRING" }
+                                },
+                                required: ["mode", "description", "estimatedCost", "estimatedTime", "pros", "cons"]
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        const textResponse = response.candidates[0].content.parts[0].text;
+        return JSON.parse(textResponse);
+    } catch (error) {
+        console.error("Gemini Transport Options Error:", error);
+        return { options: [] };
+    }
+};
+
+export const generateGeneralInfo = async (destination) => {
+    try {
+        const model = "gemini-3-flash-preview";
+        const prompt = `
+        Provide general travel information for ${destination}.
+        Include:
+        - Weather (current/typical for now)
+        - Currency (Symbol, Code, Cost Level)
+        - Language (Official, English level)
+        - Visa (Summary for general international tourists)
+        - Scam Alert (Common scams to avoid)
+        - Considerations (Cultural norms, safety, etc.)
+        - Packing (Essentials to pack)
+        
+        Return JSON.
+        `;
+
+        const response = await ai.models.generateContent({
+            model: model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: "OBJECT",
+                    properties: {
+                        weather: {
+                            type: "OBJECT",
+                            properties: {
+                                tempRange: { type: "STRING" },
+                                condition: { type: "STRING" }
+                            }
+                        },
+                        currency: {
+                            type: "OBJECT",
+                            properties: {
+                                name: { type: "STRING" },
+                                symbol: { type: "STRING" },
+                                costLevel: { type: "STRING" }
+                            }
+                        },
+                        language: {
+                            type: "OBJECT",
+                            properties: {
+                                official: { type: "STRING" },
+                                englishPrevalence: { type: "STRING" }
+                            }
+                        },
+                        visa: {
+                            type: "OBJECT",
+                            properties: {
+                                summary: { type: "STRING" }
+                            }
+                        },
+                        scams: {
+                            type: "ARRAY",
+                            items: {
+                                type: "OBJECT",
+                                properties: {
+                                    name: { type: "STRING" },
+                                    description: { type: "STRING" }
+                                }
+                            }
+                        },
+                        considerations: { type: "ARRAY", items: { type: "STRING" } },
+                        packing: { type: "ARRAY", items: { type: "STRING" } }
+                    }
+                }
+            }
+        });
+
+        const textResponse = response.candidates[0].content.parts[0].text;
+        return JSON.parse(textResponse);
+    } catch (error) {
+        console.error("Gemini General Info Error:", error);
+        return {};
+    }
+};
+
+export const estimateFlightDuration = async (from, to) => {
+    try {
+        const model = "gemini-3-flash-preview";
+        const prompt = `Estimate the flight duration from ${from} to ${to}. Return ONLY the duration string (e.g., "2h 15m").`;
+
+        const response = await ai.models.generateContent({
+            model: model,
+            contents: prompt
+        });
+
+        return response.candidates[0].content.parts[0].text.trim();
+    } catch (error) {
+        console.error("Gemini Flight Estimate Error:", error);
+        return "N/A";
+    }
+};
