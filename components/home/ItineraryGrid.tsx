@@ -155,7 +155,7 @@ const ItineraryGrid: React.FC<ItineraryGridProps> = ({ category, source }) => {
             const fetchTrending = async () => {
                 setLoading(true);
                 try {
-                    const response = await fetch('http://localhost:3001/api/itineraries/trending');
+                    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/itineraries/trending`);
                     if (response.ok) {
                         const data = await response.json();
                         // Map backend data to CommunityItinerary format

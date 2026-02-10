@@ -71,7 +71,7 @@ const CommunityItineraryCard: React.FC<CommunityItineraryCardProps> = ({ itinera
                 throw new Error("No active session");
             }
 
-            const response = await fetch('http://localhost:3001/api/wishlist/toggle', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/wishlist/toggle`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

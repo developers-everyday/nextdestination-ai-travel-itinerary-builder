@@ -30,7 +30,7 @@ const ProfilePage: React.FC = () => {
                         setIsLoading(false);
                         return;
                     }
-                    const response = await fetch('http://localhost:3001/api/wishlist', {
+                    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/wishlist`, {
                         headers: {
                             'Authorization': `Bearer ${session?.access_token}`
                         }

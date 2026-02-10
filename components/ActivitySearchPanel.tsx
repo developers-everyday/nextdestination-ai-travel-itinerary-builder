@@ -34,7 +34,7 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
             setSearchResults([]);
 
             try {
-                const response = await fetch(`http://localhost:3001/api/activities/popular?destination=${encodeURIComponent(destination)}`, {
+                const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/activities/popular?destination=${encodeURIComponent(destination)}`, {
                     method: 'GET',
                     headers: { 'Content-Type': 'application/json' }
                 });
@@ -79,7 +79,7 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
         const timer = setTimeout(async () => {
             setIsSearching(true);
             try {
-                const response = await fetch('http://localhost:3001/api/activities/search', { // Ensure port matches server
+                const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/activities/search`, { // Ensure port matches server
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

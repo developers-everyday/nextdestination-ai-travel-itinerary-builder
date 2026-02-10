@@ -115,7 +115,7 @@ const PlanningSuggestions: React.FC = () => {
         setError(null);
         try {
             // Call Hybrid API
-            const response = await fetch('http://localhost:3001/api/suggestions', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/suggestions`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -508,7 +508,7 @@ const CommunityItinerariesSection: React.FC<{ destination: string, compact?: boo
                 let isFallback = false;
 
                 try {
-                    const searchResponse = await fetch('http://localhost:3001/api/itineraries/search', {
+                    const searchResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/itineraries/search`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ destination })
@@ -522,7 +522,7 @@ const CommunityItinerariesSection: React.FC<{ destination: string, compact?: boo
                 if (!data || data.length === 0) {
                     console.log(`No specific matches found, fetching trending for ${destination}...`);
                     try {
-                        const trendingResponse = await fetch(`http://localhost:3001/api/itineraries/trending?destination=${encodeURIComponent(destination)}`);
+                        const trendingResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/itineraries/trending?destination=${encodeURIComponent(destination)}`);
                         if (trendingResponse.ok) {
                             data = await trendingResponse.json();
                             // If we found data here, it's technically a fallback from "Search" but still relevant to the destination
