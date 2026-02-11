@@ -48,7 +48,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 redirectTo: window.location.origin
             }
         });
-        console.log('Redirecting to:', window.location.origin);
         if (error) {
             console.error('Error logging in with Google:', error.message);
             if (error.message.includes('Unsupported provider')) {
