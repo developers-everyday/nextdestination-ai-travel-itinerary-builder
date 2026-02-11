@@ -7,39 +7,33 @@ interface SearchHeaderProps {
 
 const SearchHeader: React.FC<SearchHeaderProps> = ({ onSearch, isScriptLoaded }) => {
     const [query, setQuery] = useState('');
-    const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
+    const [suggestions, setSuggestions] = useState<google.maps.places.AutocompleteSuggestion[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
-    const [autocompleteService, setAutocompleteService] = useState<google.maps.places.AutocompleteService | null>(null);
 
     React.useEffect(() => {
-        if (isScriptLoaded && !autocompleteService && window.google) {
-            setAutocompleteService(new window.google.maps.places.AutocompleteService());
-        }
-    }, [isScriptLoaded, autocompleteService]);
-
-    React.useEffect(() => {
-        if (!query || !autocompleteService) {
+        if (!query) {
             setSuggestions([]);
             return;
         }
 
         if (query.length > 2) {
-            const timer = setTimeout(() => {
-                autocompleteService.getPlacePredictions(
-                    { input: query, types: ['(regions)'] }, // prioritizing regions/cities for trip planning
-                    (predictions, status) => {
-                        if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
-                            setSuggestions(predictions);
-                            setShowSuggestions(true);
-                        } else {
-                            setSuggestions([]);
-                        }
-                    }
-                );
+            const timer = setTimeout(async () => {
+                try {
+                    const request = {
+                        input: query,
+                        includedPrimaryTypes: ['(regions)'], // prioritizing regions/cities for trip planning
+                    };
+                    const { suggestions } = await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions(request);
+                    setSuggestions(suggestions);
+                    setShowSuggestions(true);
+                } catch (error) {
+                    console.error("Error fetching suggestions:", error);
+                    setSuggestions([]);
+                }
             }, 300);
             return () => clearTimeout(timer);
         }
-    }, [query, autocompleteService]);
+    }, [query]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -49,10 +43,13 @@ const SearchHeader: React.FC<SearchHeaderProps> = ({ onSearch, isScriptLoaded })
         }
     };
 
-    const handleSelectSuggestion = (place: google.maps.places.AutocompletePrediction) => {
-        setQuery(place.description);
-        onSearch(place.description); // Auto-search on selection
-        setShowSuggestions(false);
+    const handleSelectSuggestion = (suggestion: google.maps.places.AutocompleteSuggestion) => {
+        const placeText = suggestion.placePrediction?.text?.text;
+        if (placeText) {
+            setQuery(placeText);
+            onSearch(placeText); // Auto-search on selection
+            setShowSuggestions(false);
+        }
     };
 
     return (
@@ -90,10 +87,10 @@ const SearchHeader: React.FC<SearchHeaderProps> = ({ onSearch, isScriptLoaded })
                         {/* Suggestions Dropdown */}
                         {showSuggestions && suggestions.length > 0 && (
                             <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden">
-                                {suggestions.map((place) => (
+                                {suggestions.map((suggestion) => (
                                     <div
-                                        key={place.place_id}
-                                        onClick={() => handleSelectSuggestion(place)}
+                                        key={suggestion.placePrediction?.placeId}
+                                        onClick={() => handleSelectSuggestion(suggestion)}
                                         className="px-6 py-4 hover:bg-slate-50 cursor-pointer border-b border-slate-50 last:border-none group flex items-center gap-3"
                                     >
                                         <div className="p-2 bg-slate-100 rounded-full text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
@@ -103,8 +100,8 @@ const SearchHeader: React.FC<SearchHeaderProps> = ({ onSearch, isScriptLoaded })
                                             </svg>
                                         </div>
                                         <div>
-                                            <div className="font-bold text-slate-800">{place.structured_formatting.main_text}</div>
-                                            <div className="text-xs text-slate-500">{place.structured_formatting.secondary_text}</div>
+                                            <div className="font-bold text-slate-800">{suggestion.placePrediction?.text?.text}</div>
+                                            <div className="text-xs text-slate-500">{suggestion.placePrediction?.text?.matches?.[0]?.text}</div>
                                         </div>
                                     </div>
                                 ))}

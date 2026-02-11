@@ -1,9 +1,69 @@
 import express from 'express';
 import crypto from 'crypto';
-import { supabase } from '../db/supabase.js';
+import { createClient } from '@supabase/supabase-js';
 import { generateEmbedding } from '../services/gemini.js';
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load env vars if not already loaded (though server index likely does)
+dotenv.config();
 
 const router = express.Router();
+
+// Initialize Supabase configuration
+// Support standard and Vite prefixes
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+    console.warn('Missing Supabase credentials in environment');
+}
+
+// Helper to get an authenticated Supabase client if token is present
+const getSupabase = (req) => {
+    const authHeader = req.headers.authorization;
+    if (authHeader) {
+        const token = authHeader.split(' ')[1];
+        if (token) {
+            return createClient(supabaseUrl, supabaseKey, {
+                global: {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            });
+        }
+    }
+    // Return default anonymous client
+    return createClient(supabaseUrl, supabaseKey);
+};
+
+// Start async embedding generation without blocking response
+const generateAndSaveEmbedding = async (id, textContent, client) => {
+    // We strictly use the ANON client for background updates unless we have SERVICE_ROLE_KEY
+    // Exception: If the user just created it, they can update it. 
+    // If the client passed here is authed as the user, it works.
+    try {
+        console.log(`[Async] Generating embedding for itinerary ${id}...`);
+        const embedding = await generateEmbedding(textContent);
+
+        if (embedding) {
+            // Update the row with embedding
+            const { error } = await client
+                .from('itineraries')
+                .update({ embedding })
+                .eq('id', id);
+
+            if (error) {
+                console.error(`[Async] Failed to save embedding for ${id}:`, error);
+            } else {
+                console.log(`[Async] Embedding saved for ${id}`);
+            }
+        }
+    } catch (e) {
+        console.error(`[Async] Embedding generation failed for ${id}:`, e);
+    }
+};
 
 // Helper to generate text representation
 const generateItineraryText = (itinerary) => {
@@ -23,11 +83,11 @@ const generateItineraryText = (itinerary) => {
 };
 
 // POST /api/itineraries/search - Search for similar itineraries
-// Expects: { query: string } or { destination: string, interests: string[] }
+// Expects: { query: string } or { destination: string, interests: string[], category: string }
 router.post('/search', async (req, res) => {
     try {
-        const { query, destination, interests } = req.body;
-        console.log('Search request received:', { query, destination, interests });
+        const { query, destination, interests, category } = req.body;
+        console.log('Search request received:', { query, destination, interests, category });
 
         let searchText = query;
         if (!searchText && destination) {
@@ -48,10 +108,21 @@ router.post('/search', async (req, res) => {
         const { searchSimilarItineraries } = await import('../services/vectorService.js');
 
         console.log('Searching vector store...');
-        const results = await searchSimilarItineraries(embedding, 0.6, 10); // Lower threshold for exploration, higher limit
+        // Increased limit to allow for post-filtering
+        const results = await searchSimilarItineraries(embedding, 0.5, 50);
 
         console.log(`Found ${results?.length || 0} matches`);
-        res.json(results || []);
+
+        let finalResults = results || [];
+
+        // Apply category filter if provided
+        if (category && category !== 'All') {
+            finalResults = finalResults.filter(item =>
+                item.metadata?.category?.toLowerCase() === category.toLowerCase()
+            );
+        }
+
+        res.json(finalResults);
     } catch (error) {
         console.error('Error searching itineraries:', error);
         res.status(500).json({ error: 'Internal Server Error', details: error.message });
@@ -61,22 +132,28 @@ router.post('/search', async (req, res) => {
 // GET /api/itineraries/trending - Get trending/recent itineraries
 router.get('/trending', async (req, res) => {
     try {
-        const { destination } = req.query;
+        const { destination, category } = req.query;
+        const supabaseClient = getSupabase(req); // Keep using getSupabase for consistency
 
-        let query = supabase
+        let query = supabaseClient
             .from('itineraries')
             .select('id, metadata')
-            .order('id', { ascending: false })
-            .limit(10);
+            .eq('is_public', true) // Explicitly only public
+            .order('id', { ascending: false }) // 'created_at' if exists, else 'id' uuid not sortable by time usually. 
+            // Better to sort by auto-generated timestamp if available, but for now ID is likely v4 random.
+            // If created_at exists (it usually does as default), assume it's there.
+            .limit(50); // Increased limit
 
         // If destination is provided, filter by it
         if (destination) {
-            // Using the JSONB contained operator to matching destination in metadata
             console.log(`Fetching trending itineraries for destination: ${destination}`);
-            // Note: We use the arrow operator ->> for text comparison if simple, or we can use metadata object match
-            // query = query.contains('metadata', { destination }); // Flexible match
-            // OR strictly match string value:
             query = query.eq('metadata->>destination', destination);
+        }
+
+        // If category is provided, filter by it
+        if (category && category !== 'All') {
+            console.log(`Fetching trending itineraries for category: ${category}`);
+            query = query.eq('metadata->>category', category);
         }
 
         const { data, error } = await query;
@@ -98,42 +175,105 @@ router.get('/trending', async (req, res) => {
     }
 });
 
+// GET /api/itineraries/my-trips - Get current user's trips
+router.get('/my-trips', async (req, res) => {
+    const supabaseClient = getSupabase(req);
+
+    // Check if user is actually authenticated
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    try {
+        // Get User ID from auth to be sure
+        const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+        if (authError || !user) return res.status(401).json({ error: 'Invalid Token' });
+
+        // Select metadata plus our new fields
+        // Note: 'created_at' might need to be selected if we want to show date
+        const { data, error } = await supabaseClient
+            .from('itineraries')
+            .select('id, metadata, is_public')
+            // We rely on RLS: "auth.uid() = user_id" policy ensures we only see ours
+            .order('id', { ascending: false }); // Fallback order
+
+        if (error) throw error;
+
+        // Map to expected format
+        const results = data.map(item => ({
+            id: item.id,
+            ...item.metadata,
+            isPublic: item.is_public
+        }));
+
+        res.json(results);
+
+    } catch (error) {
+        console.error('Error fetching my trips:', error);
+        res.status(500).json({ error: 'Internal Server Error', details: error.message });
+    }
+});
+
+
 // POST /api/itineraries - Save itinerary
 router.post('/', async (req, res) => {
-
     const itineraryData = req.body;
+    let isPublic = req.body.isPublic; // can be undefined
+    const idToUse = itineraryData.id || crypto.randomUUID();
 
-    // Validate
     if (!itineraryData) {
         return res.status(400).json({ error: 'Itinerary data is required' });
     }
 
-    const id = crypto.randomUUID();
-    const createdAt = new Date().toISOString();
+    const supabaseClient = getSupabase(req);
+    let userId = null;
 
     try {
-        const textContent = generateItineraryText(itineraryData);
-        let embedding = null;
-        try {
-            embedding = await generateEmbedding(textContent);
-        } catch (e) {
-            console.error("Embedding generation failed, continuing without embedding:", e);
+        const token = req.headers.authorization?.split(' ')[1];
+        if (token) {
+            const { data: { user }, error } = await supabaseClient.auth.getUser();
+            if (!error && user) {
+                userId = user.id;
+            }
         }
+    } catch (e) {
+        console.warn('Auth check failed silently:', e);
+    }
 
-        const { error } = await supabase
+    // Default Privacy Logic
+    if (typeof isPublic === 'undefined') {
+        // If user logged in -> default Private (false)
+        // If anonymous -> must be Public (true) to be shareable
+        isPublic = userId ? false : true;
+    }
+
+    const textContent = generateItineraryText(itineraryData);
+
+    try {
+        // Upsert allows update if ID matches and RLS permits
+        const { data, error } = await supabaseClient
             .from('itineraries')
-            .insert({
-                id,
+            .upsert({
+                id: idToUse,
                 content: textContent,
                 metadata: itineraryData,
-                embedding
-            }); // createdAt is likely auto-generated by Supabase, or we can add it if column exists
+                user_id: userId,
+                is_public: isPublic,
+                // embedding will be done async
+            })
+            .select()
+            .single();
 
-        if (error) {
-            throw error;
-        }
+        if (error) throw error;
 
-        res.json({ id });
+        // Respond immediately
+        res.json({ id: idToUse, message: 'Itinerary saved successfully. AI indexing in progress.' });
+
+        // Trigger Async Embedding
+        // Note: passing the authenticated client so the update works against RLS
+        generateAndSaveEmbedding(idToUse, textContent, supabaseClient);
+
     } catch (error) {
         console.error('Error saving itinerary:', error);
         res.status(500).json({ error: 'Internal Server Error', details: error.message });
@@ -143,26 +283,28 @@ router.post('/', async (req, res) => {
 // GET /api/itineraries/:id - Get itinerary
 router.get('/:id', async (req, res) => {
     const { id } = req.params;
+    const supabaseClient = getSupabase(req);
 
     try {
-        const { data, error } = await supabase
+        // RLS Policies will filter automatically based on client auth
+        // If public -> access allowed
+        // If private & owner -> access allowed
+        // Else -> empty result (PGRST116) or 406
+
+        const { data, error } = await supabaseClient
             .from('itineraries')
-            .select('metadata')
+            .select('metadata, is_public')
             .eq('id', id)
             .single();
 
         if (error) {
-            if (error.code === 'PGRST116') { // Not found code often returned by single()
-                return res.status(404).json({ error: 'Itinerary not found' });
+            if (error.code === 'PGRST116') {
+                return res.status(404).json({ error: 'Itinerary not found or private' });
             }
             throw error;
         }
 
-        if (!data) {
-            return res.status(404).json({ error: 'Itinerary not found' });
-        }
-
-        res.json(data.metadata);
+        res.json({ ...data.metadata, isPublic: data.is_public });
     } catch (error) {
         console.error('Error fetching itinerary:', error);
         res.status(500).json({ error: 'Internal Server Error', details: error.message });

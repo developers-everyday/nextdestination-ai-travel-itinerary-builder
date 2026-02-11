@@ -85,7 +85,7 @@ const HomeChatWidget: React.FC<HomeChatWidgetProps> = ({ onGenerate, onBrowse })
     };
 
     return (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+        <div className="fixed bottom-6 right-6 md:bottom-12 md:right-12 z-50 flex flex-col items-end">
             {/* Chat Window */}
             {isOpen && (
                 <div className="w-[350px] md:w-[400px] h-[500px] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col mb-4 animate-scale-in origin-bottom-right">
@@ -118,8 +118,8 @@ const HomeChatWidget: React.FC<HomeChatWidgetProps> = ({ onGenerate, onBrowse })
                             >
                                 <div
                                     className={`max-w-[85%] p-3 rounded-2xl text-sm ${msg.role === 'user'
-                                            ? 'bg-indigo-600 text-white rounded-tr-none shadow-md'
-                                            : 'bg-white text-slate-700 border border-slate-200 rounded-tl-none shadow-sm'
+                                        ? 'bg-indigo-600 text-white rounded-tr-none shadow-md'
+                                        : 'bg-white text-slate-700 border border-slate-200 rounded-tl-none shadow-sm'
                                         }`}
                                 >
                                     {msg.text}
@@ -191,8 +191,8 @@ const HomeChatWidget: React.FC<HomeChatWidgetProps> = ({ onGenerate, onBrowse })
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={`p-4 rounded-full shadow-2xl transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center justify-center ${isOpen
-                        ? 'bg-slate-800 text-white rotate-90'
-                        : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white'
+                    ? 'bg-slate-800 text-white rotate-90'
+                    : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white'
                     }`}
             >
                 {isOpen ? <X className="w-8 h-8" /> : <MessageCircle className="w-8 h-8" />}

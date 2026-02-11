@@ -74,51 +74,37 @@ const SortableActivityItem = ({ id, item, index, dayIndex, onRemove, onUpdate, i
 
   // Search State
   const [searchValue, setSearchValue] = useState("");
-  const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
+  const [suggestions, setSuggestions] = useState<google.maps.places.AutocompleteSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [autocompleteService, setAutocompleteService] = useState<google.maps.places.AutocompleteService | null>(null);
-  const [placesService, setPlacesService] = useState<google.maps.places.PlacesService | null>(null);
 
   React.useEffect(() => {
-    if (isScriptLoaded && !autocompleteService && window.google) {
-      setAutocompleteService(new window.google.maps.places.AutocompleteService());
-      // Create a dummy element for PlacesService as it requires a map or HTMLDivElement
-      const dummyElement = document.createElement('div');
-      setPlacesService(new window.google.maps.places.PlacesService(dummyElement));
-    }
-  }, [isScriptLoaded, autocompleteService]);
-
-  React.useEffect(() => {
-    if (!searchValue || !autocompleteService) {
+    if (!searchValue) {
       setSuggestions([]);
       return;
     }
 
     if (searchValue.length > 2) {
-      const timer = setTimeout(() => {
-        const request: google.maps.places.AutocompletionRequest = {
-          input: searchValue,
-        };
+      const timer = setTimeout(async () => {
+        try {
+          const request: google.maps.places.AutocompleteRequest = {
+            input: searchValue,
+          };
 
-        if (searchBounds) {
-          request.locationRestriction = searchBounds;
-        }
-
-        autocompleteService.getPlacePredictions(
-          request,
-          (predictions, status) => {
-            if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
-              setSuggestions(predictions);
-              setShowSuggestions(true);
-            } else {
-              setSuggestions([]);
-            }
+          if (searchBounds) {
+            request.locationRestriction = searchBounds;
           }
-        );
+
+          const { suggestions } = await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions(request);
+          setSuggestions(suggestions);
+          setShowSuggestions(true);
+        } catch (error) {
+          console.error("Error fetching suggestions:", error);
+          setSuggestions([]);
+        }
       }, 300); // Debounce
       return () => clearTimeout(timer);
     }
-  }, [searchValue, autocompleteService, searchBounds]);
+  }, [searchValue, searchBounds]);
 
   const handleSave = () => {
     onUpdate(dayIndex, index, {
@@ -146,43 +132,45 @@ const SortableActivityItem = ({ id, item, index, dayIndex, onRemove, onUpdate, i
     // implementation handled by click for now.
   };
 
-  const handleSelectSuggestion = (place: google.maps.places.AutocompletePrediction) => {
+  const handleSelectSuggestion = async (suggestion: google.maps.places.AutocompleteSuggestion) => {
     // We update description with the place description
-    const newDesc = editDesc ? `${editDesc} \nLocation: ${place.description}` : `Location: ${place.description}`;
+    const placeText = suggestion.placePrediction?.text?.text;
+    if (!placeText) return;
+
+    const newDesc = editDesc ? `${editDesc} \nLocation: ${placeText}` : `Location: ${placeText}`;
     setEditDesc(newDesc);
 
     // Optionally update title if empty
     if (!editTitle) {
-      setEditTitle(place.structured_formatting.main_text);
+      setEditTitle(placeText);
     }
 
     // Default update without coordinates first
     const updates: any = {
       description: newDesc,
-      activity: editTitle || place.structured_formatting.main_text
+      activity: editTitle || placeText
     };
 
-    // Fetch details to get coordinates using PlacesService
-    if (placesService && place.place_id) {
-      placesService.getDetails({
-        placeId: place.place_id,
-        fields: ['geometry', 'formatted_address']
-      }, (placeDetails, status) => {
-        if (status === google.maps.places.PlacesServiceStatus.OK && placeDetails?.geometry?.location) {
+    // Fetch details to get coordinates using Place class
+    const placeId = suggestion.placePrediction?.placeId;
+    if (placeId && window.google) {
+      try {
+        const place = new window.google.maps.places.Place({ id: placeId });
+        await place.fetchFields({ fields: ['location', 'formattedAddress'] });
+
+        if (place.location) {
           const coords: [number, number] = [
-            placeDetails.geometry.location.lng(),
-            placeDetails.geometry.location.lat()
+            place.location.lng(),
+            place.location.lat()
           ];
-          const loc = placeDetails.formatted_address || updates.location;
+          const loc = place.formattedAddress || updates.location;
 
           setEditCoordinates(coords);
           setEditLocation(loc);
-
-          // We don't call onUpdate here for everything, just local state until save.
-          // However, if we want immediate map feedback while editing?
-          // For now, let's keep local state as the source of truth for the edit form.
         }
-      });
+      } catch (error) {
+        console.error("Error fetching place details:", error);
+      }
     }
 
     setSearchValue("");
@@ -316,14 +304,14 @@ const SortableActivityItem = ({ id, item, index, dayIndex, onRemove, onUpdate, i
               {/* Suggestions Dropdown */}
               {showSuggestions && (
                 <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-slate-200 rounded-lg shadow-xl z-[60] overflow-hidden">
-                  {suggestions.map((place, idx) => (
+                  {suggestions.map((suggestion) => (
                     <div
-                      key={place.place_id || idx}
+                      key={suggestion.placePrediction?.placeId}
                       className="px-3 py-2 text-xs text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 cursor-pointer transition-colors font-medium border-b border-slate-50 last:border-none"
-                      onClick={() => handleSelectSuggestion(place)}
+                      onClick={() => handleSelectSuggestion(suggestion)}
                     >
-                      <div className="font-bold">{place.structured_formatting.main_text}</div>
-                      <div className="text-[10px] text-slate-400 truncate">{place.structured_formatting.secondary_text}</div>
+                      <div className="font-bold">{suggestion.placePrediction?.text?.text}</div>
+                      <div className="text-[10px] text-slate-400 truncate">{suggestion.placePrediction?.text?.matches?.[0]?.text}</div>
                     </div>
                   ))}
                 </div>
@@ -384,7 +372,7 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
 }) => {
   const navigate = useNavigate();
   // In Component Props
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [activeDay, setActiveDay] = useState(1);
   const [leftPanelMode, setLeftPanelMode] = useState<'LIST' | 'Map'>('LIST');
   const [rightPanelMode, setRightPanelMode] = useState<'MAP' | 'TRANSPORT_INFO' | 'ACTIVITY_SEARCH' | 'HOTEL_DETAILS'>('ACTIVITY_SEARCH');
@@ -412,43 +400,42 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [shareStatus, setShareStatus] = useState<'idle' | 'sharing' | 'shared' | 'error'>('idle');
   const [searchBounds, setSearchBounds] = useState<google.maps.LatLngBounds | null>(null);
-  const [placesService, setPlacesService] = useState<google.maps.places.PlacesService | null>(null);
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
 
-  // Initialize PlacesService for ItineraryBuilder
+  // Geocode destination for bounds (using Place.searchByText)
   React.useEffect(() => {
-    if (isScriptLoaded && window.google && !placesService) {
-      const dummy = document.createElement('div');
-      setPlacesService(new window.google.maps.places.PlacesService(dummy));
-    }
-  }, [isScriptLoaded, placesService]);
+    if (data.destination && window.google) {
+      const fetchDestination = async () => {
+        try {
+          const { places } = await google.maps.places.Place.searchByText({
+            textQuery: data.destination,
+            fields: ['location', 'viewport']
+          });
 
-  // Geocode destination for bounds (using PlacesService fallback)
-  React.useEffect(() => {
-    if (placesService && data.destination && window.google) {
-      const request = {
-        query: data.destination,
-        fields: ['geometry']
-      };
-
-      placesService.findPlaceFromQuery(request, (results, status) => {
-        if (status === google.maps.places.PlacesServiceStatus.OK && results && results[0]) {
-          if (results[0].geometry?.viewport) {
-            setSearchBounds(results[0].geometry.viewport);
-            setFocusedLocation([results[0].geometry.location.lng(), results[0].geometry.location.lat()]);
-          } else if (results[0].geometry?.location) {
-            // Fallback for point location
-            const loc = results[0].geometry.location;
-            const offset = 0.1;
-            const sw = new google.maps.LatLng(loc.lat() - offset, loc.lng() - offset);
-            const ne = new google.maps.LatLng(loc.lat() + offset, loc.lng() + offset);
-            setSearchBounds(new google.maps.LatLngBounds(sw, ne));
-            setFocusedLocation([loc.lng(), loc.lat()]);
+          if (places && places.length > 0) {
+            const place = places[0];
+            if (place.viewport) {
+              setSearchBounds(place.viewport);
+              if (place.location) {
+                setFocusedLocation([place.location.lng(), place.location.lat()]);
+              }
+            } else if (place.location) {
+              // Fallback for point location
+              const loc = place.location;
+              const offset = 0.1;
+              const sw = new google.maps.LatLng(loc.lat() - offset, loc.lng() - offset);
+              const ne = new google.maps.LatLng(loc.lat() + offset, loc.lng() + offset);
+              setSearchBounds(new google.maps.LatLngBounds(sw, ne));
+              setFocusedLocation([loc.lng(), loc.lat()]);
+            }
           }
+        } catch (error) {
+          console.error("Error fetching destination details: ", error);
         }
-      });
+      };
+      fetchDestination();
     }
-  }, [placesService, data.destination]);
+  }, [data.destination]);
 
 
 
@@ -458,20 +445,34 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
       navigate('/login');
       return;
     }
-    setSaveStatus('saving');
+
+    // Performance Optimization: Instant Feedback
+    // We set status to 'saved' immediately before even writing to local storage
+    // effectively eliminating the perception of latency.
+    setSaveStatus('saved');
+
     try {
-      // Create a default name if none exists
+      // 1. Local Save (Synchronous & Fast)
       const tripName = `Trip to ${data.destination}`;
       const saved = saveItinerary(data, tripName);
-      setSaveStatus('saved');
 
       // Update the parent state with the new ID if it was a new save
       if (onItineraryChange && !data.id) {
         onItineraryChange(saved);
-        // Also update data reference locally if needed, though react handles props
+        // data reference updated via props
       }
 
       setTimeout(() => setSaveStatus('idle'), 3000);
+
+      // 2. Background Database Sync
+      // We do NOT await this. It runs in the background.
+      if (session?.access_token) {
+        // Default to Private (isPublic: false) for user trips
+        saveItineraryToBackend(saved, session.access_token, false)
+          .then(() => console.log("Background sync successful"))
+          .catch(err => console.error("Background sync failed", err));
+      }
+
     } catch (e) {
       console.error("Failed to save", e);
       setSaveStatus('error');
@@ -482,7 +483,9 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
   const handleShare = async () => {
     setShareStatus('sharing');
     try {
-      const id = await saveItineraryToBackend(data);
+      const token = session?.access_token;
+      // When sharing, we must make it Public so others can see it
+      const id = await saveItineraryToBackend(data, token, true);
       const link = `${window.location.origin}/share/${id}`;
       await navigator.clipboard.writeText(link);
       setShareStatus('shared');

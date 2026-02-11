@@ -155,30 +155,42 @@ const ItineraryGrid: React.FC<ItineraryGridProps> = ({ category, source }) => {
             const fetchTrending = async () => {
                 setLoading(true);
                 try {
-                    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/itineraries/trending`);
+                    let url = `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/itineraries/trending`;
+                    if (category && category !== 'all') {
+                        url += `?category=${encodeURIComponent(category)}`;
+                    }
+
+                    const response = await fetch(url);
                     if (response.ok) {
                         const data = await response.json();
                         // Map backend data to CommunityItinerary format
-                        const mapped: CommunityItinerary[] = data.map((item: any) => ({
-                            id: item.id,
-                            name: item.metadata?.destination ? `Trip to ${item.metadata.destination}` : 'Trip',
-                            location: item.metadata?.destination || 'Unknown',
-                            destination: item.metadata?.destination || 'Unknown',
-                            image: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=800&auto=format&fit=crop',
-                            creator: {
-                                id: 'community',
-                                name: 'Explorer',
-                                avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + item.id,
-                                verified: true
-                            },
-                            saveCount: item.metadata?.saveCount || Math.floor(Math.random() * 500),
-                            duration: item.metadata?.days?.length || 3,
-                            tags: ['Trending'],
-                            category: 'Adventure', // Mock category if missing
-                            itinerary: item.metadata,
-                            createdAt: item.created_at,
-                            trending: true
-                        }));
+                        const mapped: CommunityItinerary[] = data.map((item: any) => {
+                            // Generate consistent pseudo-random values based on ID for visual variety
+                            const randomId = item.id || Math.random().toString();
+                            const seed = randomId.charCodeAt(0) || 0;
+
+                            return {
+                                id: item.id,
+                                name: item.metadata?.destination ? `Trip to ${item.metadata.destination}` : 'Trip',
+                                location: item.metadata?.destination || 'Unknown',
+                                destination: item.metadata?.destination || 'Unknown',
+                                // Use real image if available, else standard fallback
+                                image: item.metadata?.image || `https://images.unsplash.com/photo-${seed % 2 === 0 ? '1476514525535-07fb3b4ae5f1' : '1503899036084-c55cdd92da26'}?q=80&w=800&auto=format&fit=crop`,
+                                creator: {
+                                    id: 'community',
+                                    name: 'Explorer',
+                                    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + item.id,
+                                    verified: true
+                                },
+                                saveCount: item.metadata?.saveCount || Math.floor(Math.random() * 500),
+                                duration: item.metadata?.days?.length || 3,
+                                tags: ['Trending'],
+                                category: item.metadata?.category || 'Adventure',
+                                itinerary: item.metadata,
+                                createdAt: item.created_at,
+                                trending: true
+                            };
+                        });
                         setFetchedItineraries(mapped);
                     }
                 } catch (error) {
@@ -189,21 +201,11 @@ const ItineraryGrid: React.FC<ItineraryGridProps> = ({ category, source }) => {
             };
             fetchTrending();
         }
-    }, [source]);
+    }, [source, category]); // Re-fetch when category changes
 
     const displayItineraries = useMemo(() => {
         if (source === 'community') {
-            // Prioritize fetched itineraries (Real DB data), fallback to static mocks
-            let itineraries = fetchedItineraries.length > 0 ? fetchedItineraries : communityItineraries;
-
-            // Filter
-            if (category !== 'all') {
-                itineraries = itineraries.filter(it =>
-                    it.category.toLowerCase() === category.toLowerCase() ||
-                    it.tags.some(tag => tag.toLowerCase() === category.toLowerCase())
-                );
-            }
-            return itineraries;
+            return fetchedItineraries;
         } else {
             // Mock AI Itineraries
             if (category === 'all') return MOCK_ITINERARIES;

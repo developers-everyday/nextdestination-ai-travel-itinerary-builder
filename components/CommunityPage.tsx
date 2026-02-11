@@ -1,8 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CommunityItineraryCard from './CommunityItineraryCard';
 import { CommunityItinerary } from '../types';
-import { communityItineraries } from '../services/communityData';
 
 const categories = ['All', 'Adventure', 'Luxury', 'Budget', 'Family', 'Solo', 'Romantic', 'Cultural'] as const;
 
@@ -12,17 +11,98 @@ const CommunityPage: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedItinerary, setSelectedItinerary] = useState<CommunityItinerary | null>(null);
 
-    // Filter itineraries based on category and search
-    const filteredItineraries = useMemo(() => {
-        return communityItineraries.filter(itinerary => {
-            const matchesCategory = selectedCategory === 'All' || itinerary.category === selectedCategory;
-            const matchesSearch = searchQuery === '' ||
-                itinerary.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                itinerary.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                itinerary.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+    // State for real data
+    const [itineraries, setItineraries] = useState<CommunityItinerary[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-            return matchesCategory && matchesSearch;
-        });
+    // Helper to map DB response to UI format
+    const mapToCommunityItinerary = (data: any): CommunityItinerary => {
+        // Generate consistent pseudo-random values based on ID for visual variety
+        const randomId = data.id || Math.random().toString();
+        const seed = randomId.charCodeAt(0) || 0;
+
+        return {
+            id: data.id,
+            name: data.name || `Trip to ${data.destination || 'Unknown'}`,
+            location: data.destination || 'Unknown Location',
+            destination: data.destination || 'Unknown',
+            // Use real image if available, else standard fallback
+            image: data.image || `https://images.unsplash.com/photo-${seed % 2 === 0 ? '1476514525535-07fb3b4ae5f1' : '1503899036084-c55cdd92da26'}?q=80&w=800&auto=format&fit=crop`,
+            creator: data.creator || {
+                id: 'anon',
+                name: 'Community Traveler',
+                avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.id || 'User'}`,
+                verified: false
+            },
+            saveCount: data.saveCount || Math.floor(Math.random() * 500) + 10,
+            duration: data.days?.length || data.duration || 3,
+            tags: data.tags || ['Travel', data.category || 'Adventure'],
+            category: data.category || 'Adventure',
+            itinerary: data, // The raw data itself serves as the itinerary object (has days, etc)
+            createdAt: data.createdAt || new Date().toISOString(),
+            trending: true
+        };
+    };
+
+    // Fetch data when filters change
+    useEffect(() => {
+        const fetchItineraries = async () => {
+            setIsLoading(true);
+            setError(null);
+            try {
+                let url = `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/itineraries/trending`;
+                const params = new URLSearchParams();
+
+                let method = 'GET';
+                let body = undefined;
+                let headers = undefined;
+
+                if (searchQuery.trim()) {
+                    // Use Search Endpoint
+                    url = `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/itineraries/search`;
+                    method = 'POST';
+                    headers = { 'Content-Type': 'application/json' };
+                    body = JSON.stringify({
+                        query: searchQuery,
+                        category: selectedCategory === 'All' ? undefined : selectedCategory
+                    });
+                } else {
+                    // Use Trending Endpoint
+                    if (selectedCategory !== 'All') {
+                        params.append('category', selectedCategory);
+                    }
+                    if (params.toString()) {
+                        url += `?${params.toString()}`;
+                    }
+                }
+
+                const res = await fetch(url, { method, headers, body });
+                if (!res.ok) {
+                    throw new Error(`Failed to fetch: ${res.statusText}`);
+                }
+
+                const rawData = await res.json();
+
+                // Map and set
+                const mapped = Array.isArray(rawData) ? rawData.map(mapToCommunityItinerary) : [];
+                setItineraries(mapped);
+
+            } catch (e: any) {
+                console.error("Error fetching community itineraries", e);
+                setError(e.message || "Failed to load itineraries");
+                setItineraries([]); // Clear on error? Or show empty state
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        // Debounce search to avoid excessive API calls
+        const timer = setTimeout(() => {
+            fetchItineraries();
+        }, 500);
+
+        return () => clearTimeout(timer);
     }, [selectedCategory, searchQuery]);
 
     return (
@@ -49,7 +129,7 @@ const CommunityPage: React.FC = () => {
                             Explore Real Journeys
                         </h1>
                         <p className="text-xl md:text-2xl text-white/90 font-medium leading-relaxed mb-12">
-                            Discover itineraries crafted by fellow travelers. Save your favorites and customize them to match your style.
+                            Discover {itineraries.length > 0 ? 'authentic' : ''} itineraries from our community.
                         </p>
 
                         {/* Search Bar */}
@@ -81,8 +161,8 @@ const CommunityPage: React.FC = () => {
                                 key={category}
                                 onClick={() => setSelectedCategory(category)}
                                 className={`px-6 py-3 rounded-2xl font-bold text-sm transition-all shrink-0 ${selectedCategory === category
-                                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
-                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
+                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                                     }`}
                             >
                                 {category}
@@ -96,7 +176,7 @@ const CommunityPage: React.FC = () => {
             <section className="max-w-7xl mx-auto px-6 py-8">
                 <div className="flex items-center justify-between mb-8">
                     <p className="text-slate-600 font-bold">
-                        Showing <span className="text-indigo-600 font-black">{filteredItineraries.length}</span> {filteredItineraries.length === 1 ? 'itinerary' : 'itineraries'}
+                        Showing <span className="text-indigo-600 font-black">{itineraries.length}</span> {itineraries.length === 1 ? 'itinerary' : 'itineraries'}
                     </p>
                     {searchQuery && (
                         <button
@@ -108,10 +188,34 @@ const CommunityPage: React.FC = () => {
                     )}
                 </div>
 
-                {/* Itinerary Grid */}
-                {filteredItineraries.length > 0 ? (
+                {/* Itinerary Grid OR Loading/Error */}
+                {isLoading ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 pb-20">
-                        {filteredItineraries.map((itinerary) => (
+                        {[1, 2, 3, 4, 5, 6].map((i) => (
+                            <div key={i} className="bg-white rounded-[2.5rem] h-[500px] border border-slate-100 animate-pulse">
+                                <div className="h-64 bg-slate-200 rounded-t-[2.5rem]"></div>
+                                <div className="p-8 space-y-4">
+                                    <div className="h-8 bg-slate-200 rounded-xl w-3/4"></div>
+                                    <div className="h-4 bg-slate-200 rounded-xl w-1/2"></div>
+                                    <div className="flex gap-2 pt-4">
+                                        <div className="h-8 w-20 bg-slate-200 rounded-full"></div>
+                                        <div className="h-8 w-20 bg-slate-200 rounded-full"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : error ? (
+                    <div className="text-center py-20">
+                        <div className="bg-red-50 text-red-600 p-8 rounded-3xl inline-block">
+                            <h3 className="text-xl font-bold mb-2">Oops!</h3>
+                            <p>{error}</p>
+                            <button onClick={() => window.location.reload()} className="mt-4 underline font-bold">Try Refreshing</button>
+                        </div>
+                    </div>
+                ) : itineraries.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 pb-20">
+                        {itineraries.map((itinerary) => (
                             <CommunityItineraryCard
                                 key={itinerary.id}
                                 itinerary={itinerary}
@@ -148,7 +252,12 @@ const CommunityPage: React.FC = () => {
                     onClose={() => setSelectedItinerary(null)}
                     onCustomize={(itinerary) => {
                         // Navigate to builder with this itinerary
-                        navigate('/builder', { state: { itinerary: itinerary.itinerary } });
+                        // Ensure we strip ID to make it a new copy
+                        const safeItinerary = {
+                            ...itinerary.itinerary,
+                            id: undefined // Force new ID generation
+                        };
+                        navigate('/builder', { state: { itinerary: safeItinerary } });
                     }}
                 />
             )}

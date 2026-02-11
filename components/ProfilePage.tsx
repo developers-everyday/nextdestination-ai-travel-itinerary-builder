@@ -2,15 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import Navbar from './Navbar';
-import { SavedItinerary, getSavedItineraries, deleteSavedItinerary } from '../services/localStorageService';
+import { getSavedItineraries, deleteSavedItinerary } from '../services/localStorageService';
 import { supabase } from '../services/supabaseClient';
 import { CommunityItinerary } from '../types';
 import CommunityItineraryCard from './CommunityItineraryCard';
+import { fetchUserItineraries } from '../services/itineraryService';
 
 const ProfilePage: React.FC = () => {
     const { user, signOut } = useAuth();
     const navigate = useNavigate();
-    const [itineraries, setItineraries] = useState<SavedItinerary[]>([]);
+    const [itineraries, setItineraries] = useState<any[]>([]);
     const [bucketList, setBucketList] = useState<CommunityItinerary[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'upcoming' | 'past' | 'bucketlist'>('upcoming');
@@ -19,26 +20,46 @@ const ProfilePage: React.FC = () => {
         const loadData = async () => {
             if (user) {
                 try {
-                    // Load local saved itineraries
-                    setItineraries(getSavedItineraries());
-
                     // Load bucket list from Supabase
                     const { data: { session } } = await supabase.auth.getSession();
+                    const token = session?.access_token;
 
-                    if (!session?.access_token) {
+                    if (token) {
+                        // Fetch My Trips from Backend
+                        try {
+                            const backendTrips = await fetchUserItineraries(token);
+                            // Map backend trips to state format if needed
+                            // They come as { id, metadata: {...}, isPublic }
+                            // We want them as { id, ...metadata, isPublic }
+                            // The service already does this mapping! (See itineraryService.ts)
+                            // Actually service returns `response.json()` which is mapped in route.
+                            // Route returns `[{ id, ...metadata, isPublic }]`.
+                            // So `backendTrips` is ready to use.
+                            setItineraries(backendTrips);
+                        } catch (err) {
+                            console.error("Failed to fetch backend trips", err);
+                            // Fallback to local?
+                            setItineraries(getSavedItineraries());
+                        }
+                    }
+
+                    if (!token) {
                         console.error("No active session for wishlist fetch");
+                        // Still load local if backend fails auth?
+                        // setItineraries(getSavedItineraries()); 
                         setIsLoading(false);
                         return;
                     }
+
                     const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/wishlist`, {
                         headers: {
-                            'Authorization': `Bearer ${session?.access_token}`
+                            'Authorization': `Bearer ${token}`
                         }
                     });
 
                     if (response.ok) {
                         const data = await response.json();
-                        // Transform wishlist data to match CommunityItinerary if needed
+                        // Transform wishlist data to match CommunityItinerary
                         const mapped = data.map((item: any) => ({
                             id: item.id,
                             name: item.destination ? `Trip to ${item.destination}` : 'Trip',
@@ -76,7 +97,7 @@ const ProfilePage: React.FC = () => {
         navigate('/');
     };
 
-    const handleOpenItinerary = (itinerary: SavedItinerary) => {
+    const handleOpenItinerary = (itinerary: any) => {
         navigate('/builder', { state: { itinerary } });
     };
 
@@ -92,11 +113,21 @@ const ProfilePage: React.FC = () => {
         navigate('/builder', { state: { itinerary: newItinerary } });
     };
 
-    const handleDelete = (e: React.MouseEvent, id: string) => {
+    const handleDelete = async (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
         if (confirm("Are you sure you want to delete this itinerary?")) {
-            deleteSavedItinerary(id);
-            setItineraries(prev => prev.filter(i => i.id !== id));
+            // Delete from Backend
+            try {
+                const { error } = await supabase.from('itineraries').delete().eq('id', id);
+                if (error) {
+                    console.error("Failed to delete from backend", error);
+                    // Try local
+                    deleteSavedItinerary(id);
+                }
+                setItineraries(prev => prev.filter(i => i.id !== id));
+            } catch (err) {
+                console.error("Exception deleting", err);
+            }
         }
     };
 
@@ -269,9 +300,9 @@ const BucketListSection: React.FC<{
 };
 
 const TripsList: React.FC<{
-    trips: SavedItinerary[],
+    trips: any[],
     filter: 'upcoming' | 'past',
-    onOpen: (item: SavedItinerary) => void,
+    onOpen: (item: any) => void,
     onDelete: (e: React.MouseEvent, id: string) => void
 }> = ({ trips, filter, onOpen, onDelete }) => {
     const today = new Date();
@@ -329,6 +360,27 @@ const TripsList: React.FC<{
                         </div>
                         <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full text-white text-xs font-bold border border-white/30">
                             {item.days.length} Days
+                        </div>
+
+                        {/* Private/Public Badge */}
+                        <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-md px-2 py-1 rounded-md text-white/90 text-[10px] font-bold border border-white/10 uppercase tracking-wider flex items-center gap-1">
+                            {('isPublic' in item) ? (item.isPublic ? (
+                                <>
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                                        <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                                    </svg>
+                                    Public
+                                </>
+                            ) : (
+                                <>
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M2.166 10a.75.75 0 01.75-.75h14.168a.75.75 0 010 1.5H2.916a.75.75 0 01-.75-.75z" clipRule="evenodd" />
+                                        <path fillRule="evenodd" d="M10 2a4 4 0 00-4 4v3H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-1V6a4 4 0 00-4-4zm-2 4a2 2 0 114 0v3H8V6z" clipRule="evenodd" />
+                                    </svg>
+                                    Private
+                                </>
+                            )) : null}
                         </div>
 
                         {item.startDate && (
