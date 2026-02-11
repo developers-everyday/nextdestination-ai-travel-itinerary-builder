@@ -36,6 +36,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setSession(session);
             setUser(session?.user ?? null);
             setLoading(false);
+
+            // Clear the hash from the URL after successful login
+            if (session && window.location.hash) {
+                window.history.replaceState(null, '', window.location.pathname);
+            }
         });
 
         return () => subscription.unsubscribe();
