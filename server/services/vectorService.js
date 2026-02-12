@@ -16,7 +16,7 @@ export const searchSimilarItineraries = async (embedding, threshold = 0.7, limit
     return documents;
 };
 
-export const storeItinerary = async (itinerary, embedding) => {
+export const storeItinerary = async (itinerary, embedding, client = supabase, userId = null) => {
     // Generate a content string for search compatibility
     // combining destination, tags/themes, and activity names
     const content = `
@@ -26,14 +26,20 @@ export const storeItinerary = async (itinerary, embedding) => {
         Activities: ${itinerary.days?.flatMap(d => d.activities?.map(a => a.activity)).join(', ') || ''}
     `.trim();
 
-    const { data, error } = await supabase
+    const insertPayload = {
+        id: itinerary.id || crypto.randomUUID(),
+        content,
+        metadata: itinerary,
+        embedding
+    };
+
+    if (userId) {
+        insertPayload.user_id = userId;
+    }
+
+    const { data, error } = await client
         .from('itineraries')
-        .insert({
-            id: itinerary.id || crypto.randomUUID(),
-            content,
-            metadata: itinerary,
-            embedding
-        })
+        .insert(insertPayload)
         .select()
         .single();
 

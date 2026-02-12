@@ -19,3 +19,21 @@ if (!supabaseUrl || !supabaseKey) {
 }
 
 export const supabase = createClient(supabaseUrl || '', supabaseKey || '');
+
+if (supabaseKey === process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.log('[Supabase] Initialized with Service Role Key (Admin Access)');
+} else {
+    console.log('[Supabase] Initialized with Anonymous Key (RLS Restricted)');
+}
+
+export const getAuthenticatedClient = (token) => {
+    return createClient(supabaseUrl || '', supabaseKey || '', {
+        global: {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        }
+    });
+};
+
+

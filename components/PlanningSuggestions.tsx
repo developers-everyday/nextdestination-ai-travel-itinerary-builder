@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Navbar from './Navbar';
+import { useAuth } from './AuthContext';
 import { getDestinationAttractions } from '../services/geminiService';
 import { hydrateItinerary } from '../services/hydrationService';
 import { Itinerary } from '../types';
@@ -93,6 +94,8 @@ const PlanningSuggestions: React.FC = () => {
         };
     };
 
+    const { session } = useAuth();
+
     const handleSelectPlan = async () => {
         if (!startDate || !endDate) {
             setError("Please select both a start and end date.");
@@ -111,6 +114,15 @@ const PlanningSuggestions: React.FC = () => {
             return;
         }
 
+        // Auth Check
+        if (!session || !session.access_token) {
+            // Save state to return after login? 
+            // Ideally we'd redirect to login with a "returnTo" param
+            alert("Please log in to generate your personalized itinerary.");
+            navigate('/login', { state: { from: location.pathname, destination: destination } });
+            return;
+        }
+
         setIsLoading(true);
         setError(null);
         try {
@@ -118,7 +130,8 @@ const PlanningSuggestions: React.FC = () => {
             const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/suggestions`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
                 },
                 body: JSON.stringify({
                     destination,
@@ -128,6 +141,9 @@ const PlanningSuggestions: React.FC = () => {
             });
 
             if (!response.ok) {
+                if (response.status === 401) {
+                    throw new Error("Session expired. Please log in again.");
+                }
                 throw new Error(`Server responded with ${response.status}`);
             }
 
