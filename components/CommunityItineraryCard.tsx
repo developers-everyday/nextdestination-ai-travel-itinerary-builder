@@ -99,7 +99,7 @@ const CommunityItineraryCard: React.FC<CommunityItineraryCardProps> = ({ itinera
             onMouseLeave={() => setIsHovered(false)}
         >
             {/* Image Section */}
-            <div className="h-80 relative overflow-hidden">
+            <div className="aspect-[3/4] relative overflow-hidden">
                 <img
                     src={itinerary.image}
                     alt={itinerary.name}

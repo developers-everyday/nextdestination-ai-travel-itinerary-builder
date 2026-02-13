@@ -348,7 +348,7 @@ const TripsList: React.FC<{
                     onClick={() => onOpen(item)}
                     className="group bg-white rounded-3xl border border-slate-100 overflow-hidden hover:shadow-xl hover:shadow-indigo-100 transition-all cursor-pointer hover:-translate-y-1 relative flex flex-col"
                 >
-                    <div className="h-56 bg-slate-200 relative overflow-hidden">
+                    <div className="aspect-[3/4] bg-slate-200 relative overflow-hidden">
                         {item.image ? (
                             <img
                                 src={item.image}

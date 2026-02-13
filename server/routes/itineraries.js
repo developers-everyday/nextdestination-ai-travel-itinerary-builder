@@ -283,16 +283,24 @@ router.post('/', async (req, res) => {
         const destination = itineraryData.destination || 'Unknown Destination';
         // Try to infer theme from tags or use a default
         const theme = (itineraryData.tags && itineraryData.tags.length > 0) ? itineraryData.tags[0] : 'Travel';
-        // Try to get a key activity
-        let keyActivity = '';
-        if (itineraryData.days && itineraryData.days.length > 0 && itineraryData.days[0].activities && itineraryData.days[0].activities.length > 0) {
-            keyActivity = itineraryData.days[0].activities[0].activity || '';
+
+        // Build a summary of activities for the infographic
+        let detailedActivities = '';
+        const totalDaysCount = itineraryData.days?.length || 0;
+
+        if (itineraryData.days && itineraryData.days.length > 0) {
+            detailedActivities = itineraryData.days.map(day => {
+                const activities = day.activities?.slice(0, 2).map(a => a.activity).join(', ') || 'Exploring';
+                return `Day ${day.day}: ${day.theme || 'Discovery'} (${activities})`;
+            }).join(' | ');
         }
+
+        const keyActivity = detailedActivities || 'Sightseeing';
 
         // Only generate if no image exists or if we want to force generate (currently only new saves without image)
         if (!itineraryData.image) {
             // Background Task - No await
-            generateAndSaveItineraryImage(idToUse, destination, theme, keyActivity)
+            generateAndSaveItineraryImage(idToUse, destination, theme, keyActivity, totalDaysCount)
                 .then(url => {
                     if (url) console.log(`[ItineraryRoute] Image generation succeeded: ${url}`);
                 })

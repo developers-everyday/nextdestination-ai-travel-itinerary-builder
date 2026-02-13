@@ -23,7 +23,7 @@ const ItineraryCard: React.FC<ItineraryCardProps> = ({
 }) => {
     return (
         <div className="group cursor-pointer">
-            <div className="relative aspect-square overflow-hidden rounded-xl bg-slate-200 mb-3">
+            <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-slate-200 mb-3">
                 <img
                     src={image}
                     alt={title}

@@ -39,7 +39,7 @@ if (supabaseUrl && supabaseServiceKey) {
  * @param {string} keyActivity - Highlight activity to feature
  * @return {Promise<string|null>} - The public URL of the generated image or null
  */
-export const generateAndSaveItineraryImage = async (itineraryId, destination, theme, keyActivity) => {
+export const generateAndSaveItineraryImage = async (itineraryId, destination, theme, keyActivity, totalDays) => {
     if (!supabaseAdmin) {
         console.error("[ImageGen] Aborting: Supabase Admin Client not initialized (missing SERVICE_ROLE_KEY).");
         return null;
@@ -48,12 +48,22 @@ export const generateAndSaveItineraryImage = async (itineraryId, destination, th
     try {
         console.log(`[ImageGen] Starting generation for ${itineraryId} (${destination}) using Gemini 2.0 Flash...`);
 
-        // Sanitize the prompt to avoid safety filters (e.g. "Luxury" or specific people-focused activities can trigger refusals)
+        // Sanitize the prompt to avoid safety filters
         const safeActivity = keyActivity ? keyActivity.replace(/luxury|exclusive|private/yi, 'scenic') : 'local landmarks';
-        const prompt = `Generate an image of a breathtaking, cinematic travel photography shot of ${destination}, capturing the essence of a ${theme || 'memorable'} trip. Focus on the beautiful scenery and atmosphere. High detail, photorealistic, wide angle, 4k quality. No text overlay.`;
 
-        // 1. Generate Image using Gemini 2.5 Flash Image (generateContent)
-        // Note: Gemini 2.5 Flash Image is specialized for image generation
+        const prompt = `Create a professional, high-quality, modern travel infographic for a ${totalDays || 'multiple'}-day ${theme || 'memorable'} trip to ${destination}. 
+        The infographic should visually represent the complete journey, highlighting the best of ${destination} across all ${totalDays || ''} days.
+        
+        Key Highlights:
+        ${safeActivity}
+        
+        Style Requirements:
+        - Vibrant travel icons (airplanes, maps, landmarks).
+        - Modern layout like a premium travel brochure or social media guide.
+        - Cinematic, high-contrast, photorealistic elements.
+        - No cluttered text overlay, focus on visual storytelling.`;
+
+        // 1. Generate Image using Gemini 2.5 Flash Image
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash-image",
             contents: [
@@ -64,7 +74,9 @@ export const generateAndSaveItineraryImage = async (itineraryId, destination, th
                 }
             ],
             config: {
-                // responseMimeType: 'image/jpeg' 
+                imageConfig: {
+                    aspectRatio: "3:4"
+                }
             }
         });
 
