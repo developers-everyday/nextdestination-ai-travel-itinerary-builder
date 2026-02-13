@@ -349,15 +349,26 @@ const TripsList: React.FC<{
                     className="group bg-white rounded-3xl border border-slate-100 overflow-hidden hover:shadow-xl hover:shadow-indigo-100 transition-all cursor-pointer hover:-translate-y-1 relative flex flex-col"
                 >
                     <div className="h-56 bg-slate-200 relative overflow-hidden">
-                        <div
-                            className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 group-hover:scale-105 transition-transform duration-500"
-                            style={{
-                                filter: `hue-rotate(${item.destination.split('').reduce((a: number, b: string) => a + b.charCodeAt(0), 0) % 360}deg)`
-                            }}
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-white font-black text-3xl drop-shadow-lg tracking-tight uppercase text-center px-4">{item.destination}</span>
-                        </div>
+                        {item.image ? (
+                            <img
+                                src={item.image}
+                                alt={item.destination}
+                                className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            />
+                        ) : (
+                            <>
+                                <div
+                                    className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 group-hover:scale-105 transition-transform duration-500"
+                                    style={{
+                                        filter: `hue-rotate(${item.destination.split('').reduce((a: number, b: string) => a + b.charCodeAt(0), 0) % 360}deg)`
+                                    }}
+                                />
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <span className="text-white font-black text-3xl drop-shadow-lg tracking-tight uppercase text-center px-4">{item.destination}</span>
+                                </div>
+                            </>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
                         <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full text-white text-xs font-bold border border-white/30">
                             {item.days.length} Days
                         </div>

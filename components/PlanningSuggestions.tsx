@@ -554,7 +554,7 @@ const CommunityItinerariesSection: React.FC<{ destination: string, compact?: boo
                         name: item.metadata?.destination ? `Trip to ${item.metadata.destination}` : 'Amazing Trip',
                         location: item.metadata?.destination || destination,
                         destination: item.metadata?.destination || destination,
-                        image: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=800&auto=format&fit=crop',
+                        image: item.metadata?.image || 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=800&auto=format&fit=crop',
                         creator: {
                             id: 'ai',
                             name: 'Community Traveler',

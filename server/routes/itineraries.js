@@ -216,6 +216,11 @@ router.get('/my-trips', async (req, res) => {
 });
 
 
+// ... (previous imports)
+import { generateAndSaveItineraryImage } from '../services/imageGenerationService.js';
+
+// ... (previous code)
+
 // POST /api/itineraries - Save itinerary
 router.post('/', async (req, res) => {
     const itineraryData = req.body;
@@ -268,11 +273,31 @@ router.post('/', async (req, res) => {
         if (error) throw error;
 
         // Respond immediately
-        res.json({ id: idToUse, message: 'Itinerary saved successfully. AI indexing in progress.' });
+        res.json({ id: idToUse, message: 'Itinerary saved successfully. AI indexing and image generation in progress.' });
 
         // Trigger Async Embedding
-        // Note: passing the authenticated client so the update works against RLS
         generateAndSaveEmbedding(idToUse, textContent, supabaseClient);
+
+        // Trigger Async Image Generation (New Feature)
+        // Extract key info for prompt
+        const destination = itineraryData.destination || 'Unknown Destination';
+        // Try to infer theme from tags or use a default
+        const theme = (itineraryData.tags && itineraryData.tags.length > 0) ? itineraryData.tags[0] : 'Travel';
+        // Try to get a key activity
+        let keyActivity = '';
+        if (itineraryData.days && itineraryData.days.length > 0 && itineraryData.days[0].activities && itineraryData.days[0].activities.length > 0) {
+            keyActivity = itineraryData.days[0].activities[0].activity || '';
+        }
+
+        // Only generate if no image exists or if we want to force generate (currently only new saves without image)
+        if (!itineraryData.image) {
+            // Background Task - No await
+            generateAndSaveItineraryImage(idToUse, destination, theme, keyActivity)
+                .then(url => {
+                    if (url) console.log(`[ItineraryRoute] Image generation succeeded: ${url}`);
+                })
+                .catch(err => console.error(`[ItineraryRoute] Image generation failed:`, err));
+        }
 
     } catch (error) {
         console.error('Error saving itinerary:', error);
