@@ -20,6 +20,22 @@ const PlanningSuggestions: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+    const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
+
+    const DURATION_PRESETS = [
+        { label: 'Tight', days: 3, emoji: '⚡', desc: 'Quick highlights' },
+        { label: 'Balanced', days: 5, emoji: '✨', desc: 'Best of both' },
+        { label: 'Relaxed', days: 7, emoji: '🌿', desc: 'Take it slow' },
+    ];
+
+    const handleDurationSelect = (days: number) => {
+        setSelectedDuration(days);
+        const newStart = startDate || new Date();
+        const newEnd = new Date(newStart);
+        newEnd.setDate(newStart.getDate() + days - 1);
+        setStartDate(newStart);
+        setEndDate(newEnd);
+    };
 
     // Date Picker State
     const [startDate, setStartDate] = useState<Date | null>(new Date());
@@ -78,6 +94,7 @@ const PlanningSuggestions: React.FC = () => {
         const [start, end] = dates;
         setStartDate(start);
         setEndDate(end);
+        setSelectedDuration(null); // clear preset when manually picking
     };
 
     // Helper to ensure all activities have IDs (reused from App.tsx - ideally should be a util)
@@ -234,33 +251,86 @@ const PlanningSuggestions: React.FC = () => {
                         )}
                     </div>
 
-                    {/* Travelling Dates Trigger (Swapped to second position) */}
-                    <button
-                        onClick={() => setIsCalendarOpen(true)}
-                        className="bg-white rounded-3xl p-8 shadow-xl shadow-slate-200/50 border border-slate-100 text-left hover:shadow-2xl hover:shadow-indigo-100 transition-all hover:-translate-y-1 group relative overflow-hidden"
-                    >
-                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-32 w-32 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    {/* Travelling Days - Duration Presets + Custom */}
+                    <div className="bg-white rounded-3xl p-8 shadow-xl shadow-slate-200/50 border border-slate-100 relative overflow-hidden">
+                        <div className="absolute top-4 right-8 opacity-[0.06] pointer-events-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-20 w-20 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
                         </div>
-                        <h2 className="text-2xl font-black text-slate-900 mb-2">Travelling Dates?</h2>
-                        <div className="text-indigo-600 font-bold text-lg mb-6">
-                            {startDate && endDate ? (
-                                <>
-                                    {startDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                    {' - '}
-                                    {endDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                </>
-                            ) : 'Select your dates'}
+                        <h2 className="text-2xl font-black text-slate-900 mb-1">How many days?</h2>
+                        <p className="text-slate-500 text-sm mb-5">Pick a pace or choose custom dates.</p>
+
+                        {/* Duration Preset Chips */}
+                        <div className="grid grid-cols-3 gap-2 mb-4">
+                            {DURATION_PRESETS.map(preset => {
+                                const isActive = selectedDuration === preset.days;
+                                return (
+                                    <button
+                                        key={preset.days}
+                                        onClick={() => handleDurationSelect(preset.days)}
+                                        className={`flex flex-col items-center p-3 rounded-2xl border-2 transition-all text-center
+                                            ${isActive
+                                                ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200 scale-[1.03]'
+                                                : 'bg-white border-slate-200 text-slate-700 hover:border-indigo-300 hover:shadow-md'
+                                            }`}
+                                    >
+                                        <span className="text-lg mb-0.5">{preset.emoji}</span>
+                                        <span className="font-black text-sm">{preset.label}</span>
+                                        <span className={`text-xs font-bold ${isActive ? 'text-indigo-200' : 'text-slate-400'}`}>{preset.days} days</span>
+                                    </button>
+                                );
+                            })}
                         </div>
-                        <div className="flex items-center gap-2 text-slate-400 font-medium text-sm">
-                            <span>Click to pick dates</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+
+                        {/* Custom Dates Trigger */}
+                        <button
+                            onClick={() => {
+                                setSelectedDuration(null);
+                                setIsCalendarOpen(true);
+                            }}
+                            className={`w-full flex items-center justify-between p-3 rounded-2xl border-2 transition-all
+                                ${selectedDuration === null
+                                    ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200'
+                                    : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-300 hover:shadow-md'
+                                }`}
+                        >
+                            <div className="flex items-center gap-2">
+                                <span className="text-lg">📅</span>
+                                <div className="text-left">
+                                    <span className="font-bold text-sm">Custom Dates</span>
+                                    {startDate && endDate && selectedDuration === null && (
+                                        <span className="block text-xs opacity-80">
+                                            {startDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                            {' → '}
+                                            {endDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                            {' · '}{differenceInDays(endDate, startDate) + 1}d
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                            <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ${selectedDuration === null ? 'text-white' : 'text-slate-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                             </svg>
-                        </div>
-                    </button>
+                        </button>
+
+                        {/* Selected dates summary */}
+                        {startDate && endDate && selectedDuration !== null && (
+                            <div className="mt-4 flex items-center justify-between px-1">
+                                <div className="text-indigo-600 font-bold text-sm">
+                                    {startDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                    {' → '}
+                                    {endDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                </div>
+                                <button
+                                    onClick={() => setIsCalendarOpen(true)}
+                                    className="text-xs font-bold text-slate-400 hover:text-indigo-600 transition-colors"
+                                >
+                                    Edit dates
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Calendar Modal */}
@@ -513,6 +583,11 @@ const CommunityItinerariesSection: React.FC<{ destination: string, compact?: boo
     const [itineraries, setItineraries] = useState<CommunityItinerary[]>([]);
     const [loading, setLoading] = useState(false);
     const [isTrendingFallback, setIsTrendingFallback] = useState(false);
+
+    // START: Filter State
+    const [selectedTripType, setSelectedTripType] = useState<'All' | 'Solo' | 'Couple' | 'Family'>('All');
+    // END: Filter State
+
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -564,7 +639,7 @@ const CommunityItinerariesSection: React.FC<{ destination: string, compact?: boo
                         saveCount: Math.floor(Math.random() * 1000) + 50,
                         duration: item.metadata?.days?.length || 3,
                         tags: ['Community', 'Adventure'],
-                        category: 'Adventure',
+                        category: item.metadata?.category || 'Adventure', // Use metadata category if available
                         itinerary: item.metadata,
                         createdAt: new Date().toISOString(),
                         trending: Math.random() > 0.8
@@ -611,6 +686,27 @@ const CommunityItinerariesSection: React.FC<{ destination: string, compact?: boo
         navigate('/builder', { state: { itinerary: newItinerary } });
     };
 
+    // START: Filter Logic
+    const filteredItineraries = itineraries.filter(itinerary => {
+        if (selectedTripType === 'All') return true;
+
+        // Map UI filters to backend categories
+        // Categories: 'Adventure' | 'Luxury' | 'Budget' | 'Family' | 'Solo' | 'Romantic' | 'Cultural'
+        const category = itinerary.category || 'Adventure'; // fallback
+
+        if (selectedTripType === 'Solo') {
+            return ['Solo', 'Adventure', 'Budget'].includes(category);
+        }
+        if (selectedTripType === 'Couple') {
+            return ['Romantic', 'Luxury'].includes(category);
+        }
+        if (selectedTripType === 'Family') {
+            return ['Family', 'Cultural'].includes(category);
+        }
+        return true;
+    });
+    // END: Filter Logic
+
     if (loading) return null;
     if (itineraries.length === 0) return null;
 
@@ -622,26 +718,59 @@ const CommunityItinerariesSection: React.FC<{ destination: string, compact?: boo
                         <h2 className="text-2xl font-black text-slate-900 mb-2 tracking-tight">
                             {isTrendingFallback ? "Trending Community Trips" : "Community Trips"}
                         </h2>
-                        <p className="text-slate-500 font-medium text-sm">
-                            {isTrendingFallback
-                                ? <span>Trending in <span className="text-indigo-600 font-bold">{destination}</span></span>
-                                : <span>Trips to <span className="text-indigo-600 font-bold">{destination}</span> by others.</span>
-                            }
-                        </p>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <p className="text-slate-500 font-medium text-sm">
+                                {isTrendingFallback
+                                    ? <span>Trending in <span className="text-indigo-600 font-bold">{destination}</span></span>
+                                    : <span>Trips to <span className="text-indigo-600 font-bold">{destination}</span> by others.</span>
+                                }
+                            </p>
+
+                            {/* START: Filter Pills */}
+                            <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
+                                {(['All', 'Solo', 'Couple', 'Family'] as const).map((type) => (
+                                    <button
+                                        key={type}
+                                        onClick={() => setSelectedTripType(type)}
+                                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap
+                                            ${selectedTripType === type
+                                                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
+                                                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
+                                            }`}
+                                    >
+                                        {type}
+                                    </button>
+                                ))}
+                            </div>
+                            {/* END: Filter Pills */}
+                        </div>
                     </div>
                 </div>
 
                 <div className={`flex-1 ${scrollable ? 'overflow-y-auto pr-2 custom-scrollbar' : ''}`}>
-                    <div className={`grid ${compact ? 'grid-cols-1 md:grid-cols-2 gap-6' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8'}`}>
-                        {itineraries.map(itinerary => (
-                            <CommunityItineraryCard
-                                key={itinerary.id}
-                                itinerary={itinerary}
-                                onClick={() => handleRemix(itinerary)}
-                                onRemix={() => handleRemix(itinerary)}
-                            />
-                        ))}
-                    </div>
+                    {filteredItineraries.length > 0 ? (
+                        <div className={`grid ${compact ? 'grid-cols-1 md:grid-cols-2 gap-6' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8'}`}>
+                            {filteredItineraries.map(itinerary => (
+                                <CommunityItineraryCard
+                                    key={itinerary.id}
+                                    itinerary={itinerary}
+                                    onClick={() => handleRemix(itinerary)}
+                                    onRemix={() => handleRemix(itinerary)}
+                                />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center h-48 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                            <div className="text-4xl mb-2">🏖️</div>
+                            <p className="text-slate-500 font-medium mb-2">No {selectedTripType.toLowerCase()} trips found for {destination} yet.</p>
+                            <button
+                                onClick={() => setSelectedTripType('All')}
+                                className="text-indigo-600 font-bold text-sm hover:underline"
+                            >
+                                Show all trips
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </section>
