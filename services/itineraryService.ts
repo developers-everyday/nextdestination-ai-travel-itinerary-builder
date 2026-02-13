@@ -11,12 +11,14 @@ export const saveItineraryToBackend = async (itinerary: Itinerary, token?: strin
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    // Determine isPublic if provided, else user default
-    // We send it in the body
-    const body = {
-        ...itinerary,
-        isPublic: isPublic
+    // Determine isPublic if provided
+    const body: any = {
+        ...itinerary
     };
+
+    if (typeof isPublic !== 'undefined') {
+        body.isPublic = isPublic;
+    }
 
     const response = await fetch(API_BASE_URL, {
         method: 'POST',
@@ -38,7 +40,26 @@ export const saveItineraryToBackend = async (itinerary: Itinerary, token?: strin
     return data.id;
 };
 
-export const fetchItineraryFromBackend = async (id: string, token?: string): Promise<Itinerary & { isPublic?: boolean }> => {
+export const updateItineraryPrivacy = async (id: string, isPublic: boolean, token: string): Promise<boolean> => {
+    const response = await fetch(`${API_BASE_URL}/${id}/privacy`, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ isPublic })
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update privacy');
+    }
+
+    const data = await response.json();
+    return data.isPublic;
+};
+
+export const fetchItineraryFromBackend = async (id: string, token?: string): Promise<Itinerary & { isPublic?: boolean, userId?: string }> => {
     const headers: HeadersInit = {};
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;

@@ -6,7 +6,7 @@ import { getSavedItineraries, deleteSavedItinerary } from '../services/localStor
 import { supabase } from '../services/supabaseClient';
 import { CommunityItinerary } from '../types';
 import CommunityItineraryCard from './CommunityItineraryCard';
-import { fetchUserItineraries } from '../services/itineraryService';
+import { fetchUserItineraries, updateItineraryPrivacy } from '../services/itineraryService';
 
 const ProfilePage: React.FC = () => {
     const { user, signOut } = useAuth();
@@ -111,6 +111,26 @@ const ProfilePage: React.FC = () => {
             })) || []
         };
         navigate('/builder', { state: { itinerary: newItinerary } });
+    };
+
+    const handleTogglePrivacy = async (e: React.MouseEvent, id: string, currentStatus: boolean) => {
+        e.stopPropagation();
+        const newStatus = !currentStatus;
+
+        // Optimistic update
+        setItineraries(prev => prev.map(i => i.id === id ? { ...i, isPublic: newStatus } : i));
+
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.access_token) {
+                await updateItineraryPrivacy(id, newStatus, session.access_token);
+            }
+        } catch (err) {
+            console.error("Failed to toggle privacy", err);
+            // Rollback
+            setItineraries(prev => prev.map(i => i.id === id ? { ...i, isPublic: currentStatus } : i));
+            alert("Failed to update privacy.");
+        }
     };
 
     const handleDelete = async (e: React.MouseEvent, id: string) => {
@@ -251,6 +271,7 @@ const ProfilePage: React.FC = () => {
                                 filter={activeTab}
                                 onOpen={handleOpenItinerary}
                                 onDelete={handleDelete}
+                                onTogglePrivacy={handleTogglePrivacy}
                             />
                         )}
                     </div>
@@ -303,8 +324,9 @@ const TripsList: React.FC<{
     trips: any[],
     filter: 'upcoming' | 'past',
     onOpen: (item: any) => void,
-    onDelete: (e: React.MouseEvent, id: string) => void
-}> = ({ trips, filter, onOpen, onDelete }) => {
+    onDelete: (e: React.MouseEvent, id: string) => void,
+    onTogglePrivacy: (e: React.MouseEvent, id: string, current: boolean) => void
+}> = ({ trips, filter, onOpen, onDelete, onTogglePrivacy }) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -374,7 +396,12 @@ const TripsList: React.FC<{
                         </div>
 
                         {/* Private/Public Badge */}
-                        <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-md px-2 py-1 rounded-md text-white/90 text-[10px] font-bold border border-white/10 uppercase tracking-wider flex items-center gap-1">
+                        <div
+                            onClick={(e) => onTogglePrivacy(e, item.id, item.isPublic)}
+                            className={`absolute top-4 left-4 backdrop-blur-md px-2 py-1 rounded-md text-white/90 text-[10px] font-bold border flex items-center gap-1 cursor-pointer transition-all hover:scale-105 active:scale-95 z-10 
+                                ${item.isPublic ? 'bg-amber-500/60 border-amber-400/50 hover:bg-amber-500/80' : 'bg-black/50 border-white/10 hover:bg-black/70'}`}
+                            title={item.isPublic ? "Click to make Private" : "Click to make Public"}
+                        >
                             {('isPublic' in item) ? (item.isPublic ? (
                                 <>
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
@@ -386,8 +413,7 @@ const TripsList: React.FC<{
                             ) : (
                                 <>
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M2.166 10a.75.75 0 01.75-.75h14.168a.75.75 0 010 1.5H2.916a.75.75 0 01-.75-.75z" clipRule="evenodd" />
-                                        <path fillRule="evenodd" d="M10 2a4 4 0 00-4 4v3H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-1V6a4 4 0 00-4-4zm-2 4a2 2 0 114 0v3H8V6z" clipRule="evenodd" />
+                                        <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
                                     </svg>
                                     Private
                                 </>

@@ -1,7 +1,17 @@
 import express from 'express';
 import { generateTransportOptions, generateGeneralInfo, estimateFlightDuration } from '../services/gemini.js';
+import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const router = express.Router();
+
+// Initialize Supabase configuration
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Generate Transport Options
 router.post('/options', async (req, res) => {
@@ -20,7 +30,7 @@ router.post('/options', async (req, res) => {
     }
 });
 
-// Generate General Info (VISA, Safety, Scam)
+// Generate General Info (VISA, Safety, Scam) - Now with Caching
 router.post('/general-info', async (req, res) => {
     try {
         const { destination } = req.body;
@@ -29,7 +39,48 @@ router.post('/general-info', async (req, res) => {
             return res.status(400).json({ error: 'Destination is required' });
         }
 
+        console.log(`[GeneralInfo] Checking cache for: ${destination}`);
+
+        // 1. Check DB for existing info
+        const { data: cachedData, error: dbError } = await supabase
+            .from('destinations')
+            .select('general_info')
+            .ilike('name', destination)
+            .single();
+
+        if (cachedData && cachedData.general_info) {
+            console.log(`[GeneralInfo] Cache HIT for: ${destination}`);
+            return res.json({ info: cachedData.general_info });
+        }
+
+        if (dbError && dbError.code !== 'PGRST116') {
+            console.error('[GeneralInfo] DB error (proceeding with AI):', dbError);
+        }
+
+        console.log(`[GeneralInfo] Cache MISS, calling AI for: ${destination}`);
+
+        // 2. Not found, call AI
         const info = await generateGeneralInfo(destination);
+
+        // 3. Save to DB asynchronously (don't block response)
+        if (info && Object.keys(info).length > 0) {
+            supabase
+                .from('destinations')
+                .upsert({
+                    name: destination,
+                    general_info: info,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'name' })
+                .then(({ error: saveError }) => {
+                    if (saveError) {
+                        console.error(`[GeneralInfo] Failed to cache info for ${destination}:`, saveError);
+                    } else {
+                        console.log(`[GeneralInfo] Cache UPDATED for: ${destination}`);
+                    }
+                })
+                .catch(err => console.error(`[GeneralInfo] Async save error for ${destination}:`, err));
+        }
+
         res.json({ info });
     } catch (error) {
         console.error('Error generating general info:', error);

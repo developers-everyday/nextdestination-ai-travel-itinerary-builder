@@ -26,7 +26,7 @@ import TransportInfoPanel from './TransportInfoPanel';
 
 import ActivitySearchPanel from './ActivitySearchPanel';
 import HotelDetailsPanel from './HotelDetailsPanel';
-import { saveItineraryToBackend } from '../services/itineraryService';
+import { saveItineraryToBackend, updateItineraryPrivacy } from '../services/itineraryService';
 
 interface Props {
   data: Itinerary;
@@ -439,6 +439,8 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
 
 
 
+  const isOwner = user && (data.userId === user.id || !data.userId); // !userId means it's a new trip not yet synced
+
   const handleSaveTrip = () => {
     if (!user) {
       alert("Please log in to save your trip!");
@@ -447,32 +449,39 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
     }
 
     // Performance Optimization: Instant Feedback
-    // We set status to 'saved' immediately before even writing to local storage
-    // effectively eliminating the perception of latency.
     setSaveStatus('saved');
 
     try {
       // 1. Local Save (Synchronous & Fast)
       const tripName = `Trip to ${data.destination}`;
-      const saved = saveItinerary(data, tripName);
 
-      // Update the parent state with the new ID if it was a new save
-      if (onItineraryChange && !data.id) {
+      // If we don't own it, we want to create a NEW one (remix)
+      const itineraryToSave = isOwner ? data : {
+        ...data,
+        id: undefined, // Force new ID
+        userId: user.id
+      };
+
+      const saved = saveItinerary(itineraryToSave, tripName);
+
+      // Update local state via parent if needed
+      if (onItineraryChange && (!data.id || !isOwner)) {
         onItineraryChange(saved);
-        // data reference updated via props
       }
 
       setTimeout(() => setSaveStatus('idle'), 3000);
 
       // 2. Background Database Sync
-      // We do NOT await this. It runs in the background.
       if (session?.access_token) {
-        // Default to Private (isPublic: false) for user trips
-        saveItineraryToBackend(saved, session.access_token, false)
+        // If it's a remix, we want it Private by default
+        // If it's our trip, we preserve isPublic if it's explicitly defined, else false
+        // Note: saveItineraryToBackend now handles optional isPublic
+        const privacySetting = isOwner ? data.isPublic : false;
+
+        saveItineraryToBackend(saved, session.access_token, privacySetting)
           .then(() => console.log("Background sync successful"))
           .catch(err => {
             console.error("Background sync failed", err);
-            // Optionally show a toast here if needed, but we wanted instant feedback
           });
       } else {
         console.warn("No access token available for background sync");
@@ -482,6 +491,31 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
       console.error("Failed to save", e);
       setSaveStatus('error');
       setTimeout(() => setSaveStatus('idle'), 3000);
+    }
+  };
+
+  const handleTogglePrivacy = async () => {
+    if (!user || !data.id || !isOwner) return;
+
+    const newPrivacyStatus = !data.isPublic;
+
+    // Optimistic UI update
+    if (onItineraryChange) {
+      onItineraryChange({ ...data, isPublic: newPrivacyStatus });
+    }
+
+    try {
+      if (session?.access_token) {
+        await updateItineraryPrivacy(data.id, newPrivacyStatus, session.access_token);
+        console.log("Privacy updated successfully");
+      }
+    } catch (err) {
+      console.error("Failed to update privacy", err);
+      // Rollback on error
+      if (onItineraryChange) {
+        onItineraryChange({ ...data, isPublic: !newPrivacyStatus });
+      }
+      alert("Failed to update privacy settings.");
     }
   };
 
@@ -763,6 +797,37 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
               )}
             </button>
 
+            {/* Privacy Toggle (Only for owners) */}
+            {isOwner && data.id && (
+              <button
+                onClick={handleTogglePrivacy}
+                className={`
+                  flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all border
+                  ${data.isPublic
+                    ? 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100'
+                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'}
+                `}
+                title={data.isPublic ? "Click to make Private" : "Click to make Public"}
+              >
+                {data.isPublic ? (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                      <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                    </svg>
+                    <span>Public</span>
+                  </>
+                ) : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                    </svg>
+                    <span>Private</span>
+                  </>
+                )}
+              </button>
+            )}
+
             <button
               onClick={handleSaveTrip}
               disabled={saveStatus === 'saving'}
@@ -786,14 +851,14 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
-                  <span>Saved</span>
+                  <span>{isOwner ? 'Saved' : 'Saved to My Trips'}</span>
                 </>
               ) : (
                 <>
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                   </svg>
-                  <span>Save Trip</span>
+                  <span>{isOwner ? 'Save Changes' : 'Save to My Trips'}</span>
                 </>
               )}
             </button>

@@ -137,7 +137,7 @@ router.get('/trending', async (req, res) => {
 
         let query = supabaseClient
             .from('itineraries')
-            .select('id, metadata')
+            .select('id, metadata, user_id')
             .eq('is_public', true) // Explicitly only public
             .order('id', { ascending: false }) // 'created_at' if exists, else 'id' uuid not sortable by time usually. 
             // Better to sort by auto-generated timestamp if available, but for now ID is likely v4 random.
@@ -165,6 +165,7 @@ router.get('/trending', async (req, res) => {
         const results = data.map(item => ({
             id: item.id,
             ...item.metadata,
+            userId: item.user_id,
             metadata: item.metadata
         }));
 
@@ -194,7 +195,7 @@ router.get('/my-trips', async (req, res) => {
         // Note: 'created_at' might need to be selected if we want to show date
         const { data, error } = await supabaseClient
             .from('itineraries')
-            .select('id, metadata, is_public')
+            .select('id, metadata, is_public, user_id')
             // We rely on RLS: "auth.uid() = user_id" policy ensures we only see ours
             .order('id', { ascending: false }); // Fallback order
 
@@ -204,7 +205,8 @@ router.get('/my-trips', async (req, res) => {
         const results = data.map(item => ({
             id: item.id,
             ...item.metadata,
-            isPublic: item.is_public
+            isPublic: item.is_public,
+            userId: item.user_id
         }));
 
         res.json(results);
@@ -264,7 +266,8 @@ router.post('/', async (req, res) => {
                 content: textContent,
                 metadata: itineraryData,
                 user_id: userId,
-                is_public: isPublic,
+                // Do not overwrite is_public if it's already there and we aren't explicitly changing it
+                ...(typeof isPublic !== 'undefined' ? { is_public: isPublic } : {}),
                 // embedding will be done async
             })
             .select()
@@ -326,7 +329,7 @@ router.get('/:id', async (req, res) => {
 
         const { data, error } = await supabaseClient
             .from('itineraries')
-            .select('metadata, is_public')
+            .select('metadata, is_public, user_id')
             .eq('id', id)
             .single();
 
@@ -337,10 +340,48 @@ router.get('/:id', async (req, res) => {
             throw error;
         }
 
-        res.json({ ...data.metadata, isPublic: data.is_public });
+        res.json({ ...data.metadata, isPublic: data.is_public, userId: data.user_id });
     } catch (error) {
         console.error('Error fetching itinerary:', error);
         res.status(500).json({ error: 'Internal Server Error', details: error.message });
+    }
+});
+
+// PATCH /api/itineraries/:id/privacy - Toggle privacy
+router.patch('/:id/privacy', async (req, res) => {
+    const { id } = req.params;
+    const { isPublic } = req.body;
+    const supabaseClient = getSupabase(req);
+
+    if (typeof isPublic === 'undefined') {
+        return res.status(400).json({ error: 'isPublic field is required' });
+    }
+
+    try {
+        // Authenticate user
+        const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+        if (authError || !user) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        // Update privacy
+        // RLS will ensure only owner can update
+        const { data, error } = await supabaseClient
+            .from('itineraries')
+            .update({ is_public: isPublic })
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Database error updated privacy:', error);
+            return res.status(500).json({ error: 'Failed to update privacy status', details: error.message });
+        }
+
+        res.json({ success: true, isPublic: data.is_public });
+    } catch (error) {
+        console.error('Error in privacy toggle:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
     }
 });
 
