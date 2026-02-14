@@ -105,6 +105,7 @@ const ProfilePage: React.FC = () => {
         const newItinerary = {
             ...itinerary.itinerary,
             id: undefined,
+            sourceImage: itinerary.image, // Preserve original cover image to avoid unnecessary regeneration
             days: itinerary.itinerary.days?.map((d: any) => ({
                 ...d,
                 activities: d.activities?.map((a: any) => ({ ...a, id: Math.random().toString(36).substr(2, 9) }))

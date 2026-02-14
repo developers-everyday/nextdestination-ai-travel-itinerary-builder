@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Navbar from './Navbar';
 import { useAuth } from './AuthContext';
-import { getDestinationAttractions } from '../services/geminiService';
 import { hydrateItinerary } from '../services/hydrationService';
-import { Itinerary } from '../types';
+import { Itinerary, DayPlan } from '../types';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import { differenceInDays } from 'date-fns';
 import CommunityItineraryCard from './CommunityItineraryCard';
 import { CommunityItinerary } from '../types';
+import { useItineraryStore } from '../store/useItineraryStore';
 
 import { getCoordinates, getWeather } from '../services/weatherService';
 
@@ -76,10 +76,17 @@ const PlanningSuggestions: React.FC = () => {
         const fetchAttractions = async () => {
             setIsLoadingAttractions(true);
             try {
-                const data = await getDestinationAttractions(destination);
-                setAttractions(data);
+                const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+                const res = await fetch(`${API_URL}/api/transport/attractions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ destination })
+                });
+                const data = await res.json();
+                setAttractions(data.attractions || []);
             } catch (err) {
                 console.error("Failed to fetch attractions", err);
+                setAttractions([]);
             } finally {
                 setIsLoadingAttractions(false);
             }
@@ -133,17 +140,41 @@ const PlanningSuggestions: React.FC = () => {
 
         // Auth Check
         if (!session || !session.access_token) {
-            // Save state to return after login? 
-            // Ideally we'd redirect to login with a "returnTo" param
             alert("Please log in to generate your personalized itinerary.");
             navigate('/login', { state: { from: location.pathname, destination: destination } });
             return;
         }
 
-        setIsLoading(true);
         setError(null);
+
+        // ── INSTANT NAVIGATION: Create skeleton itinerary and go to /builder now ──
+        const skeletonDays: DayPlan[] = Array.from({ length: days }, (_, i) => ({
+            day: i + 1,
+            theme: i === 0 ? 'Getting Started...' : 'Planning...',
+            activities: []
+        }));
+
+        const skeletonItinerary: Itinerary = {
+            destination,
+            days: skeletonDays,
+            startDate: startDate.toISOString().split('T')[0],
+            hasArrivalFlight: true,
+            hasDepartureFlight: true
+        };
+
+        // Set skeleton in store and navigate immediately
+        const store = useItineraryStore.getState();
+        store.setItinerary(skeletonItinerary);
+        store.setGenerationStatus('loading');
+        store.setGenerationJobId(null);
+        store.setGenerationError(null);
+        // Set totalDays directly on store state
+        useItineraryStore.setState({ totalDays: days, loadedDays: 0 });
+
+        navigate('/builder');
+
+        // ── BACKGROUND: Fetch real itinerary data ──
         try {
-            // Call Hybrid API
             const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/suggestions`, {
                 method: 'POST',
                 headers: {
@@ -165,23 +196,92 @@ const PlanningSuggestions: React.FC = () => {
             }
 
             const { data: rawData, source } = await response.json();
-            console.log(`Itinerary loaded from: ${source}`);
+            console.log(`[Perf] Itinerary loaded from: ${source}`);
 
-            // Hydrate with Places Data (Photos, Ratings, Exact Coords)
-            // We can pass a map instance if we had one, but providing null/undefined will use a dummy element
+            // Hydrate with Places Data
             const hydratedData = await hydrateItinerary(rawData);
 
             const sanitized = sanitizeItinerary({
                 ...hydratedData,
-                startDate: startDate.toISOString().split('T')[0] // Format as YYYY-MM-DD
+                startDate: startDate.toISOString().split('T')[0]
             });
-            navigate('/builder', { state: { itinerary: sanitized } });
+
+            // Update store with real data (replaces skeleton)
+            const currentStore = useItineraryStore.getState();
+            currentStore.setItinerary(sanitized);
+            currentStore.setGenerationStatus('complete');
+            useItineraryStore.setState({ loadedDays: sanitized.days.length });
+
         } catch (err: any) {
-            console.error(err);
-            const errorMessage = err?.message || "Unknown error occurred";
-            setError(`We couldn't generate an itinerary. Error: ${errorMessage}`);
-        } finally {
-            setIsLoading(false);
+            console.error('[Perf] Sync generation failed, trying async...', err);
+
+            // ── FALLBACK: Try async endpoint with polling ──
+            try {
+                const asyncRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/suggestions/async`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`
+                    },
+                    body: JSON.stringify({
+                        destination,
+                        days,
+                        interests: selectedAttractions
+                    })
+                });
+
+                if (!asyncRes.ok) throw new Error('Async endpoint failed');
+
+                const { jobId } = await asyncRes.json();
+                const currentStore = useItineraryStore.getState();
+                currentStore.setGenerationJobId(jobId);
+
+                // Poll for completion
+                const pollInterval = setInterval(async () => {
+                    try {
+                        const statusRes = await fetch(
+                            `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/suggestions/status/${jobId}`,
+                            {
+                                headers: { 'Authorization': `Bearer ${session!.access_token}` }
+                            }
+                        );
+                        const status = await statusRes.json();
+
+                        if (status.status === 'complete' && status.itinerary) {
+                            clearInterval(pollInterval);
+                            const hydratedData = await hydrateItinerary(status.itinerary);
+                            const sanitized = sanitizeItinerary({
+                                ...hydratedData,
+                                startDate: startDate!.toISOString().split('T')[0]
+                            });
+                            const s = useItineraryStore.getState();
+                            s.setItinerary(sanitized);
+                            s.setGenerationStatus('complete');
+                            useItineraryStore.setState({ loadedDays: sanitized.days.length });
+                        } else if (status.status === 'error') {
+                            clearInterval(pollInterval);
+                            const s = useItineraryStore.getState();
+                            s.setGenerationError(status.error || 'Generation failed');
+                        }
+                    } catch (pollErr) {
+                        console.error('[Perf] Poll error:', pollErr);
+                    }
+                }, 2000); // Poll every 2 seconds
+
+                // Safety timeout: stop polling after 60 seconds
+                setTimeout(() => {
+                    clearInterval(pollInterval);
+                    const s = useItineraryStore.getState();
+                    if (s.generationStatus !== 'complete') {
+                        s.setGenerationError('Generation timed out. Please try again.');
+                    }
+                }, 60000);
+
+            } catch (asyncErr: any) {
+                console.error('[Perf] Async fallback also failed:', asyncErr);
+                const s = useItineraryStore.getState();
+                s.setGenerationError(asyncErr?.message || 'Failed to generate itinerary');
+            }
         }
     };
 
@@ -196,14 +296,6 @@ const PlanningSuggestions: React.FC = () => {
     return (
         <div className="min-h-screen bg-slate-50">
             <Navbar onOpenBuilder={() => navigate('/')} />
-
-            {isLoading && (
-                <div className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center p-6 text-center animate-fade-in">
-                    <div className="w-24 h-24 border-[10px] border-indigo-50 border-t-indigo-600 rounded-full animate-spin mb-10"></div>
-                    <h2 className="text-5xl font-black text-slate-900 tracking-tight mb-4">Crafting Your {destination} Experience...</h2>
-                    <p className="text-xl text-slate-500 font-semibold max-w-lg">Our AI is designing a perfect itinerary tailored just for you.</p>
-                </div>
-            )}
 
             <main className="pt-24 pb-12 px-6 max-w-7xl mx-auto">
                 <div className="mb-12 text-center">
@@ -415,7 +507,7 @@ const PlanningSuggestions: React.FC = () => {
                                             <div key={i} className="h-24 bg-slate-100 rounded-2xl animate-pulse"></div>
                                         ))}
                                     </div>
-                                ) : (
+                                ) : attractions.length > 0 ? (
                                     <div className="grid grid-cols-1 gap-3">
                                         {attractions.slice(0, 5).map((attraction, index) => {
                                             const isSelected = selectedAttractions.includes(attraction);
@@ -440,8 +532,8 @@ const PlanningSuggestions: React.FC = () => {
                                             );
                                         })}
 
-                                        {/* Generate Button as 6th Item */}
-                                        {startDate && endDate && selectedAttractions.length > 0 && (
+                                        {/* Generate Button */}
+                                        {startDate && endDate && (
                                             <button
                                                 onClick={handleSelectPlan}
                                                 className="w-full p-4 rounded-2xl font-black text-lg shadow-xl shadow-indigo-200 bg-indigo-600 text-white hover:bg-indigo-700 
@@ -456,13 +548,40 @@ const PlanningSuggestions: React.FC = () => {
                                             </button>
                                         )}
 
-                                        {/* Helper message as 6th item if button not ready (Optional, but better UX to avoid empty space if strictly 6 items expected) */}
-                                        {(!startDate || !endDate || selectedAttractions.length === 0) && (
+                                        {/* Helper message if dates not set */}
+                                        {(!startDate || !endDate) && (
                                             <div className="p-4 rounded-2xl border-2 border-dashed border-slate-200 text-center text-slate-400 flex flex-col items-center justify-center gap-2 h-[88px] animate-pulse">
                                                 <span className="text-xs font-bold uppercase tracking-wider">Next Step</span>
-                                                <span className="text-sm font-semibold text-slate-500">
-                                                    {!startDate || !endDate ? "Pick dates to continue" : "Select an activity"}
-                                                </span>
+                                                <span className="text-sm font-semibold text-slate-500">Pick dates to continue</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    /* Fallback: No attractions loaded — show generate button directly */
+                                    <div className="grid grid-cols-1 gap-3">
+                                        <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 text-center">
+                                            <div className="text-3xl mb-3">🌍</div>
+                                            <p className="text-slate-600 font-semibold text-sm mb-1">Custom Destination</p>
+                                            <p className="text-slate-400 text-xs">Our AI will pick the best experiences for you.</p>
+                                        </div>
+
+                                        {startDate && endDate ? (
+                                            <button
+                                                onClick={handleSelectPlan}
+                                                className="w-full p-4 rounded-2xl font-black text-lg shadow-xl shadow-indigo-200 bg-indigo-600 text-white hover:bg-indigo-700 
+                                                         transition-all transform hover:scale-[1.02] active:scale-95 flex items-center justify-between animate-fade-in"
+                                            >
+                                                <span>Generate My Plan</span>
+                                                <div className="bg-white/20 p-1.5 rounded-full">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                                    </svg>
+                                                </div>
+                                            </button>
+                                        ) : (
+                                            <div className="p-4 rounded-2xl border-2 border-dashed border-slate-200 text-center text-slate-400 flex flex-col items-center justify-center gap-2 h-[88px] animate-pulse">
+                                                <span className="text-xs font-bold uppercase tracking-wider">Next Step</span>
+                                                <span className="text-sm font-semibold text-slate-500">Pick dates to continue</span>
                                             </div>
                                         )}
                                     </div>
@@ -678,6 +797,7 @@ const CommunityItinerariesSection: React.FC<{ destination: string, compact?: boo
         const newItinerary = {
             ...itinerary.itinerary,
             id: undefined, // Clear ID to ensure it's treated as new/unsaved
+            sourceImage: itinerary.image, // Preserve original cover image to avoid unnecessary regeneration
             days: itinerary.itinerary.days?.map((d: any) => ({
                 ...d,
                 activities: d.activities?.map((a: any) => ({ ...a, id: Math.random().toString(36).substr(2, 9) }))

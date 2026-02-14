@@ -391,3 +391,39 @@ export const estimateFlightDuration = async (from, to) => {
         return "N/A";
     }
 };
+
+export const generateAttractions = async (destination) => {
+    try {
+        const model = "gemini-3-flash-preview";
+        const prompt = `List 10 top specific tourist attractions, famous places, or must-do activities in ${destination}.
+Return ONLY a raw JSON array of strings. Do not include markdown formatting or backticks.
+Example: ["Eiffel Tower", "Louvre Museum", "Seine Cruise"]`;
+
+        const response = await ai.models.generateContent({
+            model: model,
+            contents: prompt
+        });
+
+        let textResponse;
+        if (typeof response.text === 'string') {
+            textResponse = response.text;
+        } else if (response.candidates?.[0]?.content?.parts?.[0]?.text) {
+            textResponse = response.candidates[0].content.parts[0].text;
+        } else {
+            throw new Error("Could not extract text from Gemini response");
+        }
+
+        const cleaned = textResponse.replace(/```json|```/g, '').trim();
+        return JSON.parse(cleaned);
+    } catch (error) {
+        console.error("Gemini Attractions Error:", error);
+        return [
+            `Explore ${destination} Center`,
+            "Local Food Tour",
+            "Historical Museums",
+            "City Park Walk",
+            "Shopping District",
+            "Iconic Landmarks"
+        ];
+    }
+};

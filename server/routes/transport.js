@@ -1,5 +1,5 @@
 import express from 'express';
-import { generateTransportOptions, generateGeneralInfo, estimateFlightDuration } from '../services/gemini.js';
+import { generateTransportOptions, generateGeneralInfo, estimateFlightDuration, generateAttractions } from '../services/gemini.js';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 
@@ -85,6 +85,64 @@ router.post('/general-info', async (req, res) => {
     } catch (error) {
         console.error('Error generating general info:', error);
         res.status(500).json({ error: 'Failed to generate general info' });
+    }
+});
+
+// Attractions - DB-Cached with AI Fallback
+router.post('/attractions', async (req, res) => {
+    try {
+        const { destination } = req.body;
+
+        if (!destination) {
+            return res.status(400).json({ error: 'Destination is required' });
+        }
+
+        console.log(`[Attractions] Checking cache for: ${destination}`);
+
+        // 1. Check DB for cached attractions
+        const { data: cachedData, error: dbError } = await supabase
+            .from('destinations')
+            .select('attractions')
+            .ilike('name', destination)
+            .single();
+
+        if (cachedData && cachedData.attractions && Array.isArray(cachedData.attractions) && cachedData.attractions.length > 0) {
+            console.log(`[Attractions] Cache HIT for: ${destination} (${cachedData.attractions.length} items)`);
+            return res.json({ attractions: cachedData.attractions });
+        }
+
+        if (dbError && dbError.code !== 'PGRST116') {
+            console.error('[Attractions] DB error (proceeding with AI):', dbError);
+        }
+
+        console.log(`[Attractions] Cache MISS, calling AI for: ${destination}`);
+
+        // 2. Call AI
+        const attractions = await generateAttractions(destination);
+
+        // 3. Save to DB asynchronously (don't block response)
+        if (attractions && attractions.length > 0) {
+            supabase
+                .from('destinations')
+                .upsert({
+                    name: destination,
+                    attractions: attractions,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'name' })
+                .then(({ error: saveError }) => {
+                    if (saveError) {
+                        console.error(`[Attractions] Failed to cache for ${destination}:`, saveError);
+                    } else {
+                        console.log(`[Attractions] Cache UPDATED for: ${destination}`);
+                    }
+                })
+                .catch(err => console.error(`[Attractions] Async save error for ${destination}:`, err));
+        }
+
+        res.json({ attractions });
+    } catch (error) {
+        console.error('Error generating attractions:', error);
+        res.status(500).json({ error: 'Failed to generate attractions' });
     }
 });
 

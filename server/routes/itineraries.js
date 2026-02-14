@@ -257,6 +257,11 @@ router.post('/', async (req, res) => {
 
     const textContent = generateItineraryText(itineraryData);
 
+    // Strip transient fields from metadata before persisting
+    const metadataToSave = { ...itineraryData };
+    delete metadataToSave.sourceImage; // transient hint, not persistent data
+    delete metadataToSave.isPublic;    // stored as a separate column
+
     try {
         // Upsert allows update if ID matches and RLS permits
         const { data, error } = await supabaseClient
@@ -264,7 +269,7 @@ router.post('/', async (req, res) => {
             .upsert({
                 id: idToUse,
                 content: textContent,
-                metadata: itineraryData,
+                metadata: metadataToSave,
                 user_id: userId,
                 // Do not overwrite is_public if it's already there and we aren't explicitly changing it
                 ...(typeof isPublic !== 'undefined' ? { is_public: isPublic } : {}),
@@ -300,9 +305,35 @@ router.post('/', async (req, res) => {
 
         const keyActivity = detailedActivities || 'Sightseeing';
 
-        // Only generate if no image exists or if we want to force generate (currently only new saves without image)
-        if (!itineraryData.image) {
-            // Background Task - No await
+        // --- Image Generation with Source Image Reuse ---
+        const sourceImage = itineraryData.sourceImage;
+        let shouldGenerateImage = true;
+
+        if (itineraryData.image) {
+            // Already has an image (e.g., owner re-saving their own trip)
+            shouldGenerateImage = false;
+            console.log(`[ItineraryRoute] Skipping image generation — itinerary already has image.`);
+        } else if (sourceImage) {
+            // Remix scenario — reuse the source image instead of regenerating
+            shouldGenerateImage = false;
+            console.log(`[ItineraryRoute] Reusing source image for remix: ${sourceImage}`);
+
+            // Update metadata with the reused image (fire-and-forget)
+            const metadataWithImage = { ...itineraryData, image: sourceImage };
+            // Clean up transient field from persisted metadata
+            delete metadataWithImage.sourceImage;
+
+            supabaseClient
+                .from('itineraries')
+                .update({ metadata: metadataWithImage })
+                .eq('id', idToUse)
+                .then(({ error: imgErr }) => {
+                    if (imgErr) console.error(`[ItineraryRoute] Failed to save reused image:`, imgErr);
+                    else console.log(`[ItineraryRoute] Source image saved to metadata successfully.`);
+                });
+        }
+
+        if (shouldGenerateImage) {
             generateAndSaveItineraryImage(idToUse, destination, theme, keyActivity, totalDaysCount)
                 .then(url => {
                     if (url) console.log(`[ItineraryRoute] Image generation succeeded: ${url}`);

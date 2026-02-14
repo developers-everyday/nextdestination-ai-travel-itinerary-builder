@@ -2,6 +2,8 @@
 import { create } from 'zustand';
 import { Itinerary, DayPlan, ItineraryItem } from '../types';
 
+type GenerationStatus = 'idle' | 'loading' | 'partial' | 'complete' | 'error';
+
 interface ItineraryState {
     itinerary: Itinerary | null;
     focusedLocation: [number, number] | null; // [lng, lat]
@@ -9,12 +11,27 @@ interface ItineraryState {
     zoomLevel: number;
     theme: 'light' | 'dark';
 
+    // Generation Status (Progressive Loading)
+    generationStatus: GenerationStatus;
+    loadedDays: number;
+    totalDays: number;
+    generationJobId: string | null;
+    generationError: string | null;
+
     // Actions
     setItinerary: (itinerary: Itinerary | null) => void;
     setFocusedLocation: (location: [number, number] | null) => void;
     setFocusedPlace: (place: any | null) => void;
     setZoomLevel: (zoom: number) => void;
     setTheme: (theme: 'light' | 'dark') => void;
+
+    // Generation Actions
+    setGenerationStatus: (status: GenerationStatus) => void;
+    setGenerationJobId: (id: string | null) => void;
+    setGenerationError: (error: string | null) => void;
+    appendDay: (day: DayPlan) => void;
+    replaceAllDays: (days: DayPlan[]) => void;
+    resetGeneration: () => void;
 
     // Itinerary Actions
     addDay: () => void;
@@ -58,11 +75,50 @@ export const useItineraryStore = create<ItineraryState>((set, get) => ({
     zoomLevel: 12,
     theme: 'light',
 
+    // Generation status defaults
+    generationStatus: 'idle' as GenerationStatus,
+    loadedDays: 0,
+    totalDays: 0,
+    generationJobId: null,
+    generationError: null,
+
     setItinerary: (itinerary) => set({ itinerary }),
     setFocusedLocation: (location) => set({ focusedLocation: location }),
     setFocusedPlace: (place) => set({ focusedPlace: place }),
     setZoomLevel: (zoom) => set({ zoomLevel: zoom }),
     setTheme: (theme) => set({ theme }),
+
+    // Generation actions
+    setGenerationStatus: (status) => set({ generationStatus: status }),
+    setGenerationJobId: (id) => set({ generationJobId: id }),
+    setGenerationError: (error) => set({ generationError: error, generationStatus: error ? 'error' : 'idle' }),
+
+    appendDay: (day) => set((state) => {
+        if (!state.itinerary) return state;
+        const newDays = [...state.itinerary.days, day];
+        return {
+            itinerary: { ...state.itinerary, days: newDays },
+            loadedDays: newDays.length,
+            generationStatus: newDays.length >= state.totalDays ? 'complete' : 'partial'
+        };
+    }),
+
+    replaceAllDays: (days) => set((state) => {
+        if (!state.itinerary) return state;
+        return {
+            itinerary: { ...state.itinerary, days },
+            loadedDays: days.length,
+            generationStatus: 'complete'
+        };
+    }),
+
+    resetGeneration: () => set({
+        generationStatus: 'idle',
+        loadedDays: 0,
+        totalDays: 0,
+        generationJobId: null,
+        generationError: null
+    }),
 
     addDay: () => set((state) => {
         if (!state.itinerary) return state;

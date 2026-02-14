@@ -25,6 +25,7 @@ export interface Itinerary {
   startDate?: string; // ISO Date String
   isPublic?: boolean;
   userId?: string;
+  sourceImage?: string;  // Transient: original image URL from remixed itinerary
 }
 
 export interface Destination {
