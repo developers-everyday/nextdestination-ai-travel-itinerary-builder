@@ -12,6 +12,28 @@ interface ActivitySearchPanelProps {
     activeDay?: number;
 }
 
+// Helper: get a relevant SVG icon + gradient bg based on activity type
+const typeConfig: Record<string, { icon: string; gradient: string }> = {
+    meal: { icon: '🍽️', gradient: 'from-orange-400 to-red-400' },
+    restaurant: { icon: '🍽️', gradient: 'from-orange-400 to-red-400' },
+    food: { icon: '🍜', gradient: 'from-amber-400 to-orange-500' },
+    landmark: { icon: '🏛️', gradient: 'from-blue-400 to-indigo-500' },
+    museum: { icon: '🎨', gradient: 'from-purple-400 to-indigo-500' },
+    activity: { icon: '🧭', gradient: 'from-emerald-400 to-teal-500' },
+    adventure: { icon: '🏔️', gradient: 'from-green-400 to-emerald-500' },
+    beach: { icon: '🏖️', gradient: 'from-cyan-400 to-blue-400' },
+    park: { icon: '🌳', gradient: 'from-green-400 to-lime-500' },
+    shopping: { icon: '🛍️', gradient: 'from-pink-400 to-rose-500' },
+    nightlife: { icon: '🌃', gradient: 'from-violet-500 to-purple-600' },
+    temple: { icon: '⛩️', gradient: 'from-red-400 to-rose-500' },
+    church: { icon: '⛪', gradient: 'from-slate-400 to-blue-500' },
+};
+const defaultTypeConfig = { icon: '📍', gradient: 'from-indigo-400 to-blue-500' };
+
+const getTypeConfig = (type?: string) => {
+    return typeConfig[(type || '').toLowerCase()] || defaultTypeConfig;
+};
+
 const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onCancel, onAddActivity, isScriptLoaded, destination, activeDay }) => {
     const { toggleVoice, isVoiceActive, voiceStatus, isMuted, toggleMute, setFocusedLocation, setFocusedPlace } = useItineraryStore();
     const { setSettingsOpen } = useSettingsStore();
@@ -260,10 +282,16 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
                                     {/* Image Section */}
                                     <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
                                         {item.metadata?.image || item.image ? (
-                                            <img src={item.metadata?.image || item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                                            <img
+                                                src={item.metadata?.image || item.image}
+                                                alt={item.name}
+                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                            />
                                         ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-slate-300">
-                                                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                            <div className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${getTypeConfig(item.metadata?.type || item.type).gradient}`}>
+                                                <span className="text-4xl drop-shadow-md group-hover:scale-125 transition-transform duration-500">
+                                                    {getTypeConfig(item.metadata?.type || item.type).icon}
+                                                </span>
                                             </div>
                                         )}
                                         <button
@@ -285,19 +313,35 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
                                             <div className="flex justify-between items-start mb-1 h-10">
                                                 <h4 className="font-bold text-slate-800 text-sm leading-tight line-clamp-2">{item.name}</h4>
                                             </div>
-                                            <div className="flex items-center gap-1 mb-2">
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                                </svg>
-                                                <span className="text-xs font-bold text-slate-700">{item.metadata?.rating || item.rating || '4.5'}</span>
-                                                <span className="text-[10px] text-slate-400">({item.metadata?.reviews || item.reviews || '100+'})</span>
-                                            </div>
-                                            <p className="text-xs text-slate-500 line-clamp-1">{item.metadata?.duration || item.duration || '2h'} • Guided</p>
+                                            {(item.metadata?.rating || item.rating) ? (
+                                                <div className="flex items-center gap-1 mb-2">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                    </svg>
+                                                    <span className="text-xs font-bold text-slate-700">{item.metadata?.rating || item.rating}</span>
+                                                    {(item.metadata?.reviews || item.reviews) && (
+                                                        <span className="text-[10px] text-slate-400">({item.metadata?.reviews || item.reviews})</span>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-1 mb-2">
+                                                    <span className="text-[10px] text-slate-400 italic">No rating yet</span>
+                                                </div>
+                                            )}
+                                            {(item.metadata?.duration || item.duration) ? (
+                                                <p className="text-xs text-slate-500 line-clamp-1">{item.metadata?.duration || item.duration}</p>
+                                            ) : (
+                                                <p className="text-xs text-slate-400 line-clamp-1 italic">{item.description ? item.description.substring(0, 40) + (item.description.length > 40 ? '…' : '') : (item.metadata?.type || item.type || 'Activity')}</p>
+                                            )}
                                         </div>
 
                                         <div className="mt-auto pt-2 border-t border-slate-50 flex items-end justify-between">
                                             <div className="text-slate-900">
-                                                <span className="text-lg font-bold">{item.metadata?.price || item.price || '$30'}</span>
+                                                {(item.metadata?.price || item.price) ? (
+                                                    <span className="text-lg font-bold">{item.metadata?.price || item.price}</span>
+                                                ) : (
+                                                    <span className="text-xs text-slate-400 italic">Free / Varies</span>
+                                                )}
                                             </div>
                                             <button
                                                 onClick={(e) => {
