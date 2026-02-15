@@ -7,14 +7,38 @@ import { supabase } from '../services/supabaseClient';
 import { CommunityItinerary } from '../types';
 import CommunityItineraryCard from './CommunityItineraryCard';
 import { fetchUserItineraries, updateItineraryPrivacy } from '../services/itineraryService';
+import { updateMyProfile } from '../services/userProfileService';
+
+const ROLE_LABELS: Record<string, { icon: string; label: string; color: string }> = {
+    agent: { icon: '🏷️', label: 'Travel Agent', color: 'bg-amber-50 text-amber-700 border-amber-200' },
+    influencer: { icon: '⭐', label: 'Creator', color: 'bg-purple-50 text-purple-700 border-purple-200' },
+    explorer: { icon: '🧭', label: 'Explorer', color: 'bg-sky-50 text-sky-700 border-sky-200' }
+};
+
+const PLAN_LABELS: Record<string, { label: string; color: string; bg: string }> = {
+    starter: { label: 'Starter', color: 'text-slate-600', bg: 'bg-slate-100' },
+    explorer: { label: 'Explorer', color: 'text-indigo-600', bg: 'bg-indigo-50' },
+    custom: { label: 'Custom', color: 'text-emerald-600', bg: 'bg-emerald-50' }
+};
 
 const ProfilePage: React.FC = () => {
-    const { user, signOut } = useAuth();
+    const { user, signOut, userProfile, refreshProfile, session } = useAuth();
     const navigate = useNavigate();
     const [itineraries, setItineraries] = useState<any[]>([]);
     const [bucketList, setBucketList] = useState<CommunityItinerary[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'upcoming' | 'past' | 'bucketlist'>('upcoming');
+    const [editingBio, setEditingBio] = useState(false);
+    const [bioText, setBioText] = useState('');
+    const [editingName, setEditingName] = useState(false);
+    const [nameText, setNameText] = useState('');
+
+    useEffect(() => {
+        if (userProfile) {
+            setBioText(userProfile.bio || '');
+            setNameText(userProfile.displayName || '');
+        }
+    }, [userProfile]);
 
     useEffect(() => {
         const loadData = async () => {
@@ -178,27 +202,159 @@ const ProfilePage: React.FC = () => {
                     {/* User Details Sidebar */}
                     <div className="lg:col-span-1">
                         <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 sticky top-32">
-                            <div className="flex flex-col items-center text-center mb-8">
-                                <div className="w-24 h-24 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 text-3xl font-black mb-4">
-                                    {user.email?.charAt(0).toUpperCase() || 'U'}
+                            {/* Avatar & Name */}
+                            <div className="flex flex-col items-center text-center mb-6">
+                                <div className="relative mb-4">
+                                    {userProfile?.avatarUrl ? (
+                                        <img src={userProfile.avatarUrl} alt={userProfile.displayName || ''} className="w-24 h-24 rounded-full object-cover border-4 border-indigo-100" />
+                                    ) : (
+                                        <div className="w-24 h-24 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 text-3xl font-black">
+                                            {(userProfile?.displayName || user.email || 'U').charAt(0).toUpperCase()}
+                                        </div>
+                                    )}
+                                    {userProfile && ROLE_LABELS[userProfile.role] && (
+                                        <span className={`absolute -bottom-1 left-1/2 -translate-x-1/2 text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${ROLE_LABELS[userProfile.role].color}`}>
+                                            {ROLE_LABELS[userProfile.role].icon} {ROLE_LABELS[userProfile.role].label}
+                                        </span>
+                                    )}
                                 </div>
-                                <h1 className="text-2xl font-black text-slate-900 tracking-tight mb-1">My Profile</h1>
+
+                                {/* Editable Display Name */}
+                                {editingName ? (
+                                    <div className="flex items-center gap-2 w-full">
+                                        <input
+                                            value={nameText}
+                                            onChange={(e) => setNameText(e.target.value)}
+                                            className="flex-1 text-center text-lg font-black text-slate-900 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                                            autoFocus
+                                            onKeyDown={async (e) => {
+                                                if (e.key === 'Enter') {
+                                                    const token = session?.access_token;
+                                                    if (token) {
+                                                        await updateMyProfile(token, { displayName: nameText });
+                                                        refreshProfile();
+                                                    }
+                                                    setEditingName(false);
+                                                }
+                                            }}
+                                        />
+                                        <button onClick={async () => {
+                                            const token = session?.access_token;
+                                            if (token) {
+                                                await updateMyProfile(token, { displayName: nameText });
+                                                refreshProfile();
+                                            }
+                                            setEditingName(false);
+                                        }} className="text-indigo-600 font-bold text-sm hover:text-indigo-700">Save</button>
+                                    </div>
+                                ) : (
+                                    <h1 onClick={() => setEditingName(true)} className="text-2xl font-black text-slate-900 tracking-tight mb-1 cursor-pointer hover:text-indigo-600 transition-colors group" title="Click to edit">
+                                        {userProfile?.displayName || 'Set Name'} <span className="text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity text-sm">✏️</span>
+                                    </h1>
+                                )}
                                 <p className="text-slate-500 font-medium text-sm">{user.email}</p>
                             </div>
 
-                            <div className="space-y-6">
-                                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Account Details</h3>
-                                    <div className="space-y-3">
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-700 mb-1">User ID</label>
-                                            <p className="text-slate-500 font-mono text-xs truncate" title={user.id}>{user.id}</p>
+                            <div className="space-y-4">
+                                {/* Plan & Usage Card */}
+                                {userProfile && (
+                                    <div className={`p-4 rounded-2xl border ${PLAN_LABELS[userProfile.plan]?.bg || 'bg-slate-50'} border-slate-200`}>
+                                        <div className="flex items-center justify-between mb-3">
+                                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Plan</h3>
+                                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${PLAN_LABELS[userProfile.plan]?.color || ''} ${PLAN_LABELS[userProfile.plan]?.bg || ''}`}>
+                                                {PLAN_LABELS[userProfile.plan]?.label || userProfile.plan}
+                                            </span>
                                         </div>
+
+                                        {/* Generations progress */}
+                                        <div className="mb-3">
+                                            <div className="flex items-center justify-between text-xs mb-1">
+                                                <span className="text-slate-600 font-medium">Generations</span>
+                                                <span className="font-bold text-slate-700">{userProfile.generationsUsed} / {userProfile.maxGenerations}</span>
+                                            </div>
+                                            <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+                                                    style={{ width: `${Math.min((userProfile.generationsUsed / userProfile.maxGenerations) * 100, 100)}%` }}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Saves progress */}
+                                        <div className="mb-3">
+                                            <div className="flex items-center justify-between text-xs mb-1">
+                                                <span className="text-slate-600 font-medium">Saved Trips</span>
+                                                <span className="font-bold text-slate-700">{userProfile.savesUsed} / {userProfile.maxSaves}</span>
+                                            </div>
+                                            <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                                                    style={{ width: `${Math.min((userProfile.savesUsed / userProfile.maxSaves) * 100, 100)}%` }}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Upgrade CTA */}
+                                        {userProfile.plan === 'starter' && (
+                                            <button className="w-full mt-1 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-3 py-2 rounded-xl transition-colors">
+                                                ✨ Upgrade Plan
+                                            </button>
+                                        )}
+                                        {userProfile.plan === 'explorer' && (
+                                            <button className="w-full mt-1 text-xs font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-3 py-2 rounded-xl transition-colors">
+                                                💎 Need more? Contact us
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Bio */}
+                                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Bio</h3>
+                                    {editingBio ? (
                                         <div>
-                                            <label className="block text-xs font-bold text-slate-700 mb-1">Last Sign In</label>
-                                            <p className="text-slate-900 font-medium text-sm">
+                                            <textarea
+                                                value={bioText}
+                                                onChange={(e) => setBioText(e.target.value)}
+                                                className="w-full text-sm text-slate-700 bg-white border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200 resize-none"
+                                                rows={3}
+                                                placeholder="Tell us about yourself..."
+                                                autoFocus
+                                            />
+                                            <div className="flex gap-2 mt-2">
+                                                <button onClick={async () => {
+                                                    const token = session?.access_token;
+                                                    if (token) {
+                                                        await updateMyProfile(token, { bio: bioText });
+                                                        refreshProfile();
+                                                    }
+                                                    setEditingBio(false);
+                                                }} className="text-xs font-bold text-indigo-600 hover:text-indigo-700">Save</button>
+                                                <button onClick={() => { setEditingBio(false); setBioText(userProfile?.bio || ''); }} className="text-xs font-bold text-slate-400 hover:text-slate-500">Cancel</button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <p onClick={() => setEditingBio(true)} className="text-slate-600 text-sm cursor-pointer hover:text-indigo-600 transition-colors" title="Click to edit">
+                                            {userProfile?.bio || <span className="text-slate-400 italic">Click to add a bio...</span>}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Account Details */}
+                                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Account</h3>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs text-slate-500">Member since</span>
+                                            <span className="text-xs font-medium text-slate-700">
+                                                {userProfile?.createdAt ? new Date(userProfile.createdAt).toLocaleDateString() : 'N/A'}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs text-slate-500">Last sign in</span>
+                                            <span className="text-xs font-medium text-slate-700">
                                                 {user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString() : 'N/A'}
-                                            </p>
+                                            </span>
                                         </div>
                                     </div>
                                 </div>

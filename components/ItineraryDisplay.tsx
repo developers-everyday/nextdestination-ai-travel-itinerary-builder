@@ -1338,6 +1338,7 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
           {rightPanelMode === 'ACTIVITY_SEARCH' && (
             <ActivitySearchPanel
               onSearch={handleActivitySearch}
+              onCancel={() => setRightPanelMode('MAP')}
               onAddActivity={handleAddActivityFromPanel}
               isScriptLoaded={isLoaded}
               destination={data.destination}

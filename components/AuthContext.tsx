@@ -1,11 +1,21 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { Session, User } from '@supabase/supabase-js';
+import { UserProfile } from '../types';
+import { fetchMyProfile } from '../services/userProfileService';
 
 interface AuthContextType {
     session: Session | null;
     user: User | null;
     loading: boolean;
+    userProfile: UserProfile | null;
+    profileLoading: boolean;
+    canGenerate: boolean;
+    canSave: boolean;
+    isAgent: boolean;
+    isInfluencer: boolean;
+    isPro: boolean;
+    refreshProfile: () => Promise<void>;
     signInWithGoogle: () => Promise<void>;
     signOut: () => Promise<void>;
 }
@@ -14,6 +24,14 @@ const AuthContext = createContext<AuthContextType>({
     session: null,
     user: null,
     loading: true,
+    userProfile: null,
+    profileLoading: false,
+    canGenerate: true,
+    canSave: true,
+    isAgent: false,
+    isInfluencer: false,
+    isPro: false,
+    refreshProfile: async () => { },
     signInWithGoogle: async () => { },
     signOut: async () => { },
 });
@@ -22,12 +40,39 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [session, setSession] = useState<Session | null>(null);
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
+    const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+    const [profileLoading, setProfileLoading] = useState(false);
+
+    const loadProfile = useCallback(async (currentSession: Session | null) => {
+        if (!currentSession?.access_token) {
+            setUserProfile(null);
+            return;
+        }
+
+        try {
+            setProfileLoading(true);
+            const profile = await fetchMyProfile(currentSession.access_token);
+            setUserProfile(profile);
+        } catch (err) {
+            console.error('Failed to load user profile:', err);
+            setUserProfile(null);
+        } finally {
+            setProfileLoading(false);
+        }
+    }, []);
+
+    const refreshProfile = useCallback(async () => {
+        await loadProfile(session);
+    }, [session, loadProfile]);
 
     useEffect(() => {
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session);
             setUser(session?.user ?? null);
             setLoading(false);
+            if (session) {
+                loadProfile(session);
+            }
         });
 
         const {
@@ -41,10 +86,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             if (session && window.location.hash) {
                 window.history.replaceState(null, '', window.location.pathname);
             }
+
+            // Load profile on login, clear on logout
+            if (session) {
+                loadProfile(session);
+            } else {
+                setUserProfile(null);
+            }
         });
 
         return () => subscription.unsubscribe();
-    }, []);
+    }, [loadProfile]);
+
+    // Computed helpers
+    const canGenerate = userProfile
+        ? userProfile.generationsUsed < userProfile.maxGenerations
+        : true;
+
+    const canSave = userProfile
+        ? userProfile.savesUsed < userProfile.maxSaves
+        : true;
+
+    const isAgent = userProfile?.role === 'agent';
+    const isInfluencer = userProfile?.role === 'influencer';
+    const isPro = userProfile?.plan === 'explorer' || userProfile?.plan === 'custom';
 
     const signInWithGoogle = async () => {
         const { error } = await supabase.auth.signInWithOAuth({
@@ -66,10 +131,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const signOut = async () => {
         const { error } = await supabase.auth.signOut();
         if (error) console.error('Error logging out:', error.message);
+        setUserProfile(null);
     };
 
     return (
-        <AuthContext.Provider value={{ session, user, loading, signInWithGoogle, signOut }}>
+        <AuthContext.Provider value={{
+            session, user, loading,
+            userProfile, profileLoading,
+            canGenerate, canSave,
+            isAgent, isInfluencer, isPro,
+            refreshProfile,
+            signInWithGoogle, signOut
+        }}>
             {children}
         </AuthContext.Provider>
     );

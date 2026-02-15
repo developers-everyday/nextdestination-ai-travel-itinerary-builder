@@ -33,6 +33,9 @@ app.use('/api/transport', transportRoutes);
 import wishlistRoutes from './routes/wishlist.js';
 app.use('/api/wishlist', wishlistRoutes);
 
+import profileRoutes from './routes/userProfile.js';
+app.use('/api/profile', profileRoutes);
+
 // Health Check
 app.get('/', (req, res) => {
     res.send('NextDestination API is running');

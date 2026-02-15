@@ -2,6 +2,8 @@ import express from 'express';
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 import { generateEmbedding } from '../services/gemini.js';
+import { verifyAuth } from '../middleware/auth.js';
+import { checkSaveQuota, incrementSaves } from '../middleware/roleAuth.js';
 import dotenv from 'dotenv';
 import path from 'path';
 
@@ -223,8 +225,8 @@ import { generateAndSaveItineraryImage } from '../services/imageGenerationServic
 
 // ... (previous code)
 
-// POST /api/itineraries - Save itinerary
-router.post('/', async (req, res) => {
+// POST /api/itineraries - Save itinerary (with save quota check)
+router.post('/', checkSaveQuota, async (req, res) => {
     const itineraryData = req.body;
     let isPublic = req.body.isPublic; // can be undefined
     const idToUse = itineraryData.id || crypto.randomUUID();
@@ -282,6 +284,11 @@ router.post('/', async (req, res) => {
 
         // Respond immediately
         res.json({ id: idToUse, message: 'Itinerary saved successfully. AI indexing and image generation in progress.' });
+
+        // Increment save quota for authenticated users
+        if (userId) {
+            incrementSaves(userId).catch(err => console.error('[Quota] Save increment failed:', err));
+        }
 
         // Trigger Async Embedding
         generateAndSaveEmbedding(idToUse, textContent, supabaseClient);

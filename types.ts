@@ -61,3 +61,26 @@ export interface CommunityItinerary {
   trending?: boolean;
 }
 
+// User Roles & Plans
+export type UserRole = 'explorer' | 'influencer' | 'agent';
+export type UserPlan = 'starter' | 'explorer' | 'custom';
+
+export interface UserProfile {
+  id: string;
+  userId: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+  role: UserRole;
+  plan: UserPlan;
+  generationsUsed: number;
+  savesUsed: number;
+  maxGenerations: number;
+  maxSaves: number;
+  hasVoiceAgent: boolean;
+  hasAffiliate: boolean;
+  canSellPackages: boolean;
+  bio: string | null;
+  isVerified: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}

@@ -13,6 +13,7 @@ const HotelDetailsPanel: React.FC<HotelDetailsPanelProps> = ({ onBack, onSelect,
     const [hotels, setHotels] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedHotel, setSelectedHotel] = useState<any | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Search Area State
     const [showSearchAreaButton, setShowSearchAreaButton] = useState(false);
@@ -84,15 +85,22 @@ const HotelDetailsPanel: React.FC<HotelDetailsPanelProps> = ({ onBack, onSelect,
     // Initial Search
     useEffect(() => {
         const query = `hotels in ${searchData?.location || 'Paris'}`;
-        // If we have coordinates in searchData, use them for the initial center
         if (searchData?.coordinates) {
             const center = { lat: searchData.coordinates[1], lng: searchData.coordinates[0] };
             setLastSearchCenter(center);
-            // We can also perform a nearby search if we have coords, but text search is often better for "hotels in X"
-            // Let's stick to text search but ensure map centers on the location
         }
+        setSearchQuery('');
         performSearch(query);
     }, [searchData, performSearch]);
+
+    // Debounced Search on Query Change
+    useEffect(() => {
+        if (!searchQuery || searchQuery.length < 2) return;
+        const timer = setTimeout(() => {
+            performSearch(`hotels in ${searchQuery}`);
+        }, 800);
+        return () => clearTimeout(timer);
+    }, [searchQuery, performSearch]);
 
     // Handle Map Camera Change
     const handleCameraChanged = (ev: any) => {
@@ -131,30 +139,52 @@ const HotelDetailsPanel: React.FC<HotelDetailsPanelProps> = ({ onBack, onSelect,
         ? hotels[0].coordinates
         : (searchData?.coordinates ? { lat: searchData.coordinates[1], lng: searchData.coordinates[0] } : { lat: 48.8566, lng: 2.3522 });
 
-    return (
-        <div className="h-full flex flex-col bg-white animate-slide-in-right overflow-hidden">
-            {/* Header */}
-            <div className="bg-white px-6 py-4 border-b border-slate-200 shadow-sm shrink-0 flex items-center gap-4 z-20">
-                <button
-                    onClick={onBack}
-                    className="p-2 -ml-2 hover:bg-slate-100 rounded-full text-slate-500 hover:text-indigo-600 transition-colors"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                </button>
-                <div>
-                    <h2 className="text-lg font-bold text-slate-800 leading-tight">Stays in {searchData?.location || 'Area'}</h2>
-                    <p className="text-xs text-slate-500 font-medium">
-                        {searchData?.location || 'Anywhere'}
-                    </p>
-                </div>
-            </div>
+    const handleSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (searchQuery && searchQuery.length >= 2) {
+            performSearch(`hotels in ${searchQuery}`);
+        }
+    };
 
+    return (
+        <div className="h-full flex flex-col bg-white overflow-hidden animate-slide-in-right">
             {/* Split Content */}
             <div className="flex-1 flex overflow-hidden">
                 {/* Left Panel: List */}
-                <div className="w-full lg:w-[55%] overflow-y-auto p-4 border-r border-slate-200 shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-10 scrollbar-hide">
+                <div className="w-full lg:w-[55%] overflow-y-auto p-4 border-r border-slate-200 shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-10 scrollbar-hide bg-slate-50 flex flex-col">
+
+                    <div className="mb-2">
+
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={onBack}
+                                    className="p-2 -ml-2 hover:bg-slate-100 rounded-full text-slate-500 hover:text-indigo-600 transition-colors"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                                    </svg>
+                                </button>
+                                <h2 className="text-lg font-bold text-slate-800">Search Hotels</h2>
+                            </div>
+                            {/* Scope Badge */}
+                            <div className="px-2 py-1 rounded-md text-[10px] font-bold border bg-indigo-50 text-indigo-700 border-indigo-200">
+                                {`Searching in ${searchData?.location || 'Area'}`}
+                            </div>
+                        </div>
+                        <form onSubmit={handleSearchSubmit} className="relative z-50">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <input
+                                type="text"
+                                className="w-full pl-10 pr-20 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700 text-sm placeholder:text-slate-400 shadow-sm"
+                                placeholder={`Search hotels in ${searchData?.location || 'area'}...`}
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </form>
+                    </div>
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="text-sm font-bold text-slate-800">
                             {isLoading ? 'Searching...' : `${hotels.length} places found`}
