@@ -1,38 +1,26 @@
 {
-  "name": "nextdestination.ai---travel-itinerary-builder",
+  "name": "nextdestination-monorepo",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "vite",
-    "dev:all": "concurrently \"npm run dev\" \"npm run dev --prefix server\"",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@dnd-kit/core": "^6.3.1",
-    "@dnd-kit/sortable": "^10.0.0",
-    "@dnd-kit/utilities": "^3.2.2",
-    "@elevenlabs/react": "^0.12.3",
-    "@google/genai": "^1.34.0",
-    "@supabase/supabase-js": "^2.90.1",
-    "@turf/turf": "^7.3.1",
-    "@types/react-datepicker": "^6.2.0",
-    "@vis.gl/react-google-maps": "^1.7.1",
-    "date-fns": "^4.1.0",
-    "lucide-react": "^0.562.0",
-    "react": "^19.2.3",
-    "react-datepicker": "^9.1.0",
-    "react-dom": "^19.2.3",
-    "react-router-dom": "^7.11.0",
-    "zustand": "^5.0.9"
+    "dev:web": "npm run dev -w @nextdestination/web",
+    "dev:mobile": "npm run dev -w @nextdestination/mobile",
+    "dev:server": "npm run dev --prefix server",
+    "dev:all": "concurrently \"npm run dev:web\" \"npm run dev:server\"",
+    "build:web": "npm run build -w @nextdestination/web",
+    "build:mobile": "npm run build -w @nextdestination/mobile",
+    "build:shared": "npm run build -w @nextdestination/shared",
+    "build:all": "npm run build:shared && npm run build:web && npm run build:mobile",
+    "ios:open": "npm run cap:open -w @nextdestination/mobile",
+    "ios:build": "npm run cap:build -w @nextdestination/mobile",
+    "ios:run": "npm run cap:run -w @nextdestination/mobile"
   },
   "devDependencies": {
-    "@types/google.maps": "^3.58.1",
-    "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^5.0.0",
     "concurrently": "^9.2.1",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "typescript": "~5.8.2"
   }
 }

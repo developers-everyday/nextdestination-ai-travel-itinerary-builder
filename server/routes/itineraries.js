@@ -164,12 +164,19 @@ router.get('/trending', async (req, res) => {
             throw error;
         }
 
-        const results = data.map(item => ({
-            id: item.id,
-            ...item.metadata,
-            userId: item.user_id,
-            metadata: item.metadata
-        }));
+        // Deduplicate by ID to prevent duplicate key issues in frontend
+        const uniqueMap = new Map();
+        data.forEach(item => {
+            if (!uniqueMap.has(item.id)) {
+                uniqueMap.set(item.id, {
+                    id: item.id,
+                    ...item.metadata,
+                    userId: item.user_id,
+                    metadata: item.metadata
+                });
+            }
+        });
+        const results = Array.from(uniqueMap.values());
 
         res.json(results);
     } catch (error) {

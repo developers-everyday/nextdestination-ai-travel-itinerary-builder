@@ -7,10 +7,20 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
+
+# Build outputs
 dist
 dist-ssr
+*.tsbuildinfo
+
+# Environment files
 *.local
+.env
+.env.*
+!.env.example
+server/.env
 
 # Editor directories and files
 .vscode/*
@@ -23,8 +33,22 @@ dist-ssr
 *.sln
 *.sw?
 
-# Environment files
-server/.env
-
-# Temporary filesTemp/
+# Temporary files
+Temp/
 temp/
+
+# Native mobile builds (Capacitor)
+packages/mobile/ios/App/Pods
+packages/mobile/ios/DerivedData
+packages/mobile/ios/*.xcworkspace
+packages/mobile/android/app/build
+packages/mobile/android/.gradle
+packages/mobile/android/local.properties
+
+# Keep iOS and Android project templates
+!packages/mobile/ios/App/
+!packages/mobile/android/app/
+
+# Capacitor auto-generated
+packages/mobile/ios/capacitor.config.json
+packages/mobile/android/capacitor.config.json

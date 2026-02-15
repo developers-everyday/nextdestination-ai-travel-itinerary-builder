@@ -21,7 +21,15 @@ import activityRoutes from './routes/activities.js';
 import transportRoutes from './routes/transport.js';
 
 app.use(cors());
+
+// Stripe webhook needs raw body BEFORE express.json() parses it
+import stripeRoutes from './routes/stripe.js';
+app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }), stripeRoutes);
+
 app.use(express.json({ limit: '10mb' }));
+
+// Register Stripe API routes (after JSON parsing)
+app.use('/api/stripe', stripeRoutes);
 
 app.use('/api/recommend', recommendationRoutes);
 app.use('/api/itineraries', itineraryRoutes);
