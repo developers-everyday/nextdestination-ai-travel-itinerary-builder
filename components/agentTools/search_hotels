@@ -1,0 +1,29 @@
+{
+    "type": "client",
+    "name": "search_hotels",
+    "description": "Opens the hotel search panel for a specific location. Shows available hotels with ratings, prices, and a map view. Use when user asks about hotels, accommodation, or where to stay. The user can browse results and add hotels directly from the panel.",
+    "disable_interruptions": false,
+    "force_pre_tool_speech": "auto",
+    "assignments": [],
+    "tool_call_sound": null,
+    "tool_call_sound_behavior": "auto",
+    "execution_mode": "immediate",
+    "expects_response": true,
+    "response_timeout_secs": 3,
+    "parameters": [
+        {
+            "id": "location",
+            "type": "string",
+            "value_type": "llm_prompt",
+            "description": "Location to search hotels in (e.g. 'Paris', 'near the Eiffel Tower'). If not specified, uses the trip destination.",
+            "dynamic_variable": "",
+            "constant_value": "",
+            "enum": null,
+            "is_system_provided": false,
+            "required": false
+        }
+    ],
+    "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+    }
+}

@@ -503,6 +503,19 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
     return () => window.removeEventListener('voice-save-trip', handleVoiceSave);
   }, [handleSaveTrip]);
 
+  // Listen for voice-triggered hotel search
+  useEffect(() => {
+    const handleVoiceHotelSearch = (e: Event) => {
+      const location = (e as CustomEvent).detail?.location;
+      if (location) {
+        setSearchData({ location });
+        setRightPanelMode('HOTEL_DETAILS');
+      }
+    };
+    window.addEventListener('voice-hotel-search', handleVoiceHotelSearch);
+    return () => window.removeEventListener('voice-hotel-search', handleVoiceHotelSearch);
+  }, [setRightPanelMode]);
+
   const handleTogglePrivacy = async () => {
     if (!user || !data.id || !isOwner) return;
 
@@ -993,8 +1006,8 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
                 <button
                   onClick={toggleVoice}
                   className={`w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all border relative group ${isVoiceActive
-                      ? 'bg-red-50 border-red-200 text-red-500 ring-2 ring-red-200/50'
-                      : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border-indigo-100'
+                    ? 'bg-red-50 border-red-200 text-red-500 ring-2 ring-red-200/50'
+                    : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border-indigo-100'
                     }`}
                   title={isVoiceActive ? 'Stop Voice Agent' : 'Start Voice Agent'}
                 >

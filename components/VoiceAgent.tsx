@@ -328,12 +328,25 @@ export default function VoiceAgent() {
 
             // ========== SAVE TRIP ==========
             save_trip: (parameters: {}) => {
-                // Trigger the save button click by dispatching a custom event
-                // The ItineraryDisplay component will listen for this
                 window.dispatchEvent(new CustomEvent('voice-save-trip'));
                 setVoiceState(true, "Saving...");
                 showToast("💾 Saving trip...");
                 return "Saving your trip now.";
+            },
+
+            // ========== HOTEL SEARCH ==========
+            search_hotels: (parameters: { location?: string }) => {
+                const state = useItineraryStore.getState();
+                const destination = parameters.location || state.itinerary?.destination || 'current location';
+
+                // Switch to hotel panel
+                setRightPanelMode('HOTEL_DETAILS');
+
+                // Fire a custom event so ItineraryDisplay can set the searchData for HotelDetailsPanel
+                window.dispatchEvent(new CustomEvent('voice-hotel-search', { detail: { location: destination } }));
+
+                showToast(`🏨 Searching hotels in ${destination}`);
+                return `Opening the hotel search panel for ${destination}. The user can browse and select hotels from the results.`;
             }
         }
     });
@@ -389,10 +402,21 @@ export default function VoiceAgent() {
 
                 // Build dynamic context for the agent's greeting
                 const itinerary = useItineraryStore.getState().itinerary;
+                const currentActiveDay = useItineraryStore.getState().activeDay;
                 const userName = user?.user_metadata?.full_name
                     || user?.user_metadata?.name
                     || user?.email?.split('@')[0]
                     || 'traveler';
+
+                // Build a summary of the current day's activities for context
+                let currentDaySummary = 'No activities planned yet.';
+                if (itinerary && itinerary.days[currentActiveDay - 1]) {
+                    const dayPlan = itinerary.days[currentActiveDay - 1];
+                    const activities = dayPlan.activities;
+                    if (activities.length > 0) {
+                        currentDaySummary = activities.map((a, i) => `${i + 1}. ${a.activity}${a.time ? ` at ${a.time}` : ''}`).join('; ');
+                    }
+                }
 
                 // @ts-ignore - agentId is correct for public agents despite type definition
                 await currentConv.startSession({
@@ -401,6 +425,8 @@ export default function VoiceAgent() {
                         user_name: userName,
                         destination: itinerary?.destination || 'your trip',
                         total_days: String(itinerary?.days?.length || 0),
+                        current_day: String(currentActiveDay),
+                        current_day_summary: currentDaySummary,
                     },
                 });
             } catch (e: any) {
