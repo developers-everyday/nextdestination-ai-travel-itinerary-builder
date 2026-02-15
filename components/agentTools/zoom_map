@@ -1,0 +1,51 @@
+{
+    "type": "client",
+    "name": "zoom_map",
+    "description": "Zooms the map to a specific location at a given zoom level. Use for close-up views of places. Higher zoom = closer view (12=city, 15=neighborhood, 18=building). Use when user says 'zoom in on...', 'show me a closer look at...', 'zoom into the area around...'.",
+    "disable_interruptions": false,
+    "force_pre_tool_speech": "auto",
+    "assignments": [],
+    "tool_call_sound": null,
+    "tool_call_sound_behavior": "auto",
+    "execution_mode": "immediate",
+    "expects_response": false,
+    "response_timeout_secs": 1,
+    "parameters": [
+        {
+            "id": "lat",
+            "type": "number",
+            "value_type": "llm_prompt",
+            "description": "Latitude of the location to zoom to",
+            "dynamic_variable": "",
+            "constant_value": "",
+            "enum": null,
+            "is_system_provided": false,
+            "required": true
+        },
+        {
+            "id": "lng",
+            "type": "number",
+            "value_type": "llm_prompt",
+            "description": "Longitude of the location to zoom to",
+            "dynamic_variable": "",
+            "constant_value": "",
+            "enum": null,
+            "is_system_provided": false,
+            "required": true
+        },
+        {
+            "id": "zoom",
+            "type": "number",
+            "value_type": "llm_prompt",
+            "description": "Zoom level (10=region, 12=city, 15=neighborhood, 18=building level). Default to 16 for a nice close-up.",
+            "dynamic_variable": "",
+            "constant_value": "",
+            "enum": null,
+            "is_system_provided": false,
+            "required": false
+        }
+    ],
+    "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+    }
+}

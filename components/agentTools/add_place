@@ -1,0 +1,84 @@
+{
+    "type": "client",
+    "name": "add_place",
+    "description": "Adds a place or activity to the itinerary. Use when user says 'add the Eiffel Tower', 'put a restaurant on day 2', etc. If the user doesn't specify a day, it adds to the currently active day.",
+    "disable_interruptions": false,
+    "force_pre_tool_speech": "auto",
+    "assignments": [],
+    "tool_call_sound": null,
+    "tool_call_sound_behavior": "auto",
+    "execution_mode": "immediate",
+    "expects_response": true,
+    "response_timeout_secs": 3,
+    "parameters": [
+        {
+            "id": "name",
+            "type": "string",
+            "value_type": "llm_prompt",
+            "description": "Name of the place or activity to add",
+            "dynamic_variable": "",
+            "constant_value": "",
+            "enum": null,
+            "is_system_provided": false,
+            "required": true
+        },
+        {
+            "id": "lat",
+            "type": "number",
+            "value_type": "llm_prompt",
+            "description": "Latitude of the place. Figure this out from your knowledge of the place.",
+            "dynamic_variable": "",
+            "constant_value": "",
+            "enum": null,
+            "is_system_provided": false,
+            "required": true
+        },
+        {
+            "id": "lng",
+            "type": "number",
+            "value_type": "llm_prompt",
+            "description": "Longitude of the place. Figure this out from your knowledge of the place.",
+            "dynamic_variable": "",
+            "constant_value": "",
+            "enum": null,
+            "is_system_provided": false,
+            "required": true
+        },
+        {
+            "id": "description",
+            "type": "string",
+            "value_type": "llm_prompt",
+            "description": "A short description of the activity or place (e.g. 'Visit the iconic iron lattice tower'). Generate a useful description.",
+            "dynamic_variable": "",
+            "constant_value": "",
+            "enum": null,
+            "is_system_provided": false,
+            "required": false
+        },
+        {
+            "id": "time",
+            "type": "string",
+            "value_type": "llm_prompt",
+            "description": "Suggested time for the activity in HH:MM format (e.g. '10:00', '14:30'). Pick a reasonable time if not specified.",
+            "dynamic_variable": "",
+            "constant_value": "",
+            "enum": null,
+            "is_system_provided": false,
+            "required": false
+        },
+        {
+            "id": "day",
+            "type": "number",
+            "value_type": "llm_prompt",
+            "description": "Day number to add the activity to (1-based). If not specified by the user, omit this to use the currently active day.",
+            "dynamic_variable": "",
+            "constant_value": "",
+            "enum": null,
+            "is_system_provided": false,
+            "required": false
+        }
+    ],
+    "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+    }
+}

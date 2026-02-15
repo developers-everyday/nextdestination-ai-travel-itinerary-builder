@@ -1,0 +1,29 @@
+{
+    "type": "client",
+    "name": "search_activities",
+    "description": "Searches for activities and places to do near the destination. Opens the suggestions panel and populates it with results. Use when user says 'find me restaurants', 'search for museums', 'what activities are there?', 'look for things to do'. After results appear, you can use preview_place to show specific ones on the map.",
+    "disable_interruptions": false,
+    "force_pre_tool_speech": "auto",
+    "assignments": [],
+    "tool_call_sound": null,
+    "tool_call_sound_behavior": "auto",
+    "execution_mode": "immediate",
+    "expects_response": true,
+    "response_timeout_secs": 5,
+    "parameters": [
+        {
+            "id": "query",
+            "type": "string",
+            "value_type": "llm_prompt",
+            "description": "The search query, e.g. 'museums', 'restaurants near Eiffel Tower', 'adventure activities', 'kid-friendly attractions'",
+            "dynamic_variable": "",
+            "constant_value": "",
+            "enum": null,
+            "is_system_provided": false,
+            "required": true
+        }
+    ],
+    "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+    }
+}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MapComponent from './Map';
 import { useItineraryStore } from '../store/useItineraryStore';
@@ -373,15 +373,20 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
   const navigate = useNavigate();
   // In Component Props
   const { user, session } = useAuth();
-  const [activeDay, setActiveDay] = useState(1);
+  // Use global store for shared state with Voice Agent
+  const {
+    activeDay, setActiveDay,
+    rightPanelMode, setRightPanelMode,
+    setFocusedLocation, focusedLocation,
+    voiceActionToast, setVoiceActionToast,
+    isJourneyActive, currentStopIndex,
+    toggleVoice, isVoiceActive, voiceStatus
+  } = useItineraryStore();
   const [leftPanelMode, setLeftPanelMode] = useState<'LIST' | 'Map'>('LIST');
-  const [rightPanelMode, setRightPanelMode] = useState<'MAP' | 'TRANSPORT_INFO' | 'ACTIVITY_SEARCH' | 'HOTEL_DETAILS'>('ACTIVITY_SEARCH');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   // useJsApiLoader removed - passed from parent
   const isLoaded = isScriptLoaded;
-
-  const { setFocusedLocation, focusedLocation } = useItineraryStore(); // Use global store for map focus
 
   const handleFocusMap = (coords: [number, number]) => {
     setFocusedLocation(coords);
@@ -441,7 +446,7 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
 
   const isOwner = user && (data.userId === user.id || !data.userId); // !userId means it's a new trip not yet synced
 
-  const handleSaveTrip = () => {
+  const handleSaveTrip = React.useCallback(() => {
     if (!user) {
       alert("Please log in to save your trip!");
       navigate('/login');
@@ -473,9 +478,6 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
 
       // 2. Background Database Sync
       if (session?.access_token) {
-        // If it's a remix, we want it Private by default
-        // If it's our trip, we preserve isPublic if it's explicitly defined, else false
-        // Note: saveItineraryToBackend now handles optional isPublic
         const privacySetting = isOwner ? data.isPublic : false;
 
         saveItineraryToBackend(saved, session.access_token, privacySetting)
@@ -492,7 +494,14 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
       setSaveStatus('error');
       setTimeout(() => setSaveStatus('idle'), 3000);
     }
-  };
+  }, [user, data, session, isOwner, navigate, onItineraryChange]);
+
+  // Listen for voice-triggered save
+  useEffect(() => {
+    const handleVoiceSave = () => handleSaveTrip();
+    window.addEventListener('voice-save-trip', handleVoiceSave);
+    return () => window.removeEventListener('voice-save-trip', handleVoiceSave);
+  }, [handleSaveTrip]);
 
   const handleTogglePrivacy = async () => {
     if (!user || !data.id || !isOwner) return;
@@ -980,13 +989,28 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
                   +
                 </button>
               </div>
-              <div className="ml-auto md:ml-0 md:mt-auto md:mb-2 shrink-0">
-                <button className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 hover:bg-indigo-100 transition-all border border-indigo-100 relative group">
-                  <span className="text-xl">🤖</span>
+              <div className="ml-auto md:ml-0 md:mt-auto md:mb-2 shrink-0 relative">
+                <button
+                  onClick={toggleVoice}
+                  className={`w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all border relative group ${isVoiceActive
+                      ? 'bg-red-50 border-red-200 text-red-500 ring-2 ring-red-200/50'
+                      : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border-indigo-100'
+                    }`}
+                  title={isVoiceActive ? 'Stop Voice Agent' : 'Start Voice Agent'}
+                >
+                  <span className={`text-xl ${isVoiceActive ? 'animate-pulse' : ''}`}>🤖</span>
                   <div className="absolute left-full ml-3 px-2 py-1 bg-slate-900 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 transition-opacity hidden md:block">
-                    AI Assistant
+                    {isVoiceActive ? 'Stop Voice Agent' : 'Start Voice Agent'}
                   </div>
                 </button>
+                {isVoiceActive && voiceStatus !== 'Idle' && (
+                  <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 hidden md:block pointer-events-none">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full bg-white border shadow-sm whitespace-nowrap ${voiceStatus.startsWith('Error') ? 'text-red-500 border-red-200' : 'text-indigo-600 border-indigo-200'
+                      }`}>
+                      {voiceStatus}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1340,6 +1364,32 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
           )}
         </button>
       </div>
+
+      {/* Voice Action Toast */}
+      {voiceActionToast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] animate-fade-in">
+          <div className="bg-slate-900/90 backdrop-blur-md text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 font-bold text-sm border border-slate-700">
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+            {voiceActionToast}
+          </div>
+        </div>
+      )}
+
+      {/* Journey Mode Indicator */}
+      {isJourneyActive && (
+        <div className="fixed top-20 right-6 z-[100] animate-fade-in">
+          <div className="bg-indigo-600 text-white px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 font-bold text-xs">
+            <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+            🎙️ Tour Mode — Stop {currentStopIndex + 1}
+            <button
+              onClick={() => useItineraryStore.getState().stopJourney()}
+              className="ml-2 bg-white/20 hover:bg-white/30 rounded-lg px-2 py-0.5 text-[10px] transition-colors"
+            >
+              Stop
+            </button>
+          </div>
+        </div>
+      )}
 
     </div >
   );

@@ -1,0 +1,29 @@
+{
+    "type": "client",
+    "name": "get_itinerary_info",
+    "description": "Gets all activities and details for a specific day of the itinerary. Use when user asks 'what's on my itinerary?', 'what are my plans for day 2?', 'how many activities do I have?'. This lets you see the itinerary content to answer questions about it.",
+    "disable_interruptions": false,
+    "force_pre_tool_speech": "auto",
+    "assignments": [],
+    "tool_call_sound": null,
+    "tool_call_sound_behavior": "auto",
+    "execution_mode": "immediate",
+    "expects_response": true,
+    "response_timeout_secs": 5,
+    "parameters": [
+        {
+            "id": "day",
+            "type": "number",
+            "value_type": "llm_prompt",
+            "description": "Day number to get info for (1-based). If not specified, returns info for the currently active day.",
+            "dynamic_variable": "",
+            "constant_value": "",
+            "enum": null,
+            "is_system_provided": false,
+            "required": false
+        }
+    ],
+    "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+    }
+}

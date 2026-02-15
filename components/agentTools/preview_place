@@ -1,0 +1,73 @@
+{
+    "type": "client",
+    "name": "preview_place",
+    "description": "Shows a place on the map with a preview card (InfoWindow) so the user can see it before deciding to add it. The preview includes a clickable 'Add to Day' button. Use this before add_place when the user is undecided, or when you want to show a suggestion visually. Say something like 'Let me show you this place on the map' before calling.",
+    "disable_interruptions": false,
+    "force_pre_tool_speech": "auto",
+    "assignments": [],
+    "tool_call_sound": null,
+    "tool_call_sound_behavior": "auto",
+    "execution_mode": "immediate",
+    "expects_response": true,
+    "response_timeout_secs": 3,
+    "parameters": [
+        {
+            "id": "name",
+            "type": "string",
+            "value_type": "llm_prompt",
+            "description": "Name of the place to preview",
+            "dynamic_variable": "",
+            "constant_value": "",
+            "enum": null,
+            "is_system_provided": false,
+            "required": true
+        },
+        {
+            "id": "lat",
+            "type": "number",
+            "value_type": "llm_prompt",
+            "description": "Latitude of the place",
+            "dynamic_variable": "",
+            "constant_value": "",
+            "enum": null,
+            "is_system_provided": false,
+            "required": true
+        },
+        {
+            "id": "lng",
+            "type": "number",
+            "value_type": "llm_prompt",
+            "description": "Longitude of the place",
+            "dynamic_variable": "",
+            "constant_value": "",
+            "enum": null,
+            "is_system_provided": false,
+            "required": true
+        },
+        {
+            "id": "description",
+            "type": "string",
+            "value_type": "llm_prompt",
+            "description": "Short description of the place shown in the preview card",
+            "dynamic_variable": "",
+            "constant_value": "",
+            "enum": null,
+            "is_system_provided": false,
+            "required": false
+        },
+        {
+            "id": "rating",
+            "type": "number",
+            "value_type": "llm_prompt",
+            "description": "Rating of the place (e.g. 4.5). Leave blank if unknown.",
+            "dynamic_variable": "",
+            "constant_value": "",
+            "enum": null,
+            "is_system_provided": false,
+            "required": false
+        }
+    ],
+    "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+    }
+}

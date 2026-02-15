@@ -1,0 +1,17 @@
+{
+    "type": "client",
+    "name": "narrate_day",
+    "description": "Starts a guided narration tour of the current day's activities. The map will fly to each activity location. Use when user says 'narrate my day', 'give me a tour', 'walk me through today', 'start the tour'. After calling this, read the response and narrate each stop to the user. Tell them they can say 'next stop' to fly to each location.",
+    "disable_interruptions": false,
+    "force_pre_tool_speech": "auto",
+    "assignments": [],
+    "tool_call_sound": null,
+    "tool_call_sound_behavior": "auto",
+    "execution_mode": "immediate",
+    "expects_response": true,
+    "response_timeout_secs": 5,
+    "parameters": [],
+    "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+    }
+}

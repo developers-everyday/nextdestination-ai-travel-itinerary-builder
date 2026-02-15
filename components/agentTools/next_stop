@@ -1,0 +1,17 @@
+{
+    "type": "client",
+    "name": "next_stop",
+    "description": "Moves to the next stop during an active guided tour. The map will fly to the next activity location. Use when user says 'next stop', 'next', 'continue', 'what's next' during an active narration tour.",
+    "disable_interruptions": false,
+    "force_pre_tool_speech": "auto",
+    "assignments": [],
+    "tool_call_sound": null,
+    "tool_call_sound_behavior": "auto",
+    "execution_mode": "immediate",
+    "expects_response": true,
+    "response_timeout_secs": 3,
+    "parameters": [],
+    "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+    }
+}

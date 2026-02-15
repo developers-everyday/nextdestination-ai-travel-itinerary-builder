@@ -1,0 +1,62 @@
+{
+    "type": "client",
+    "name": "reorder_activity",
+    "description": "Moves an activity before or after another activity on the same day. Use when user says 'move the Eiffel Tower before lunch', 'put the museum after the park', 'rearrange the activities'. Supports partial name matching.",
+    "disable_interruptions": false,
+    "force_pre_tool_speech": "auto",
+    "assignments": [],
+    "tool_call_sound": null,
+    "tool_call_sound_behavior": "auto",
+    "execution_mode": "immediate",
+    "expects_response": true,
+    "response_timeout_secs": 3,
+    "parameters": [
+        {
+            "id": "activity_name",
+            "type": "string",
+            "value_type": "llm_prompt",
+            "description": "Name (or partial name) of the activity to move",
+            "dynamic_variable": "",
+            "constant_value": "",
+            "enum": null,
+            "is_system_provided": false,
+            "required": true
+        },
+        {
+            "id": "target_name",
+            "type": "string",
+            "value_type": "llm_prompt",
+            "description": "Name (or partial name) of the reference activity to place before/after",
+            "dynamic_variable": "",
+            "constant_value": "",
+            "enum": null,
+            "is_system_provided": false,
+            "required": true
+        },
+        {
+            "id": "position",
+            "type": "string",
+            "value_type": "llm_prompt",
+            "description": "Where to place relative to the target: 'before' or 'after'",
+            "dynamic_variable": "",
+            "constant_value": "",
+            "enum": ["before", "after"],
+            "is_system_provided": false,
+            "required": true
+        },
+        {
+            "id": "day",
+            "type": "number",
+            "value_type": "llm_prompt",
+            "description": "Day number (1-based). If not specified, uses the currently active day.",
+            "dynamic_variable": "",
+            "constant_value": "",
+            "enum": null,
+            "is_system_provided": false,
+            "required": false
+        }
+    ],
+    "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+    }
+}

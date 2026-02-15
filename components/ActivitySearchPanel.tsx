@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import MapComponent from './Map';
 import { useItineraryStore } from '../store/useItineraryStore';
 import { useSettingsStore } from '../store/useSettingsStore';
@@ -68,6 +68,18 @@ const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onC
     const searchScope = destination
         ? { label: `Searching in ${destination}`, active: true }
         : { label: "Global Search", active: false };
+
+    // Listen for voice-search events from VoiceAgent
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const query = (e as CustomEvent).detail?.query;
+            if (query) {
+                setLocation(query);
+            }
+        };
+        window.addEventListener('voice-search', handler);
+        return () => window.removeEventListener('voice-search', handler);
+    }, []);
 
     // Debounced Search Effect
     React.useEffect(() => {

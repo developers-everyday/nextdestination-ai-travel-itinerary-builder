@@ -1,0 +1,17 @@
+{
+    "type": "client",
+    "name": "show_transport",
+    "description": "Opens the transport and travel information panel. Use when user asks about transport, travel options, getting between places, or flights.",
+    "disable_interruptions": false,
+    "force_pre_tool_speech": "auto",
+    "assignments": [],
+    "tool_call_sound": null,
+    "tool_call_sound_behavior": "auto",
+    "execution_mode": "immediate",
+    "expects_response": false,
+    "response_timeout_secs": 1,
+    "parameters": [],
+    "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+    }
+}

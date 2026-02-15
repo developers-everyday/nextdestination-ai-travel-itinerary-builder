@@ -1,0 +1,17 @@
+{
+    "type": "client",
+    "name": "add_day",
+    "description": "Adds a new empty day to the end of the itinerary. Use when user wants to extend their trip with another day.",
+    "disable_interruptions": false,
+    "force_pre_tool_speech": "auto",
+    "assignments": [],
+    "tool_call_sound": null,
+    "tool_call_sound_behavior": "auto",
+    "execution_mode": "immediate",
+    "expects_response": true,
+    "response_timeout_secs": 3,
+    "parameters": [],
+    "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+    }
+}

@@ -1,0 +1,40 @@
+{
+    "type": "client",
+    "name": "remove_activity",
+    "description": "Removes an activity from the itinerary by name. Use when user says 'remove the museum', 'delete the Eiffel Tower visit', 'take out the restaurant'. Supports partial name matching.",
+    "disable_interruptions": false,
+    "force_pre_tool_speech": "auto",
+    "assignments": [],
+    "tool_call_sound": null,
+    "tool_call_sound_behavior": "auto",
+    "execution_mode": "immediate",
+    "expects_response": true,
+    "response_timeout_secs": 3,
+    "parameters": [
+        {
+            "id": "name",
+            "type": "string",
+            "value_type": "llm_prompt",
+            "description": "Name (or partial name) of the activity to remove. The system will do a case-insensitive partial match.",
+            "dynamic_variable": "",
+            "constant_value": "",
+            "enum": null,
+            "is_system_provided": false,
+            "required": true
+        },
+        {
+            "id": "day",
+            "type": "number",
+            "value_type": "llm_prompt",
+            "description": "Day number to remove the activity from (1-based). If not specified, removes from the currently active day.",
+            "dynamic_variable": "",
+            "constant_value": "",
+            "enum": null,
+            "is_system_provided": false,
+            "required": false
+        }
+    ],
+    "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+    }
+}

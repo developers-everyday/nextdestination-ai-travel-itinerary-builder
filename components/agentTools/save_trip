@@ -1,0 +1,17 @@
+{
+    "type": "client",
+    "name": "save_trip",
+    "description": "Saves the current itinerary. Use when user says 'save my trip', 'save this', 'save the itinerary'.",
+    "disable_interruptions": false,
+    "force_pre_tool_speech": "auto",
+    "assignments": [],
+    "tool_call_sound": null,
+    "tool_call_sound_behavior": "auto",
+    "execution_mode": "immediate",
+    "expects_response": false,
+    "response_timeout_secs": 1,
+    "parameters": [],
+    "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+    }
+}

@@ -1,0 +1,17 @@
+{
+    "type": "client",
+    "name": "show_suggestions",
+    "description": "Opens the activity suggestions and search panel. Use when user says 'show me suggestions', 'find activities', 'what can I do?', 'search for things to do'.",
+    "disable_interruptions": false,
+    "force_pre_tool_speech": "auto",
+    "assignments": [],
+    "tool_call_sound": null,
+    "tool_call_sound_behavior": "auto",
+    "execution_mode": "immediate",
+    "expects_response": false,
+    "response_timeout_secs": 1,
+    "parameters": [],
+    "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+    }
+}
