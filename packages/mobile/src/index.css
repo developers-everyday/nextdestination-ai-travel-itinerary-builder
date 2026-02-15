@@ -1,0 +1,122 @@
+@import "tailwindcss";
+
+/* Custom utility classes */
+@layer utilities {
+  /* Safe area padding utilities */
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pl-safe {
+    padding-left: env(safe-area-inset-left);
+  }
+  .pr-safe {
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Hide scrollbar */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Line clamping */
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+/* App container styles */
+.app-container {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: theme('colors.slate.50');
+}
+
+.app-container.native {
+  /* Native app specific styles */
+  overscroll-behavior: none;
+}
+
+.app-container.platform-ios {
+  /* iOS specific styles */
+}
+
+.app-container.platform-android {
+  /* Android specific styles */
+}
+
+/* Date picker overrides */
+.react-datepicker-wrapper {
+  width: 100%;
+}
+
+.react-datepicker__input-container input {
+  width: 100%;
+}
+
+.react-datepicker {
+  font-family: inherit !important;
+  border-radius: 1rem !important;
+  border: 1px solid theme('colors.slate.200') !important;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1) !important;
+}
+
+.react-datepicker__header {
+  background-color: theme('colors.slate.50') !important;
+  border-bottom: 1px solid theme('colors.slate.200') !important;
+  border-radius: 1rem 1rem 0 0 !important;
+}
+
+.react-datepicker__current-month {
+  font-weight: 600 !important;
+  color: theme('colors.slate.900') !important;
+}
+
+.react-datepicker__day--selected {
+  background-color: theme('colors.blue.600') !important;
+  border-radius: 0.5rem !important;
+}
+
+.react-datepicker__day:hover {
+  background-color: theme('colors.blue.100') !important;
+  border-radius: 0.5rem !important;
+}
+
+/* Touch feedback */
+@media (hover: none) {
+  button:active,
+  [role="button"]:active {
+    opacity: 0.8;
+  }
+}
+
+/* Keyboard avoiding view support */
+:root {
+  --keyboard-height: 0px;
+}
+
+.keyboard-avoid {
+  padding-bottom: var(--keyboard-height);
+  transition: padding-bottom 0.25s ease-out;
+}

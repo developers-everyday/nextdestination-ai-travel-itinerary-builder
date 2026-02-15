@@ -34,6 +34,12 @@ const config: CapacitorConfig = {
       style: 'DARK',
       backgroundColor: '#f8fafc',
     },
+    Haptics: {
+      // Default settings
+    },
+    Preferences: {
+      // Default settings
+    },
   },
 };
 

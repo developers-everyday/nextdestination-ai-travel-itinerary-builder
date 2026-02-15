@@ -1,4 +1,5 @@
 import { Itinerary } from '../types';
+import { getStorageAdapter } from './storageAdapter';
 
 export interface SavedItinerary extends Itinerary {
     id: string;
@@ -10,11 +11,23 @@ export interface SavedItinerary extends Itinerary {
 
 const STORAGE_KEY = 'saved_itineraries';
 
-export const saveItinerary = (itinerary: Itinerary, name?: string): SavedItinerary => {
-    const savedItineraries = getSavedItineraries();
+// Helper to generate UUID (works in both browser and mobile)
+function generateUUID(): string {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+    // Fallback for environments without crypto.randomUUID
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
+
+export const saveItinerary = async (itinerary: Itinerary, name?: string): Promise<SavedItinerary> => {
+    const savedItineraries = await getSavedItineraries();
 
     // Check if it already has an ID (update existing)
-    // For now, our base Itinerary doesn't have an ID, so we might need to cast or check if we are passing a SavedItinerary
     let id = (itinerary as any).id;
     const now = Date.now();
 
@@ -33,7 +46,6 @@ export const saveItinerary = (itinerary: Itinerary, name?: string): SavedItinera
             savedItineraries[existingIndex] = newEntry;
         } else {
             // ID exists but not found locally (maybe from suggested?) - treat as new or recover
-            // prioritizing treating as new save for now if we can't find it
             newEntry = {
                 ...itinerary,
                 id: id,
@@ -46,7 +58,7 @@ export const saveItinerary = (itinerary: Itinerary, name?: string): SavedItinera
         }
     } else {
         // New Save
-        id = crypto.randomUUID();
+        id = generateUUID();
         newEntry = {
             ...itinerary,
             id,
@@ -58,13 +70,14 @@ export const saveItinerary = (itinerary: Itinerary, name?: string): SavedItinera
         savedItineraries.push(newEntry);
     }
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(savedItineraries));
+    const adapter = getStorageAdapter();
+    await adapter.setItem(STORAGE_KEY, JSON.stringify(savedItineraries));
     return newEntry;
 };
 
-export const getSavedItineraries = (): SavedItinerary[] => {
-    if (typeof window === 'undefined') return [];
-    const stored = localStorage.getItem(STORAGE_KEY);
+export const getSavedItineraries = async (): Promise<SavedItinerary[]> => {
+    const adapter = getStorageAdapter();
+    const stored = await adapter.getItem(STORAGE_KEY);
     if (!stored) return [];
     try {
         return JSON.parse(stored);
@@ -74,13 +87,95 @@ export const getSavedItineraries = (): SavedItinerary[] => {
     }
 };
 
-export const getSavedItinerary = (id: string): SavedItinerary | null => {
-    const saved = getSavedItineraries();
+export const getSavedItinerary = async (id: string): Promise<SavedItinerary | null> => {
+    const saved = await getSavedItineraries();
     return saved.find(i => i.id === id) || null;
 };
 
-export const deleteSavedItinerary = (id: string): void => {
-    const saved = getSavedItineraries();
+export const deleteSavedItinerary = async (id: string): Promise<void> => {
+    const saved = await getSavedItineraries();
     const filtered = saved.filter(i => i.id !== id);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+    const adapter = getStorageAdapter();
+    await adapter.setItem(STORAGE_KEY, JSON.stringify(filtered));
+};
+
+// Synchronous versions for backward compatibility with web
+// These use a cached version and are updated in the background
+let cachedItineraries: SavedItinerary[] | null = null;
+
+export const saveItinerarySync = (itinerary: Itinerary, name?: string): SavedItinerary => {
+    const savedItineraries = getSavedItinerariesSync();
+
+    let id = (itinerary as any).id;
+    const now = Date.now();
+
+    let newEntry: SavedItinerary;
+
+    if (id) {
+        const existingIndex = savedItineraries.findIndex(i => i.id === id);
+        if (existingIndex >= 0) {
+            newEntry = {
+                ...savedItineraries[existingIndex],
+                ...itinerary,
+                name: name || savedItineraries[existingIndex].name,
+                updatedAt: now,
+                synced: false
+            };
+            savedItineraries[existingIndex] = newEntry;
+        } else {
+            newEntry = {
+                ...itinerary,
+                id: id,
+                name: name || `Trip to ${itinerary.destination}`,
+                createdAt: now,
+                updatedAt: now,
+                synced: false
+            };
+            savedItineraries.push(newEntry);
+        }
+    } else {
+        id = generateUUID();
+        newEntry = {
+            ...itinerary,
+            id,
+            name: name || `Trip to ${itinerary.destination}`,
+            createdAt: now,
+            updatedAt: now,
+            synced: false
+        };
+        savedItineraries.push(newEntry);
+    }
+
+    if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(savedItineraries));
+    }
+    cachedItineraries = savedItineraries;
+    return newEntry;
+};
+
+export const getSavedItinerariesSync = (): SavedItinerary[] => {
+    if (typeof window === 'undefined') return [];
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) return [];
+    try {
+        cachedItineraries = JSON.parse(stored);
+        return cachedItineraries!;
+    } catch (e) {
+        console.error("Failed to parse saved itineraries", e);
+        return [];
+    }
+};
+
+export const getSavedItinerarySync = (id: string): SavedItinerary | null => {
+    const saved = getSavedItinerariesSync();
+    return saved.find(i => i.id === id) || null;
+};
+
+export const deleteSavedItinerarySync = (id: string): void => {
+    const saved = getSavedItinerariesSync();
+    const filtered = saved.filter(i => i.id !== id);
+    if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+    }
+    cachedItineraries = filtered;
 };
