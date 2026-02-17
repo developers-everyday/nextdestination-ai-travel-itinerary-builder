@@ -1,6 +1,20 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from './AuthContext';
+
+// Download icon component
+const DownloadIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+  </svg>
+);
+
+// Share icon for iOS instructions
+const ShareIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+  </svg>
+);
 
 interface Props {
   onOpenBuilder?: () => void;
@@ -18,13 +32,74 @@ const PLAN_BADGE: Record<string, { icon: string; color: string }> = {
   starter: { icon: '', color: '' }
 };
 
+// Type for beforeinstallprompt event
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
 const Navbar: React.FC<Props> = ({ onOpenBuilder }) => {
   const { user, loading, userProfile } = useAuth();
+
+  // PWA Install state
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [showIOSPrompt, setShowIOSPrompt] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+
+  useEffect(() => {
+    // Check if already installed (standalone mode)
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setIsInstalled(true);
+    }
+
+    // Check if iOS
+    const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    setIsIOS(iOS);
+
+    // Listen for install prompt (Chrome/Android)
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e as BeforeInstallPromptEvent);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+
+    // Listen for app installed event
+    const installedHandler = () => {
+      setIsInstalled(true);
+      setInstallPrompt(null);
+    };
+    window.addEventListener('appinstalled', installedHandler);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('appinstalled', installedHandler);
+    };
+  }, []);
+
+  const handleInstall = async () => {
+    if (isIOS) {
+      setShowIOSPrompt(true);
+      return;
+    }
+
+    if (installPrompt) {
+      installPrompt.prompt();
+      const result = await installPrompt.userChoice;
+      if (result.outcome === 'accepted') {
+        setIsInstalled(true);
+      }
+      setInstallPrompt(null);
+    }
+  };
 
   const displayName = userProfile?.displayName || user?.email?.split('@')[0] || 'User';
   const avatarInitial = displayName.charAt(0).toUpperCase();
   const roleConfig = userProfile ? ROLE_CONFIG[userProfile.role] : null;
   const planBadge = userProfile ? PLAN_BADGE[userProfile.plan] : null;
+
+  // Show install button if: iOS (always show for instructions) or has install prompt available
+  const showInstallButton = !isInstalled && (isIOS || installPrompt);
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-white/80 backdrop-blur-md shadow-sm py-3">
@@ -41,6 +116,17 @@ const Navbar: React.FC<Props> = ({ onOpenBuilder }) => {
 
         {/* Right Side - Auth */}
         <div className="flex items-center gap-2 md:gap-4">
+          {/* Install App Button */}
+          {showInstallButton && (
+            <button
+              onClick={handleInstall}
+              className="hidden md:flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-full text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200"
+            >
+              <DownloadIcon className="w-4 h-4" />
+              Install App
+            </button>
+          )}
+
           {loading ? (
             <div className="w-24 h-10 bg-slate-100 rounded-full animate-pulse"></div>
           ) : user ? (
@@ -90,6 +176,40 @@ const Navbar: React.FC<Props> = ({ onOpenBuilder }) => {
           )}
         </div>
       </div>
+
+      {/* iOS Install Instructions Modal */}
+      {showIOSPrompt && (
+        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 animate-fade-in" onClick={() => setShowIOSPrompt(false)}>
+          <div
+            className="bg-white rounded-t-3xl p-6 w-full max-w-md animate-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4"></div>
+            <h3 className="text-lg font-bold text-slate-900 mb-4">Install NextDestination</h3>
+            <p className="text-sm text-slate-600 mb-4">Add this app to your home screen for quick access and a native app experience.</p>
+            <ol className="space-y-3 text-sm text-slate-600">
+              <li className="flex items-start gap-3">
+                <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center font-bold text-xs">1</span>
+                <span>Tap the <strong className="text-slate-900">Share</strong> button <span className="inline-flex items-center justify-center w-5 h-5 bg-slate-100 rounded"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 12v.01M12 4v.01M20 12v.01M12 20v.01" /></svg></span> in Safari's toolbar</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center font-bold text-xs">2</span>
+                <span>Scroll down and tap <strong className="text-slate-900">"Add to Home Screen"</strong></span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center font-bold text-xs">3</span>
+                <span>Tap <strong className="text-slate-900">Add</strong> to install</span>
+              </li>
+            </ol>
+            <button
+              onClick={() => setShowIOSPrompt(false)}
+              className="mt-6 w-full py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-colors"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
     </nav>
   );
 };
