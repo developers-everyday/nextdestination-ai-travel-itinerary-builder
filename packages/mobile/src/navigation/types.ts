@@ -30,6 +30,9 @@ export type AppRoutes = {
     id: string;
   };
 
+  // Settings
+  Settings: undefined;
+
   // Detail screens
   ActivityDetail: {
     activityId: string;

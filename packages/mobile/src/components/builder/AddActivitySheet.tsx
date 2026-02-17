@@ -8,6 +8,8 @@ interface AddActivitySheetProps {
   isOpen: boolean;
   onClose: () => void;
   onAddActivity: (activity: ItineraryItem) => void;
+  onAddFlight?: (type: 'arrival' | 'departure') => void;
+  onAddHotel?: () => void;
   destination: string;
 }
 
@@ -24,6 +26,8 @@ export const AddActivitySheet: React.FC<AddActivitySheetProps> = ({
   isOpen,
   onClose,
   onAddActivity,
+  onAddFlight,
+  onAddHotel,
   destination,
 }) => {
   const haptic = useHaptic();
@@ -162,6 +166,42 @@ export const AddActivitySheet: React.FC<AddActivitySheetProps> = ({
               />
             </div>
           </div>
+
+          {/* Travel Options */}
+          {(onAddFlight || onAddHotel) && (
+            <div>
+              <h3 className="text-sm font-medium text-slate-500 mb-3">Travel</h3>
+              <div className="grid grid-cols-3 gap-3">
+                {onAddFlight && (
+                  <>
+                    <button
+                      onClick={() => onAddFlight('arrival')}
+                      className="flex flex-col items-center p-4 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors"
+                    >
+                      <span className="text-2xl mb-1">✈️</span>
+                      <span className="text-sm text-blue-600">Arrival</span>
+                    </button>
+                    <button
+                      onClick={() => onAddFlight('departure')}
+                      className="flex flex-col items-center p-4 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors"
+                    >
+                      <span className="text-2xl mb-1">🛫</span>
+                      <span className="text-sm text-blue-600">Departure</span>
+                    </button>
+                  </>
+                )}
+                {onAddHotel && (
+                  <button
+                    onClick={onAddHotel}
+                    className="flex flex-col items-center p-4 bg-purple-50 rounded-xl hover:bg-purple-100 transition-colors"
+                  >
+                    <span className="text-2xl mb-1">🏨</span>
+                    <span className="text-sm text-purple-600">Hotel</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Quick Add Options */}
           <div>

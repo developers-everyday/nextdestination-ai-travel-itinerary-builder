@@ -3,3 +3,7 @@ export { DaySelector } from './DaySelector';
 export { ActivityList } from './ActivityList';
 export { ActivityCard } from './ActivityCard';
 export { AddActivitySheet } from './AddActivitySheet';
+export { MobileMapView } from './MobileMapView';
+export { FlightSearchSheet } from './FlightSearchSheet';
+export { HotelSearchSheet } from './HotelSearchSheet';
+export { ActivityEditSheet } from './ActivityEditSheet';

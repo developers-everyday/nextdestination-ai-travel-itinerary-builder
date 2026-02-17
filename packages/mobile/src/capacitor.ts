@@ -50,7 +50,7 @@ export async function initCapacitor() {
     // Handle deep links
     App.addListener('appUrlOpen', ({ url }) => {
       console.log('App opened with URL:', url);
-      // Handle deep linking here
+      handleDeepLink(url);
     });
 
   } catch (error) {
@@ -67,5 +67,65 @@ export async function hideStatusBar() {
 export async function showStatusBar() {
   if (isNative) {
     await StatusBar.show();
+  }
+}
+
+/**
+ * Handle deep links from URL scheme: nextdestination://
+ * Supported paths:
+ * - nextdestination://share/{id} - Open shared itinerary
+ * - nextdestination://auth/callback - OAuth callback
+ */
+export function handleDeepLink(url: string) {
+  try {
+    // Parse the URL
+    // URL format: nextdestination://path or https://nextdestination.ai/path
+    let path = '';
+
+    if (url.startsWith('nextdestination://')) {
+      path = url.replace('nextdestination://', '');
+    } else if (url.includes('nextdestination.ai')) {
+      const urlObj = new URL(url);
+      path = urlObj.pathname;
+    }
+
+    // Remove leading slash
+    path = path.replace(/^\//, '');
+
+    console.log('Deep link path:', path);
+
+    // Route based on path
+    if (path.startsWith('share/')) {
+      const id = path.replace('share/', '');
+      if (id) {
+        window.location.href = `/share/${id}`;
+      }
+    } else if (path.startsWith('auth/callback')) {
+      // OAuth callback - handled by Supabase
+      console.log('OAuth callback received');
+    } else if (path === 'planning') {
+      window.location.href = '/planning';
+    } else if (path === 'explore') {
+      window.location.href = '/explore';
+    }
+  } catch (error) {
+    console.error('Error handling deep link:', error);
+  }
+}
+
+/**
+ * Check for deep link on app launch
+ */
+export async function checkInitialDeepLink() {
+  if (!isNative) return;
+
+  try {
+    const { url } = await App.getLaunchUrl() || {};
+    if (url) {
+      console.log('App launched with URL:', url);
+      handleDeepLink(url);
+    }
+  } catch (error) {
+    console.error('Error checking launch URL:', error);
   }
 }

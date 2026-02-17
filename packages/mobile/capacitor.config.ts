@@ -40,6 +40,9 @@ const config: CapacitorConfig = {
     Preferences: {
       // Default settings
     },
+    App: {
+      // Deep link handling
+    },
   },
 };
 

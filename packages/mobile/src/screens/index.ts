@@ -7,3 +7,4 @@ export { SignupScreen } from './SignupScreen';
 export { PlanningSuggestionsScreen } from './PlanningSuggestionsScreen';
 export { BuilderScreen } from './BuilderScreen';
 export { SharedItineraryScreen } from './SharedItineraryScreen';
+export { SettingsScreen } from './SettingsScreen';

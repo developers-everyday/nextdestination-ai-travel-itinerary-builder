@@ -47,6 +47,12 @@
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>To show your location on trip maps</string>
+	<key>NSCameraUsageDescription</key>
+	<string>To take photos of places you visit</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>To add photos to your trip itinerary</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>For voice-assisted trip planning</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

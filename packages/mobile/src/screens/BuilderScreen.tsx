@@ -1,7 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { SafeAreaView } from '../components/ui';
-import { BuilderHeader, DaySelector, ActivityList, AddActivitySheet } from '../components/builder';
+import {
+  BuilderHeader,
+  DaySelector,
+  ActivityList,
+  AddActivitySheet,
+  MobileMapView,
+  FlightSearchSheet,
+  HotelSearchSheet,
+  ActivityEditSheet,
+} from '../components/builder';
 import { useHaptic } from '../hooks/useHaptic';
 import { useAuth } from '../components/AuthContext';
 import {
@@ -25,6 +34,7 @@ export const BuilderScreen: React.FC = () => {
     removeActivity,
     addActivity,
     reorderActivity,
+    updateActivity,
     setItinerary,
   } = useItineraryStore();
 
@@ -32,6 +42,12 @@ export const BuilderScreen: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [showAddActivity, setShowAddActivity] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [flightSearchType, setFlightSearchType] = useState<'arrival' | 'departure' | null>(null);
+  const [showHotelSearch, setShowHotelSearch] = useState(false);
+  const [editingActivity, setEditingActivity] = useState<{
+    activity: ItineraryItem;
+    index: number;
+  } | null>(null);
 
   // Load itinerary from location state if provided
   useEffect(() => {
@@ -122,9 +138,12 @@ export const BuilderScreen: React.FC = () => {
     setActiveDay(itinerary.days.length + 1);
   };
 
-  const handleActivityPress = (activityIndex: number) => {
-    // Would open activity detail/edit sheet
-    console.log('Activity pressed:', activityIndex);
+  const handleActivityPress = async (activityIndex: number) => {
+    await haptic.light();
+    const activity = currentDay.activities[activityIndex];
+    if (activity) {
+      setEditingActivity({ activity, index: activityIndex });
+    }
   };
 
   const handleActivityDelete = async (activityIndex: number) => {
@@ -139,6 +158,30 @@ export const BuilderScreen: React.FC = () => {
   const handleAddActivity = (activity: ItineraryItem) => {
     addActivity(dayIndex, activity);
     setShowAddActivity(false);
+  };
+
+  const handleAddFlight = (flight: ItineraryItem) => {
+    addActivity(dayIndex, flight);
+    setFlightSearchType(null);
+  };
+
+  const handleAddHotel = (hotel: ItineraryItem) => {
+    addActivity(dayIndex, hotel);
+    setShowHotelSearch(false);
+  };
+
+  const handleUpdateActivity = (updates: Partial<ItineraryItem>) => {
+    if (editingActivity) {
+      updateActivity(dayIndex, editingActivity.index, updates);
+    }
+    setEditingActivity(null);
+  };
+
+  const handleDeleteEditingActivity = () => {
+    if (editingActivity) {
+      removeActivity(dayIndex, editingActivity.index);
+    }
+    setEditingActivity(null);
   };
 
   return (
@@ -174,9 +217,11 @@ export const BuilderScreen: React.FC = () => {
           onAddActivity={() => setShowAddActivity(true)}
         />
       ) : (
-        <div className="flex-1 bg-slate-200 flex items-center justify-center">
-          <p className="text-slate-500">Map view coming soon</p>
-        </div>
+        <MobileMapView
+          activities={currentDay.activities}
+          destination={itinerary.destination}
+          onActivityPress={handleActivityPress}
+        />
       )}
 
       {/* Add Activity Sheet */}
@@ -184,7 +229,43 @@ export const BuilderScreen: React.FC = () => {
         isOpen={showAddActivity}
         onClose={() => setShowAddActivity(false)}
         onAddActivity={handleAddActivity}
+        onAddFlight={(type) => {
+          setShowAddActivity(false);
+          setFlightSearchType(type);
+        }}
+        onAddHotel={() => {
+          setShowAddActivity(false);
+          setShowHotelSearch(true);
+        }}
         destination={itinerary.destination}
+      />
+
+      {/* Flight Search Sheet */}
+      <FlightSearchSheet
+        isOpen={flightSearchType !== null}
+        onClose={() => setFlightSearchType(null)}
+        onAddFlight={handleAddFlight}
+        type={flightSearchType || 'arrival'}
+        destination={itinerary.destination}
+      />
+
+      {/* Hotel Search Sheet */}
+      <HotelSearchSheet
+        isOpen={showHotelSearch}
+        onClose={() => setShowHotelSearch(false)}
+        onAddHotel={handleAddHotel}
+        destination={itinerary.destination}
+        dayNumber={activeDay}
+      />
+
+      {/* Activity Edit Sheet */}
+      <ActivityEditSheet
+        isOpen={editingActivity !== null}
+        onClose={() => setEditingActivity(null)}
+        activity={editingActivity?.activity || null}
+        activityIndex={editingActivity?.index || 0}
+        onSave={handleUpdateActivity}
+        onDelete={handleDeleteEditingActivity}
       />
     </SafeAreaView>
   );
