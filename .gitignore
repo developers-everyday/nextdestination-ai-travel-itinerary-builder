@@ -52,3 +52,5 @@ packages/mobile/android/local.properties
 # Capacitor auto-generated
 packages/mobile/ios/capacitor.config.json
 packages/mobile/android/capacitor.config.json
+packages/mobile/ios/App/App.xcworkspace/
+packages/mobile/ios/App/Podfile.lock
