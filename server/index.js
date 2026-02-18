@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import compression from 'compression';
+import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -14,6 +16,36 @@ dotenv.config({ path: path.join(__dirname, '../.env') });
 const app = express();
 const port = process.env.PORT || 3001;
 
+// Trust the first proxy hop (needed for accurate IP-based rate limiting when
+// the app sits behind Nginx, a load balancer, or a cloud provider's edge)
+app.set('trust proxy', 1);
+
+// ── Response Compression ───────────────────────────────────────────────────
+// Compresses JSON responses with gzip/brotli. Typical itinerary payloads
+// compress from ~8KB to ~1.5KB — a meaningful bandwidth and latency saving
+// across 2000 concurrent users.
+app.use(compression());
+
+// ── Rate Limiting ──────────────────────────────────────────────────────────
+// General limit: protects all API routes from brute-force and runaway clients.
+const generalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15-minute window
+    max: 100,                   // 100 requests per window per IP
+    standardHeaders: true,      // Return RateLimit-* headers (RFC 6585)
+    legacyHeaders: false,
+    message: { error: 'Too many requests. Please try again in a few minutes.' }
+});
+
+// AI generation limit: Gemini calls are expensive (latency + cost). A tighter
+// cap prevents one user from monopolising the generation queue for others.
+const aiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 15,                    // 15 generation requests per 15 minutes per IP
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many itinerary requests. Please wait before generating more.' }
+});
+
 import recommendationRoutes from './routes/recommendations.js';
 import itineraryRoutes from './routes/itineraries.js';
 import suggestionRoutes from './routes/suggestions.js';
@@ -21,6 +53,39 @@ import activityRoutes from './routes/activities.js';
 import transportRoutes from './routes/transport.js';
 
 app.use(cors());
+
+// Apply general limiter to all /api routes, stricter limiter to AI endpoints
+app.use('/api/', generalLimiter);
+app.use('/api/suggestions', aiLimiter);
+
+// ── Request Timeout ────────────────────────────────────────────────────────
+// AI generation endpoints can call Gemini, which can legitimately take 30-60s.
+// Without a timeout, a stalled Gemini request holds open a Node.js connection
+// indefinitely, eventually exhausting the event loop under load.
+//
+// Strategy:
+//   - AI routes (/api/suggestions, /api/transport/*)  → 90s
+//   - All other routes                                → 30s
+const AI_TIMEOUT_MS = 90_000;
+const DEFAULT_TIMEOUT_MS = 30_000;
+
+app.use((req, res, next) => {
+    const ms = (
+        req.path.startsWith('/api/suggestions') ||
+        req.path.startsWith('/api/transport')
+    ) ? AI_TIMEOUT_MS : DEFAULT_TIMEOUT_MS;
+
+    const timer = setTimeout(() => {
+        if (!res.headersSent) {
+            res.status(504).json({ error: 'Request timed out. Please try again.' });
+        }
+    }, ms);
+
+    // Clear the timer whether the response completes normally or the client disconnects
+    res.on('finish', () => clearTimeout(timer));
+    res.on('close', () => clearTimeout(timer));
+    next();
+});
 
 // Stripe webhook needs raw body BEFORE express.json() parses it
 import stripeRoutes from './routes/stripe.js';

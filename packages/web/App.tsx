@@ -1,32 +1,58 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, Suspense } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './components/AuthContext';
 import Navbar from './components/Navbar';
-import ItineraryBuilder from './components/ItineraryDisplay';
-import CommunityPage from './components/CommunityPage';
-import { HowItWorks, ContactUs, SiteMap, TermsOfUse, PrivacyPolicy, CookieConsent, AccessibilityStatement } from './components/FooterPages';
 import { generateQuickItinerary, getDemoItinerary } from '@nextdestination/shared';
 import { Itinerary } from '@nextdestination/shared';
 
-// New Components
+// Home-page components — eagerly loaded because they are the first thing every
+// visitor sees. Keeping them in the main bundle avoids a flash on the landing page.
 import SearchHeader from './components/home/SearchHeader';
 import CategoryBar from './components/home/CategoryBar';
 import ItineraryGrid from './components/home/ItineraryGrid';
-import PlanningSuggestions from './components/PlanningSuggestions';
-import LoginPage from './components/LoginPage';
-import SignupPage from './components/SignupPage';
-import SharedItineraryPage from './components/SharedItineraryPage';
-import ProfilePage from './components/ProfilePage';
-import UpgradeSuccess from './components/UpgradeSuccess';
 import HomeChatWidget from './components/home/HomeChatWidget';
 
-// Store & Agent
+// Infrastructure — tiny, always needed
 import { useItineraryStore } from './store/useItineraryStore';
-import VoiceAgent from './components/VoiceAgent';
-import SettingsModal from './components/SettingsModal';
 import RequireAuth from './components/RequireAuth';
-
 import { APIProvider } from '@vis.gl/react-google-maps';
+
+// ── Lazy-loaded components ─────────────────────────────────────────────────
+// Vite splits each lazy import into a separate chunk that is only downloaded
+// when the user first navigates to the relevant route or triggers the feature.
+// This cuts the initial JS payload that every visitor must parse and execute.
+
+// Route-specific pages
+const ItineraryBuilder    = React.lazy(() => import('./components/ItineraryDisplay'));
+const CommunityPage       = React.lazy(() => import('./components/CommunityPage'));
+const PlanningSuggestions = React.lazy(() => import('./components/PlanningSuggestions'));
+const LoginPage           = React.lazy(() => import('./components/LoginPage'));
+const SignupPage           = React.lazy(() => import('./components/SignupPage'));
+const SharedItineraryPage = React.lazy(() => import('./components/SharedItineraryPage'));
+const ProfilePage         = React.lazy(() => import('./components/ProfilePage'));
+const UpgradeSuccess      = React.lazy(() => import('./components/UpgradeSuccess'));
+
+// Always-mounted but activation-gated — load silently in background, never
+// show a spinner (user doesn't interact with these until well after page load)
+const VoiceAgent    = React.lazy(() => import('./components/VoiceAgent'));
+const SettingsModal = React.lazy(() => import('./components/SettingsModal'));
+
+// Footer pages — rarely visited; no reason to ship in the main bundle.
+// All come from the same module so it is fetched only once by the browser.
+const HowItWorks             = React.lazy(() => import('./components/FooterPages').then(m => ({ default: m.HowItWorks })));
+const ContactUs              = React.lazy(() => import('./components/FooterPages').then(m => ({ default: m.ContactUs })));
+const SiteMap                = React.lazy(() => import('./components/FooterPages').then(m => ({ default: m.SiteMap })));
+const TermsOfUse             = React.lazy(() => import('./components/FooterPages').then(m => ({ default: m.TermsOfUse })));
+const PrivacyPolicy          = React.lazy(() => import('./components/FooterPages').then(m => ({ default: m.PrivacyPolicy })));
+const CookieConsent          = React.lazy(() => import('./components/FooterPages').then(m => ({ default: m.CookieConsent })));
+const AccessibilityStatement = React.lazy(() => import('./components/FooterPages').then(m => ({ default: m.AccessibilityStatement })));
+
+// Shared full-page loading fallback — matches the app's visual language
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-white">
+    <div className="w-10 h-10 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
+  </div>
+);
 
 const getEmptyItinerary = (): Itinerary => ({
   destination: "My Trip",
@@ -105,8 +131,9 @@ const TravelApp: React.FC = () => {
       libraries={['places']}
     >
       <AuthProvider>
-        <VoiceAgent />
-        <SettingsModal />
+        {/* null fallback — these load silently; no spinner shown to user */}
+        <Suspense fallback={null}><VoiceAgent /></Suspense>
+        <Suspense fallback={null}><SettingsModal /></Suspense>
         <Routes>
           {/* Home Page Route */}
           <Route path="/" element={
@@ -203,26 +230,41 @@ const TravelApp: React.FC = () => {
           } />
 
           {/* Community Page Route */}
-          <Route path="/community" element={<CommunityPage />} />
+          <Route path="/community" element={
+            <Suspense fallback={<PageLoader />}><CommunityPage /></Suspense>
+          } />
 
           {/* Planning Suggestions Route */}
-          <Route path="/planning-suggestions" element={<PlanningSuggestions />} />
+          <Route path="/planning-suggestions" element={
+            <Suspense fallback={<PageLoader />}><PlanningSuggestions /></Suspense>
+          } />
 
           {/* Login Page Route */}
-          <Route path="/login" element={<LoginPage />} />
+          <Route path="/login" element={
+            <Suspense fallback={<PageLoader />}><LoginPage /></Suspense>
+          } />
 
           {/* Signup Page Route */}
-          <Route path="/signup" element={<SignupPage />} />
-
+          <Route path="/signup" element={
+            <Suspense fallback={<PageLoader />}><SignupPage /></Suspense>
+          } />
 
           {/* Profile Page Route */}
-          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/profile" element={
+            <Suspense fallback={<PageLoader />}><ProfilePage /></Suspense>
+          } />
 
           {/* Upgrade Success Route */}
-          <Route path="/upgrade/success" element={<UpgradeSuccess />} />
+          <Route path="/upgrade/success" element={
+            <Suspense fallback={<PageLoader />}><UpgradeSuccess /></Suspense>
+          } />
 
           {/* Shared Itinerary Route */}
-          <Route path="/share/:id" element={<SharedItineraryPage isScriptLoaded={isGoogleMapsLoaded} />} />
+          <Route path="/share/:id" element={
+            <Suspense fallback={<PageLoader />}>
+              <SharedItineraryPage isScriptLoaded={isGoogleMapsLoaded} />
+            </Suspense>
+          } />
 
           {/* Builder Page Route - Protected */}
           <Route path="/builder" element={
@@ -255,13 +297,15 @@ const TravelApp: React.FC = () => {
               />
             </RequireAuth>
           } />
-          <Route path="/how-it-works" element={<><Navbar onOpenBuilder={handleOpenDemo} /><HowItWorks /></>} />
-          <Route path="/contact" element={<><Navbar onOpenBuilder={handleOpenDemo} /><ContactUs /></>} />
-          <Route path="/sitemap" element={<><Navbar onOpenBuilder={handleOpenDemo} /><SiteMap /></>} />
-          <Route path="/terms" element={<><Navbar onOpenBuilder={handleOpenDemo} /><TermsOfUse /></>} />
-          <Route path="/privacy" element={<><Navbar onOpenBuilder={handleOpenDemo} /><PrivacyPolicy /></>} />
-          <Route path="/cookie-consent" element={<><Navbar onOpenBuilder={handleOpenDemo} /><CookieConsent /></>} />
-          <Route path="/accessibility" element={<><Navbar onOpenBuilder={handleOpenDemo} /><AccessibilityStatement /></>} />
+
+          {/* Footer pages — all lazy; share one downloaded chunk */}
+          <Route path="/how-it-works" element={<Suspense fallback={<PageLoader />}><Navbar onOpenBuilder={handleOpenDemo} /><HowItWorks /></Suspense>} />
+          <Route path="/contact"      element={<Suspense fallback={<PageLoader />}><Navbar onOpenBuilder={handleOpenDemo} /><ContactUs /></Suspense>} />
+          <Route path="/sitemap"      element={<Suspense fallback={<PageLoader />}><Navbar onOpenBuilder={handleOpenDemo} /><SiteMap /></Suspense>} />
+          <Route path="/terms"        element={<Suspense fallback={<PageLoader />}><Navbar onOpenBuilder={handleOpenDemo} /><TermsOfUse /></Suspense>} />
+          <Route path="/privacy"      element={<Suspense fallback={<PageLoader />}><Navbar onOpenBuilder={handleOpenDemo} /><PrivacyPolicy /></Suspense>} />
+          <Route path="/cookie-consent"  element={<Suspense fallback={<PageLoader />}><Navbar onOpenBuilder={handleOpenDemo} /><CookieConsent /></Suspense>} />
+          <Route path="/accessibility"   element={<Suspense fallback={<PageLoader />}><Navbar onOpenBuilder={handleOpenDemo} /><AccessibilityStatement /></Suspense>} />
         </Routes>
       </AuthProvider >
     </APIProvider>
@@ -458,22 +502,24 @@ const BuilderPageContent: React.FC<BuilderPageContentProps> = ({
       )}
 
       {itinerary && (
-        <ItineraryBuilder
-          data={itinerary}
-          onBackToHome={() => navigate('/')}
-          onAddActivity={handleAddActivity}
-          onAddDay={handleAddDay}
-          onRemoveDay={handleRemoveDay}
-          onReorderActivity={handleReorderActivity}
-          onRemoveActivity={handleRemoveActivity}
-          onUpdateActivity={handleUpdateActivity}
-          onRemoveArrivalFlight={handleRemoveArrivalFlight}
-          onRemoveDepartureFlight={handleRemoveDepartureFlight}
-          onRemoveHotel={handleRemoveHotel}
-          onUpdateDay={handleUpdateDay}
-          onItineraryChange={(i) => setItinerary(i)}
-          isScriptLoaded={isScriptLoaded}
-        />
+        <Suspense fallback={<PageLoader />}>
+          <ItineraryBuilder
+            data={itinerary}
+            onBackToHome={() => navigate('/')}
+            onAddActivity={handleAddActivity}
+            onAddDay={handleAddDay}
+            onRemoveDay={handleRemoveDay}
+            onReorderActivity={handleReorderActivity}
+            onRemoveActivity={handleRemoveActivity}
+            onUpdateActivity={handleUpdateActivity}
+            onRemoveArrivalFlight={handleRemoveArrivalFlight}
+            onRemoveDepartureFlight={handleRemoveDepartureFlight}
+            onRemoveHotel={handleRemoveHotel}
+            onUpdateDay={handleUpdateDay}
+            onItineraryChange={(i) => setItinerary(i)}
+            isScriptLoaded={isScriptLoaded}
+          />
+        </Suspense>
       )}
     </>
   );

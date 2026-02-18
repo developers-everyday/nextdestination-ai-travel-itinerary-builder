@@ -25,6 +25,8 @@ router.get('/popular', async (req, res) => {
             throw error;
         }
 
+        // Popular activities for a destination are stable — cache for 5 minutes.
+        res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
         res.json({
             source: 'database',
             results: activities

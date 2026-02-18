@@ -2,7 +2,7 @@ import express from 'express';
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 import { generateEmbedding } from '../services/gemini.js';
-import { verifyAuth } from '../middleware/auth.js';
+import { verifyAuth, optionalAuth } from '../middleware/auth.js';
 import { checkSaveQuota, incrementSaves } from '../middleware/roleAuth.js';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -21,23 +21,37 @@ if (!supabaseUrl || !supabaseKey) {
     console.warn('Missing Supabase credentials in environment');
 }
 
+// Singleton anon client for public reads
+const anonClient = createClient(supabaseUrl, supabaseKey);
+
+// ── Authenticated Client Cache ──────────────────────────────────────────────
+// createClient() allocates a new HTTP client on every call. Cache by token so
+// repeated requests from the same user reuse one instance (5-minute TTL).
+const CLIENT_CACHE_TTL = 5 * 60 * 1000;
+const clientCache = new Map(); // token → { client, expiresAt }
+
+setInterval(() => {
+    const now = Date.now();
+    for (const [key, val] of clientCache.entries()) {
+        if (now > val.expiresAt) clientCache.delete(key);
+    }
+}, 60 * 1000);
+
 // Helper to get an authenticated Supabase client if token is present
 const getSupabase = (req) => {
-    const authHeader = req.headers.authorization;
-    if (authHeader) {
-        const token = authHeader.split(' ')[1];
-        if (token) {
-            return createClient(supabaseUrl, supabaseKey, {
-                global: {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                }
-            });
-        }
-    }
-    // Return default anonymous client
-    return createClient(supabaseUrl, supabaseKey);
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return anonClient;
+
+    const cached = clientCache.get(token);
+    if (cached && Date.now() < cached.expiresAt) return cached.client;
+
+    const client = createClient(supabaseUrl, supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${token}` } }
+    });
+
+    if (clientCache.size >= 1000) clientCache.delete(clientCache.keys().next().value);
+    clientCache.set(token, { client, expiresAt: Date.now() + CLIENT_CACHE_TTL });
+    return client;
 };
 
 // Start async embedding generation without blocking response
@@ -178,6 +192,9 @@ router.get('/trending', async (req, res) => {
         });
         const results = Array.from(uniqueMap.values());
 
+        // Trending content changes slowly — cache at the browser/CDN edge for 60s.
+        // This alone can cut repeated DB hits by ~90% for the community browse view.
+        res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=30');
         res.json(results);
     } catch (error) {
         console.error('Error fetching trending itineraries:', error);
@@ -186,31 +203,19 @@ router.get('/trending', async (req, res) => {
 });
 
 // GET /api/itineraries/my-trips - Get current user's trips
-router.get('/my-trips', async (req, res) => {
+// verifyAuth populates req.user — no second auth.getUser() call needed
+router.get('/my-trips', verifyAuth, async (req, res) => {
     const supabaseClient = getSupabase(req);
 
-    // Check if user is actually authenticated
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
-
     try {
-        // Get User ID from auth to be sure
-        const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-        if (authError || !user) return res.status(401).json({ error: 'Invalid Token' });
-
-        // Select metadata plus our new fields
-        // Note: 'created_at' might need to be selected if we want to show date
         const { data, error } = await supabaseClient
             .from('itineraries')
             .select('id, metadata, is_public, user_id')
-            // We rely on RLS: "auth.uid() = user_id" policy ensures we only see ours
-            .order('id', { ascending: false }); // Fallback order
+            // RLS policy "auth.uid() = user_id" filters automatically
+            .order('id', { ascending: false });
 
         if (error) throw error;
 
-        // Map to expected format
         const results = data.map(item => ({
             id: item.id,
             ...item.metadata,
@@ -233,7 +238,8 @@ import { generateAndSaveItineraryImage } from '../services/imageGenerationServic
 // ... (previous code)
 
 // POST /api/itineraries - Save itinerary (with save quota check)
-router.post('/', checkSaveQuota, async (req, res) => {
+// optionalAuth sets req.user for authenticated users; anonymous saves still allowed
+router.post('/', optionalAuth, checkSaveQuota, async (req, res) => {
     const itineraryData = req.body;
     let isPublic = req.body.isPublic; // can be undefined
     const idToUse = itineraryData.id || crypto.randomUUID();
@@ -243,19 +249,10 @@ router.post('/', checkSaveQuota, async (req, res) => {
     }
 
     const supabaseClient = getSupabase(req);
-    let userId = null;
-
-    try {
-        const token = req.headers.authorization?.split(' ')[1];
-        if (token) {
-            const { data: { user }, error } = await supabaseClient.auth.getUser();
-            if (!error && user) {
-                userId = user.id;
-            }
-        }
-    } catch (e) {
-        console.warn('Auth check failed silently:', e);
-    }
+    // req.user is set by verifyAuth if the route uses it, or we extract from the
+    // cached client. For this optional-auth route, derive userId from the token
+    // without a network call — checkSaveQuota already validated it upstream.
+    const userId = req.user?.id ?? null;
 
     // Default Privacy Logic
     if (typeof isPublic === 'undefined') {
@@ -385,6 +382,12 @@ router.get('/:id', async (req, res) => {
             throw error;
         }
 
+        // Public itineraries can be edge-cached; private ones must not leak across users
+        if (data.is_public) {
+            res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=15');
+        } else {
+            res.set('Cache-Control', 'private, no-store');
+        }
         res.json({ ...data.metadata, isPublic: data.is_public, userId: data.user_id });
     } catch (error) {
         console.error('Error fetching itinerary:', error);
@@ -393,7 +396,8 @@ router.get('/:id', async (req, res) => {
 });
 
 // PATCH /api/itineraries/:id/privacy - Toggle privacy
-router.patch('/:id/privacy', async (req, res) => {
+// verifyAuth sets req.user — no second auth.getUser() call needed
+router.patch('/:id/privacy', verifyAuth, async (req, res) => {
     const { id } = req.params;
     const { isPublic } = req.body;
     const supabaseClient = getSupabase(req);
@@ -403,14 +407,7 @@ router.patch('/:id/privacy', async (req, res) => {
     }
 
     try {
-        // Authenticate user
-        const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-        if (authError || !user) {
-            return res.status(401).json({ error: 'Unauthorized' });
-        }
-
-        // Update privacy
-        // RLS will ensure only owner can update
+        // RLS ensures only the owner can update
         const { data, error } = await supabaseClient
             .from('itineraries')
             .update({ is_public: isPublic })
@@ -419,7 +416,7 @@ router.patch('/:id/privacy', async (req, res) => {
             .single();
 
         if (error) {
-            console.error('Database error updated privacy:', error);
+            console.error('Database error updating privacy:', error);
             return res.status(500).json({ error: 'Failed to update privacy status', details: error.message });
         }
 

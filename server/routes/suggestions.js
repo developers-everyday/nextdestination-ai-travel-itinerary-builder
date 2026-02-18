@@ -170,7 +170,7 @@ router.post('/async', verifyAuth, async (req, res) => {
 router.get('/status/:jobId', verifyAuth, async (req, res) => {
     try {
         const { jobId } = req.params;
-        const status = getJobStatus(jobId);
+        const status = await getJobStatus(jobId);
         res.json(status);
     } catch (error) {
         console.error('Error checking job status:', error);

@@ -26,14 +26,37 @@ if (supabaseKey === process.env.SUPABASE_SERVICE_ROLE_KEY) {
     console.log('[Supabase] Initialized with Anonymous Key (RLS Restricted)');
 }
 
+// ── Authenticated Client Cache ──────────────────────────────────────────────
+// createClient() is non-trivial: it allocates a new HTTP client and connection
+// pool for every call. Cache by token so the same user's requests reuse one
+// client instance instead of spinning up a new one on every request.
+const AUTH_CLIENT_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const authClientCache = new Map(); // token → { client, expiresAt }
+
+setInterval(() => {
+    const now = Date.now();
+    for (const [key, val] of authClientCache.entries()) {
+        if (now > val.expiresAt) authClientCache.delete(key);
+    }
+}, 60 * 1000);
+
 export const getAuthenticatedClient = (token) => {
-    return createClient(supabaseUrl || '', supabaseKey || '', {
+    const cached = authClientCache.get(token);
+    if (cached && Date.now() < cached.expiresAt) return cached.client;
+
+    const client = createClient(supabaseUrl || '', supabaseKey || '', {
         global: {
             headers: {
                 Authorization: `Bearer ${token}`
             }
         }
     });
+
+    if (authClientCache.size >= 1000) {
+        authClientCache.delete(authClientCache.keys().next().value);
+    }
+    authClientCache.set(token, { client, expiresAt: Date.now() + AUTH_CLIENT_CACHE_TTL });
+    return client;
 };
 
 

@@ -2,31 +2,60 @@ import { supabase } from '../db/supabase.js';
 import crypto from 'crypto';
 
 // ============================================================
-// In-memory job store for async generation progress tracking
-// In production, this should be Redis or a DB table
+// Dual-layer async job store
+//
+// L1 — In-memory Map  : fast reads for same-process polling (common case)
+// L2 — Supabase table : survives restarts, works across multiple processes
+//
+// Requires migration 013_async_jobs.sql to be run in Supabase first.
+// If the table is unavailable the system falls back to L1-only gracefully.
 // ============================================================
-const jobStore = new Map();
 
-// Job TTL: 30 minutes
-const JOB_TTL_MS = 30 * 60 * 1000;
+const jobStore = new Map();        // L1 cache
+const JOB_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+// ── DB helpers (fire-and-forget; never throw to caller) ─────────────────────
+
+const dbUpsertJob = (id, fields) => {
+    supabase.from('async_jobs').upsert({ id, ...fields }, { onConflict: 'id' })
+        .then(() => {})
+        .catch(err => console.error('[JobStore] DB write failed:', err));
+};
+
+const dbReadJob = async (jobId) => {
+    try {
+        const { data, error } = await supabase
+            .from('async_jobs')
+            .select('status, total_days, itinerary, error_msg')
+            .eq('id', jobId)
+            .single();
+        return (error || !data) ? null : data;
+    } catch (_) {
+        return null;
+    }
+};
+
+// ── Public API ───────────────────────────────────────────────────────────────
 
 /**
- * Create a new async generation job
+ * Create a new async generation job (L1 write + L2 background write)
  */
 export const createJob = (jobId, totalDays) => {
-    jobStore.set(jobId, {
+    const job = {
         status: 'processing',
         totalDays,
         completedDays: [],
-        destination: null,
+        itinerary: null,
         error: null,
         createdAt: Date.now()
-    });
-    return jobStore.get(jobId);
+    };
+    jobStore.set(jobId, job);
+    dbUpsertJob(jobId, { status: 'processing', total_days: totalDays });
+    return job;
 };
 
 /**
- * Update job with a completed day
+ * Update job with a completed day (L1 only — polled frequently, DB update unneeded)
  */
 export const updateJobDay = (jobId, dayData) => {
     const job = jobStore.get(jobId);
@@ -40,53 +69,77 @@ export const updateJobDay = (jobId, dayData) => {
 };
 
 /**
- * Mark job as complete with full itinerary
+ * Mark job as complete with full itinerary (L1 + L2)
  */
 export const completeJob = (jobId, itinerary) => {
     const job = jobStore.get(jobId);
-    if (!job) return null;
-
-    job.status = 'complete';
-    job.itinerary = itinerary;
+    if (job) {
+        job.status = 'complete';
+        job.itinerary = itinerary;
+    }
+    dbUpsertJob(jobId, { status: 'complete', itinerary });
     return job;
 };
 
 /**
- * Mark job as failed
+ * Mark job as failed (L1 + L2)
  */
-export const failJob = (jobId, error) => {
+export const failJob = (jobId, errorMsg) => {
     const job = jobStore.get(jobId);
-    if (!job) return null;
-
-    job.status = 'error';
-    job.error = error;
+    if (job) {
+        job.status = 'error';
+        job.error = errorMsg;
+    }
+    dbUpsertJob(jobId, { status: 'error', error_msg: errorMsg });
     return job;
 };
 
 /**
- * Get job status
+ * Get job status — checks L1 first, falls back to L2 (cross-process / post-restart)
  */
-export const getJobStatus = (jobId) => {
+export const getJobStatus = async (jobId) => {
+    // Fast path: in-memory (same process)
     const job = jobStore.get(jobId);
-    if (!job) {
+    if (job) {
+        return {
+            status: job.status,
+            totalDays: job.totalDays,
+            completedDays: job.completedDays,
+            itinerary: job.itinerary || null,
+            error: job.error
+        };
+    }
+
+    // Slow path: DB lookup (different process or after restart)
+    const dbJob = await dbReadJob(jobId);
+    if (!dbJob) {
         return { status: 'not_found', error: 'Job not found or expired' };
     }
+
+    // Re-hydrate L1 so subsequent polls are fast
+    jobStore.set(jobId, {
+        status: dbJob.status,
+        totalDays: dbJob.total_days,
+        completedDays: [],
+        itinerary: dbJob.itinerary || null,
+        error: dbJob.error_msg || null,
+        createdAt: Date.now()
+    });
+
     return {
-        status: job.status,
-        totalDays: job.totalDays,
-        completedDays: job.completedDays,
-        itinerary: job.itinerary || null,
-        error: job.error
+        status: dbJob.status,
+        totalDays: dbJob.total_days,
+        completedDays: [],
+        itinerary: dbJob.itinerary || null,
+        error: dbJob.error_msg || null
     };
 };
 
-// Cleanup expired jobs every 10 minutes
+// ── L1 Cleanup: purge expired entries from memory every 10 minutes ──────────
 setInterval(() => {
     const now = Date.now();
     for (const [id, job] of jobStore.entries()) {
-        if (now - job.createdAt > JOB_TTL_MS) {
-            jobStore.delete(id);
-        }
+        if (now - job.createdAt > JOB_TTL_MS) jobStore.delete(id);
     }
 }, 10 * 60 * 1000);
 

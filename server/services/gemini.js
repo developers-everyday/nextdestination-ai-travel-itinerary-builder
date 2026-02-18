@@ -16,15 +16,82 @@ if (!apiKey) {
 
 const ai = new GoogleGenAI({ apiKey: apiKey || '' });
 
+// ── Circuit Breaker ─────────────────────────────────────────────────────────
+// Tracks consecutive Gemini failures and opens the circuit after FAILURE_THRESHOLD.
+// While OPEN, calls fail immediately with a user-friendly message instead of
+// queueing up more hanging requests. After COOLDOWN_MS the circuit enters
+// HALF_OPEN and allows one test request through; success closes it, failure
+// reopens it.
+//
+// States: CLOSED (normal) → OPEN (failing fast) → HALF_OPEN (testing) → CLOSED
+const circuit = {
+    state: 'CLOSED',
+    failures: 0,
+    openedAt: null,
+    FAILURE_THRESHOLD: 5,
+    COOLDOWN_MS: 60_000,  // 60 seconds
+};
+
+const callWithCircuitBreaker = async (fn, label) => {
+    if (circuit.state === 'OPEN') {
+        const elapsed = Date.now() - circuit.openedAt;
+        if (elapsed < circuit.COOLDOWN_MS) {
+            const secsLeft = Math.ceil((circuit.COOLDOWN_MS - elapsed) / 1000);
+            throw new Error(`AI service temporarily unavailable. Please try again in ${secsLeft}s.`);
+        }
+        // Cooldown passed — let one request through as a health check
+        circuit.state = 'HALF_OPEN';
+        console.log(`[Gemini] Circuit HALF_OPEN — testing recovery with "${label}".`);
+    }
+
+    try {
+        const result = await fn();
+        // Success: reset the circuit
+        if (circuit.failures > 0 || circuit.state === 'HALF_OPEN') {
+            console.log('[Gemini] Circuit CLOSED — service recovered.');
+        }
+        circuit.failures = 0;
+        circuit.state = 'CLOSED';
+        return result;
+    } catch (err) {
+        circuit.failures++;
+        if (circuit.failures >= circuit.FAILURE_THRESHOLD && circuit.state !== 'OPEN') {
+            circuit.state = 'OPEN';
+            circuit.openedAt = Date.now();
+            console.error(
+                `[Gemini] Circuit OPENED after ${circuit.failures} consecutive failures. ` +
+                `Cooling down for ${circuit.COOLDOWN_MS / 1000}s.`
+            );
+        }
+        throw err;
+    }
+};
+
+// ── Timeout Wrapper ─────────────────────────────────────────────────────────
+// Races a promise against a deadline. If Gemini stalls (network hang, model
+// overload) the caller gets a clear rejection instead of waiting forever.
+const withTimeout = (promise, ms, label) => {
+    let timer;
+    const timeout = new Promise((_, reject) => {
+        timer = setTimeout(
+            () => reject(new Error(`[Gemini] ${label} timed out after ${ms}ms`)),
+            ms
+        );
+    });
+    return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+};
+
 export const generateEmbedding = async (text) => {
     try {
-        const response = await ai.models.embedContent({
-            model: "gemini-embedding-001",
-            contents: text,
-            config: {
-                outputDimensionality: 768
-            }
-        });
+        const response = await withTimeout(
+            ai.models.embedContent({
+                model: "gemini-embedding-001",
+                contents: text,
+                config: { outputDimensionality: 768 }
+            }),
+            15_000, // embeddings are fast; 15s is generous
+            'generateEmbedding'
+        );
         return response.embeddings[0].values;
     } catch (error) {
         console.error("Error generating embedding:", error);
@@ -33,6 +100,7 @@ export const generateEmbedding = async (text) => {
 };
 
 export const generateQuickItinerary = async (destination, days = 3, selectedInterests = []) => {
+    return callWithCircuitBreaker(async () => {
     try {
         const model = "gemini-3-flash-preview";
         const prompt = `
@@ -44,7 +112,8 @@ export const generateQuickItinerary = async (destination, days = 3, selectedInte
         For each activity, you MUST provide the [longitude, latitude] coordinates in the 'coordinates' field.
       `;
 
-        const response = await ai.models.generateContent({
+        const response = await withTimeout(
+          ai.models.generateContent({
             model: model,
             contents: prompt,
             config: {
@@ -86,8 +155,10 @@ export const generateQuickItinerary = async (destination, days = 3, selectedInte
                     required: ["destination", "days"]
                 }
             }
-        });
-
+          }),
+          75_000, // itinerary generation can be slow; allow up to 75s
+          'generateQuickItinerary'
+        );
 
         console.log("Raw Gemini Response Keys:", Object.keys(response));
         let textResponse;
@@ -176,9 +247,11 @@ export const generateQuickItinerary = async (destination, days = 3, selectedInte
         console.error("Gemini API Error:", error);
         throw error;
     }
+    }, 'generateQuickItinerary'); // circuit breaker
 };
 
 export const searchActivitiesWithGemini = async (query, destination) => {
+    return callWithCircuitBreaker(async () => {
     try {
         const model = "gemini-3-flash-preview";
         const prompt = `
@@ -195,29 +268,33 @@ export const searchActivitiesWithGemini = async (query, destination) => {
         - type (string: "activity", "meal", "landmark")
         `;
 
-        const response = await ai.models.generateContent({
-            model: model,
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: "ARRAY",
-                    items: {
-                        type: "OBJECT",
-                        properties: {
-                            name: { type: "STRING" },
-                            description: { type: "STRING" },
-                            location: { type: "STRING" },
-                            coordinates: { type: "ARRAY", items: { type: "NUMBER" } },
-                            price: { type: "STRING" },
-                            rating: { type: "NUMBER" },
-                            type: { type: "STRING" }
-                        },
-                        required: ["name", "description", "location", "type"]
+        const response = await withTimeout(
+            ai.models.generateContent({
+                model: model,
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "ARRAY",
+                        items: {
+                            type: "OBJECT",
+                            properties: {
+                                name: { type: "STRING" },
+                                description: { type: "STRING" },
+                                location: { type: "STRING" },
+                                coordinates: { type: "ARRAY", items: { type: "NUMBER" } },
+                                price: { type: "STRING" },
+                                rating: { type: "NUMBER" },
+                                type: { type: "STRING" }
+                            },
+                            required: ["name", "description", "location", "type"]
+                        }
                     }
                 }
-            }
-        });
+            }),
+            30_000,
+            'searchActivitiesWithGemini'
+        );
 
         let textResponse;
         if (typeof response.text === 'function') {
@@ -237,9 +314,11 @@ export const searchActivitiesWithGemini = async (query, destination) => {
         console.error("Gemini Search Error:", error);
         return [];
     }
+    }, 'searchActivitiesWithGemini'); // circuit breaker
 };
 
 export const generateTransportOptions = async (destination, dayActivities, userLocation) => {
+    return callWithCircuitBreaker(async () => {
     try {
         const model = "gemini-3-flash-preview";
         const prompt = `
@@ -259,35 +338,39 @@ export const generateTransportOptions = async (destination, dayActivities, userL
         - bookingLink (string, optional URL or "Check Local")
         `;
 
-        const response = await ai.models.generateContent({
-            model: model,
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: "OBJECT",
-                    properties: {
-                        options: {
-                            type: "ARRAY",
-                            items: {
-                                type: "OBJECT",
-                                properties: {
-                                    mode: { type: "STRING" },
-                                    description: { type: "STRING" },
-                                    estimatedCost: { type: "STRING" },
-                                    estimatedTime: { type: "STRING" },
-                                    bestFor: { type: "STRING" },
-                                    pros: { type: "ARRAY", items: { type: "STRING" } },
-                                    cons: { type: "ARRAY", items: { type: "STRING" } },
-                                    bookingLink: { type: "STRING" }
-                                },
-                                required: ["mode", "description", "estimatedCost", "estimatedTime", "pros", "cons"]
+        const response = await withTimeout(
+            ai.models.generateContent({
+                model: model,
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            options: {
+                                type: "ARRAY",
+                                items: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        mode: { type: "STRING" },
+                                        description: { type: "STRING" },
+                                        estimatedCost: { type: "STRING" },
+                                        estimatedTime: { type: "STRING" },
+                                        bestFor: { type: "STRING" },
+                                        pros: { type: "ARRAY", items: { type: "STRING" } },
+                                        cons: { type: "ARRAY", items: { type: "STRING" } },
+                                        bookingLink: { type: "STRING" }
+                                    },
+                                    required: ["mode", "description", "estimatedCost", "estimatedTime", "pros", "cons"]
+                                }
                             }
                         }
                     }
                 }
-            }
-        });
+            }),
+            30_000,
+            'generateTransportOptions'
+        );
 
         const textResponse = response.candidates[0].content.parts[0].text;
         return JSON.parse(textResponse);
@@ -295,6 +378,7 @@ export const generateTransportOptions = async (destination, dayActivities, userL
         console.error("Gemini Transport Options Error:", error);
         return { options: [] };
     }
+    }, 'generateTransportOptions'); // circuit breaker
 };
 
 export const generateGeneralInfo = async (destination) => {
