@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@nextdestination/shared';
 
 const LoginPage: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -24,11 +25,17 @@ const LoginPage: React.FC = () => {
             setIsLoading(false);
         } else {
             setIsLoading(false);
-            navigate('/');
+            // Redirect back to the page the user came from (e.g. /planning-suggestions)
+            const returnTo = location.state?.from || '/';
+            navigate(returnTo, { state: location.state });
         }
     };
 
     const handleGoogleLogin = async () => {
+        // Save intended redirect info before OAuth (survives the external redirect)
+        if (location.state?.from) {
+            sessionStorage.setItem('postLoginRedirect', JSON.stringify(location.state));
+        }
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {

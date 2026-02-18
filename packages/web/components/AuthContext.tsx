@@ -85,6 +85,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 window.history.replaceState(null, '', window.location.pathname);
             }
 
+            // Handle post-login redirect (e.g., anonymous user was on /planning-suggestions)
+            if (session && _event === 'SIGNED_IN') {
+                const pending = sessionStorage.getItem('postLoginRedirect');
+                if (pending) {
+                    sessionStorage.removeItem('postLoginRedirect');
+                    try {
+                        const { from, ...rest } = JSON.parse(pending);
+                        if (from && from !== '/') {
+                            // Save destination in sessionStorage so the target page can read it
+                            if (rest.destination) {
+                                sessionStorage.setItem('redirectDestination', rest.destination);
+                            }
+                            window.location.replace(from);
+                            return; // Skip further processing — page will reload
+                        }
+                    } catch (e) {
+                        console.error('Failed to parse postLoginRedirect:', e);
+                    }
+                }
+            }
+
             // Load profile on login, clear on logout
             if (session) {
                 loadProfile(session);

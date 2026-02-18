@@ -12,7 +12,10 @@ import { useItineraryStore } from '../store/useItineraryStore';
 const PlanningSuggestions: React.FC = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const { destination } = location.state || { destination: 'Paris' }; // Default fallback
+    // Read destination from location.state, or from sessionStorage (post-OAuth redirect), or fallback
+    const redirectDest = sessionStorage.getItem('redirectDestination');
+    if (redirectDest) sessionStorage.removeItem('redirectDestination');
+    const { destination } = location.state || { destination: redirectDest || 'Paris' };
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
