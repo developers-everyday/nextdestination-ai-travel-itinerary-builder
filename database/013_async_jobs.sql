@@ -27,7 +27,7 @@ BEGIN
         PERFORM cron.schedule(
             'cleanup-async-jobs',
             '*/30 * * * *',   -- every 30 minutes
-            $$DELETE FROM async_jobs WHERE created_at < NOW() - INTERVAL '1 hour'$$
+            $sql$DELETE FROM async_jobs WHERE created_at < NOW() - INTERVAL '1 hour'$sql$
         );
     END IF;
 END;
