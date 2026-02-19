@@ -1,8 +1,16 @@
 
+import * as Sentry from '@sentry/react';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
+
+Sentry.init({
+  dsn: import.meta.env.VITE_SENTRY_DSN,
+  environment: import.meta.env.MODE,
+  tracesSampleRate: 0.1,
+  integrations: [Sentry.browserTracingIntegration()],
+});
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

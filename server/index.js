@@ -1,6 +1,14 @@
+import * as Sentry from '@sentry/node';
+Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || 'production',
+    tracesSampleRate: 0.1, // 10% of requests get performance traces
+});
+
 import express from 'express';
 import cors from 'cors';
 import compression from 'compression';
+import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -19,6 +27,11 @@ const port = process.env.PORT || 3001;
 // Trust the first proxy hop (needed for accurate IP-based rate limiting when
 // the app sits behind Nginx, a load balancer, or a cloud provider's edge)
 app.set('trust proxy', 1);
+
+// ── Security Headers ───────────────────────────────────────────────────────
+// Sets X-Frame-Options, HSTS, X-Content-Type-Options, X-XSS-Protection, etc.
+// No custom CSP needed — this API only returns JSON, never HTML.
+app.use(helmet());
 
 // ── Response Compression ───────────────────────────────────────────────────
 // Compresses JSON responses with gzip/brotli. Typical itinerary payloads
@@ -113,6 +126,10 @@ app.use('/api/profile', profileRoutes);
 app.get('/', (req, res) => {
     res.send('NextDestination API is running');
 });
+
+// ── Sentry Error Handler ────────────────────────────────────────────────────
+// Must be registered after all routes. Captures any error passed to next(err).
+Sentry.setupExpressErrorHandler(app);
 
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);

@@ -382,6 +382,7 @@ export const generateTransportOptions = async (destination, dayActivities, userL
 };
 
 export const generateGeneralInfo = async (destination) => {
+    return callWithCircuitBreaker(async () => {
     try {
         const model = "gemini-3-flash-preview";
         const prompt = `
@@ -394,62 +395,66 @@ export const generateGeneralInfo = async (destination) => {
         - Scam Alert (Common scams to avoid)
         - Considerations (Cultural norms, safety, etc.)
         - Packing (Essentials to pack)
-        
+
         Return JSON.
         `;
 
-        const response = await ai.models.generateContent({
-            model: model,
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: "OBJECT",
-                    properties: {
-                        weather: {
-                            type: "OBJECT",
-                            properties: {
-                                tempRange: { type: "STRING" },
-                                condition: { type: "STRING" }
-                            }
-                        },
-                        currency: {
-                            type: "OBJECT",
-                            properties: {
-                                name: { type: "STRING" },
-                                symbol: { type: "STRING" },
-                                costLevel: { type: "STRING" }
-                            }
-                        },
-                        language: {
-                            type: "OBJECT",
-                            properties: {
-                                official: { type: "STRING" },
-                                englishPrevalence: { type: "STRING" }
-                            }
-                        },
-                        visa: {
-                            type: "OBJECT",
-                            properties: {
-                                summary: { type: "STRING" }
-                            }
-                        },
-                        scams: {
-                            type: "ARRAY",
-                            items: {
+        const response = await withTimeout(
+            ai.models.generateContent({
+                model: model,
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            weather: {
+                                type: "OBJECT",
+                                properties: {
+                                    tempRange: { type: "STRING" },
+                                    condition: { type: "STRING" }
+                                }
+                            },
+                            currency: {
                                 type: "OBJECT",
                                 properties: {
                                     name: { type: "STRING" },
-                                    description: { type: "STRING" }
+                                    symbol: { type: "STRING" },
+                                    costLevel: { type: "STRING" }
                                 }
-                            }
-                        },
-                        considerations: { type: "ARRAY", items: { type: "STRING" } },
-                        packing: { type: "ARRAY", items: { type: "STRING" } }
+                            },
+                            language: {
+                                type: "OBJECT",
+                                properties: {
+                                    official: { type: "STRING" },
+                                    englishPrevalence: { type: "STRING" }
+                                }
+                            },
+                            visa: {
+                                type: "OBJECT",
+                                properties: {
+                                    summary: { type: "STRING" }
+                                }
+                            },
+                            scams: {
+                                type: "ARRAY",
+                                items: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        name: { type: "STRING" },
+                                        description: { type: "STRING" }
+                                    }
+                                }
+                            },
+                            considerations: { type: "ARRAY", items: { type: "STRING" } },
+                            packing: { type: "ARRAY", items: { type: "STRING" } }
+                        }
                     }
                 }
-            }
-        });
+            }),
+            30_000,
+            'generateGeneralInfo'
+        );
 
         const textResponse = response.candidates[0].content.parts[0].text;
         return JSON.parse(textResponse);
@@ -457,36 +462,48 @@ export const generateGeneralInfo = async (destination) => {
         console.error("Gemini General Info Error:", error);
         return {};
     }
+    }, 'generateGeneralInfo'); // circuit breaker
 };
 
 export const estimateFlightDuration = async (from, to) => {
+    return callWithCircuitBreaker(async () => {
     try {
         const model = "gemini-3-flash-preview";
         const prompt = `Estimate the flight duration from ${from} to ${to}. Return ONLY the duration string (e.g., "2h 15m").`;
 
-        const response = await ai.models.generateContent({
-            model: model,
-            contents: prompt
-        });
+        const response = await withTimeout(
+            ai.models.generateContent({
+                model: model,
+                contents: prompt
+            }),
+            15_000,
+            'estimateFlightDuration'
+        );
 
         return response.candidates[0].content.parts[0].text.trim();
     } catch (error) {
         console.error("Gemini Flight Estimate Error:", error);
         return "N/A";
     }
+    }, 'estimateFlightDuration'); // circuit breaker
 };
 
 export const generateAttractions = async (destination) => {
+    return callWithCircuitBreaker(async () => {
     try {
         const model = "gemini-3-flash-preview";
         const prompt = `List 10 top specific tourist attractions, famous places, or must-do activities in ${destination}.
 Return ONLY a raw JSON array of strings. Do not include markdown formatting or backticks.
 Example: ["Eiffel Tower", "Louvre Museum", "Seine Cruise"]`;
 
-        const response = await ai.models.generateContent({
-            model: model,
-            contents: prompt
-        });
+        const response = await withTimeout(
+            ai.models.generateContent({
+                model: model,
+                contents: prompt
+            }),
+            30_000,
+            'generateAttractions'
+        );
 
         let textResponse;
         if (typeof response.text === 'string') {
@@ -510,4 +527,5 @@ Example: ["Eiffel Tower", "Louvre Museum", "Seine Cruise"]`;
             "Iconic Landmarks"
         ];
     }
+    }, 'generateAttractions'); // circuit breaker
 };
