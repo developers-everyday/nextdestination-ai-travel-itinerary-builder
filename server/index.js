@@ -65,7 +65,24 @@ import suggestionRoutes from './routes/suggestions.js';
 import activityRoutes from './routes/activities.js';
 import transportRoutes from './routes/transport.js';
 
-app.use(cors());
+const allowedOrigins = [
+    'https://www.nextdestination.ai',
+    'https://nextdestination.ai',
+    process.env.CORS_ORIGIN, // extra origin via env var (staging, preview, etc.)
+    ...(process.env.NODE_ENV !== 'production' ? ['http://localhost:5173', 'http://localhost:3000'] : []),
+].filter(Boolean);
+
+app.use(cors({
+    origin: (origin, callback) => {
+        // Allow requests with no origin (mobile apps, curl, Postman)
+        if (!origin) return callback(null, true);
+        // Allow production domains and any Vercel preview deployments
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+        if (origin.endsWith('.vercel.app')) return callback(null, true);
+        callback(new Error(`CORS: origin ${origin} not allowed`));
+    },
+    credentials: true,
+}));
 
 // Apply general limiter to all /api routes, stricter limiter to AI endpoints
 app.use('/api/', generalLimiter);
