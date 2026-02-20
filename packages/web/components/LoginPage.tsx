@@ -26,8 +26,9 @@ const LoginPage: React.FC = () => {
         } else {
             setIsLoading(false);
             // Redirect back to the page the user came from (e.g. /planning-suggestions)
-            const returnTo = location.state?.from || '/';
-            navigate(returnTo, { state: location.state });
+            const from = location.state?.from;
+            const returnTo = (typeof from === 'string' ? from : from?.pathname) || '/';
+            navigate(returnTo, { replace: true });
         }
     };
 
