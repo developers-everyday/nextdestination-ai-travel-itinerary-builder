@@ -789,7 +789,7 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
               onClick={handleShare}
               disabled={shareStatus === 'sharing'}
               className={`
-                  flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all
+                  flex items-center gap-2 px-2 sm:px-4 py-2 rounded-full font-bold text-sm transition-all
                   ${shareStatus === 'shared'
                   ? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
                   : 'bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-50'}
@@ -805,14 +805,14 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  Link Copied
+                  <span className="hidden sm:inline">Link Copied</span>
                 </>
               ) : (
                 <>
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                   </svg>
-                  Share
+                  <span className="hidden sm:inline">Share</span>
                 </>
               )}
             </button>
@@ -822,7 +822,7 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
               <button
                 onClick={handleTogglePrivacy}
                 className={`
-                  flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all border
+                  flex items-center gap-2 px-2 sm:px-4 py-2 rounded-full font-bold text-sm transition-all border
                   ${data.isPublic
                     ? 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100'
                     : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'}
@@ -835,14 +835,14 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
                       <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
                       <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
                     </svg>
-                    <span>Public</span>
+                    <span className="hidden sm:inline">Public</span>
                   </>
                 ) : (
                   <>
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
                     </svg>
-                    <span>Private</span>
+                    <span className="hidden sm:inline">Private</span>
                   </>
                 )}
               </button>
@@ -852,7 +852,7 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
               onClick={handleSaveTrip}
               disabled={saveStatus === 'saving'}
               className={`
-                  flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all
+                  flex items-center gap-2 px-2 sm:px-4 py-2 rounded-full font-bold text-sm transition-all
                   ${saveStatus === 'saved'
                   ? 'bg-green-100 text-green-700 hover:bg-green-200'
                   : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md hover:shadow-lg shadow-indigo-200'}
@@ -864,21 +864,21 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  <span>Saving...</span>
+                  <span className="hidden sm:inline">Saving...</span>
                 </>
               ) : saveStatus === 'saved' ? (
                 <>
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
-                  <span>{isOwner ? 'Saved' : 'Saved to My Trips'}</span>
+                  <span className="hidden sm:inline">{isOwner ? 'Saved' : 'Saved to My Trips'}</span>
                 </>
               ) : (
                 <>
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                   </svg>
-                  <span>{isOwner ? 'Save Changes' : 'Save to My Trips'}</span>
+                  <span className="hidden sm:inline">{isOwner ? 'Save Changes' : 'Save to My Trips'}</span>
                 </>
               )}
             </button>
@@ -942,12 +942,12 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
           <div className="flex items-center gap-3">
             <button
               onClick={handleSaveTrip}
-              className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-50 transition-all"
+              className="flex items-center gap-2 px-2 sm:px-4 py-2 rounded-full font-bold text-sm bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-50 transition-all"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
               </svg>
-              Save Trip
+              <span className="hidden sm:inline">Save Trip</span>
             </button>
             <button
               onClick={() => navigate('/login')}
@@ -1032,36 +1032,33 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
               ${mobileView === 'MAP' ? 'hidden md:flex' : 'flex'}
               flex-1 md:flex-none h-full overflow-hidden
             `}>
-              <div className="px-6 py-5 flex items-center justify-between shrink-0">
-                <div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 group/theme">
-                      <h2 className="text-xl font-bold text-slate-800 tracking-tight whitespace-nowrap shrink-0">Day {currentDay.day}:</h2>
-                      <input
-                        type="text"
-                        value={currentDay.theme}
-                        onChange={(e) => onUpdateDay(safeDayIndex, { theme: e.target.value })}
-                        className="text-xl font-bold text-slate-800 tracking-tight bg-transparent border-b border-transparent hover:border-slate-300 focus:border-indigo-500 outline-none transition-all flex-1 min-w-0 max-w-sm"
-                      />
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-300 group-hover/theme:text-slate-400 opacity-0 group-hover/theme:opacity-100 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                      </svg>
-                    </div>
-                    {totalDays > 1 && (
-                      <button
-                        onClick={() => onRemoveDay(currentDay.day)}
-                        className="text-slate-400 hover:text-red-500 transition-colors p-1"
-                        title="Remove this day"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    )}
+              <div className="px-6 py-5 flex items-center gap-3 shrink-0">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 group/theme min-w-0">
+                    <h2 className="text-xl font-bold text-slate-800 tracking-tight whitespace-nowrap shrink-0">Day {currentDay.day}:</h2>
+                    <input
+                      type="text"
+                      value={currentDay.theme}
+                      onChange={(e) => onUpdateDay(safeDayIndex, { theme: e.target.value })}
+                      className="text-xl font-bold text-slate-800 tracking-tight bg-transparent border-b border-transparent hover:border-slate-300 focus:border-indigo-500 outline-none transition-all flex-1 min-w-0"
+                    />
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-300 group-hover/theme:text-slate-400 opacity-0 group-hover/theme:opacity-100 transition-all shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
                   </div>
                   <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-1">{data.destination}</p>
                 </div>
-
+                {totalDays > 1 && (
+                  <button
+                    onClick={() => onRemoveDay(currentDay.day)}
+                    className="text-slate-400 hover:text-red-500 transition-colors p-1 shrink-0"
+                    title="Remove this day"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                )}
               </div>
 
               <div className="flex-1 overflow-y-auto px-6 py-2 space-y-4 scrollbar-hide pb-24 md:pb-20">
