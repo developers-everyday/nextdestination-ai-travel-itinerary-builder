@@ -1032,36 +1032,33 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
               ${mobileView === 'MAP' ? 'hidden md:flex' : 'flex'}
               flex-1 md:flex-none h-full overflow-hidden
             `}>
-              <div className="px-6 py-5 flex items-center justify-between shrink-0">
-                <div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 group/theme">
-                      <h2 className="text-xl font-bold text-slate-800 tracking-tight whitespace-nowrap shrink-0">Day {currentDay.day}:</h2>
-                      <input
-                        type="text"
-                        value={currentDay.theme}
-                        onChange={(e) => onUpdateDay(safeDayIndex, { theme: e.target.value })}
-                        className="text-xl font-bold text-slate-800 tracking-tight bg-transparent border-b border-transparent hover:border-slate-300 focus:border-indigo-500 outline-none transition-all flex-1 min-w-0 max-w-sm"
-                      />
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-300 group-hover/theme:text-slate-400 opacity-0 group-hover/theme:opacity-100 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                      </svg>
-                    </div>
-                    {totalDays > 1 && (
-                      <button
-                        onClick={() => onRemoveDay(currentDay.day)}
-                        className="text-slate-400 hover:text-red-500 transition-colors p-1"
-                        title="Remove this day"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    )}
+              <div className="px-6 py-5 flex items-center gap-3 shrink-0">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 group/theme min-w-0">
+                    <h2 className="text-xl font-bold text-slate-800 tracking-tight whitespace-nowrap shrink-0">Day {currentDay.day}:</h2>
+                    <input
+                      type="text"
+                      value={currentDay.theme}
+                      onChange={(e) => onUpdateDay(safeDayIndex, { theme: e.target.value })}
+                      className="text-xl font-bold text-slate-800 tracking-tight bg-transparent border-b border-transparent hover:border-slate-300 focus:border-indigo-500 outline-none transition-all flex-1 min-w-0"
+                    />
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-300 group-hover/theme:text-slate-400 opacity-0 group-hover/theme:opacity-100 transition-all shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
                   </div>
                   <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-1">{data.destination}</p>
                 </div>
-
+                {totalDays > 1 && (
+                  <button
+                    onClick={() => onRemoveDay(currentDay.day)}
+                    className="text-slate-400 hover:text-red-500 transition-colors p-1 shrink-0"
+                    title="Remove this day"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                )}
               </div>
 
               <div className="flex-1 overflow-y-auto px-6 py-2 space-y-4 scrollbar-hide pb-24 md:pb-20">
