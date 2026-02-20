@@ -4,6 +4,7 @@ import { fetchItineraryFromBackend, Itinerary } from '@nextdestination/shared';
 import ItineraryBuilder from './ItineraryDisplay';
 import { useItineraryStore } from '../store/useItineraryStore';
 import Navbar from './Navbar';
+import SEOHead, { buildSharedItinerarySchema } from './SEOHead';
 
 interface SharedItineraryPageProps {
     isScriptLoaded: boolean;
@@ -92,34 +93,48 @@ const SharedItineraryPage: React.FC<SharedItineraryPageProps> = ({ isScriptLoade
     // In `App.tsx`, it passes `itinerary` from store.
 
     return (
-        <ItineraryBuilder
-            data={data}
-            onBackToHome={() => navigate('/')}
-            onAddActivity={addActivity}
-            onAddDay={addDay}
-            onRemoveDay={removeDay}
-            onReorderActivity={reorderActivity}
-            onRemoveActivity={removeActivity}
-            onUpdateActivity={updateActivity}
-            onRemoveArrivalFlight={() => setHasArrivalFlight(false)}
-            onRemoveDepartureFlight={() => setHasDepartureFlight(false)}
-            onRemoveHotel={(idx) => setHasHotel(idx, false)}
-            onUpdateDay={updateDay}
-            onItineraryChange={(i) => {
-                setItinerary(i);
-                setData(i); // Update local state so UI reflects changes
-            }}
-            // Assume script loaded or handle loading state? 
-            // If we want the user to be able to edit their OWN copy of the shared trip, we just pass the store functions.
-            // The 'data' prop for ItineraryBuilder drives the view.
-            // Note: ItineraryBuilder takes 'data' content. We updated the store, so we can pass 'data' or 'store.itinerary'.
-            // We'll pass the fetched 'data' initially, but updates go to store. 
-            // Wait, ItineraryBuilder uses local 'data' prop to render? 
-            // Let's check ItineraryBuilder props again. It takes `data` and `onItineraryChange`.
-            // If we want it to be editable, we should keep `data` in sync with store or state.
-            // In `App.tsx`, it passes `itinerary` from store.
-            isScriptLoaded={isScriptLoaded}
-        />
+        <>
+            <SEOHead
+                title={`${data.destination} — ${data.days.length}-Day Itinerary`}
+                description={`Explore this ${data.days.length}-day ${data.destination} travel itinerary with ${data.days.reduce((sum, d) => sum + d.activities.length, 0)} activities. Built on NextDestination.ai. Remix it for your own trip.`}
+                canonicalPath={`/share/${id}`}
+                ogImage={(data as any).image_url || undefined}
+                structuredData={buildSharedItinerarySchema(
+                    data.destination,
+                    data.days.length,
+                    data.days.flatMap(d => d.activities.map(a => a.activity)),
+                    `https://nextdestination.ai/share/${id}`
+                )}
+            />
+            <ItineraryBuilder
+                data={data}
+                onBackToHome={() => navigate('/')}
+                onAddActivity={addActivity}
+                onAddDay={addDay}
+                onRemoveDay={removeDay}
+                onReorderActivity={reorderActivity}
+                onRemoveActivity={removeActivity}
+                onUpdateActivity={updateActivity}
+                onRemoveArrivalFlight={() => setHasArrivalFlight(false)}
+                onRemoveDepartureFlight={() => setHasDepartureFlight(false)}
+                onRemoveHotel={(idx) => setHasHotel(idx, false)}
+                onUpdateDay={updateDay}
+                onItineraryChange={(i) => {
+                    setItinerary(i);
+                    setData(i); // Update local state so UI reflects changes
+                }}
+                // Assume script loaded or handle loading state? 
+                // If we want the user to be able to edit their OWN copy of the shared trip, we just pass the store functions.
+                // The 'data' prop for ItineraryBuilder drives the view.
+                // Note: ItineraryBuilder takes 'data' content. We updated the store, so we can pass 'data' or 'store.itinerary'.
+                // We'll pass the fetched 'data' initially, but updates go to store. 
+                // Wait, ItineraryBuilder uses local 'data' prop to render? 
+                // Let's check ItineraryBuilder props again. It takes `data` and `onItineraryChange`.
+                // If we want it to be editable, we should keep `data` in sync with store or state.
+                // In `App.tsx`, it passes `itinerary` from store.
+                isScriptLoaded={isScriptLoaded}
+            />
+        </>
     );
 };
 
