@@ -104,9 +104,9 @@ const Navbar: React.FC<Props> = ({ onOpenBuilder }) => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-white/80 backdrop-blur-md shadow-sm py-3">
       <div className="max-w-7xl mx-auto px-4 md:px-6 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 md:w-10 md:h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-lg md:text-xl shadow-lg shadow-indigo-200">N</div>
-          <span className="text-xl md:text-2xl font-bold tracking-tight text-slate-900">NextDestination<span className="opacity-70">.ai</span></span>
+        <Link to="/" className="flex items-center gap-2 min-w-0 flex-1">
+          <div className="w-8 h-8 md:w-10 md:h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-lg md:text-xl shadow-lg shadow-indigo-200 flex-shrink-0">N</div>
+          <span className="text-xl md:text-2xl font-bold tracking-tight text-slate-900 truncate">NextDestination<span className="opacity-70">.ai</span></span>
         </Link>
 
         {/* Center Links */}
@@ -115,7 +115,7 @@ const Navbar: React.FC<Props> = ({ onOpenBuilder }) => {
         </div>
 
         {/* Right Side - Auth */}
-        <div className="flex items-center gap-2 md:gap-4">
+        <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
           {/* Install App Button */}
           {showInstallButton && (
             <button
