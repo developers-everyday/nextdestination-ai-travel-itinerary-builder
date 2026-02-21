@@ -3,6 +3,7 @@ import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './components/AuthContext';
 import Navbar from './components/Navbar';
 import SEOHead, { homePageSchema, faqSchema, communityPageSchema, howItWorksSchema } from './components/SEOHead';
+import { usePageTracking } from './components/usePageTracking';
 import { generateQuickItinerary, getDemoItinerary } from '@nextdestination/shared';
 import { Itinerary } from '@nextdestination/shared';
 
@@ -70,6 +71,9 @@ const getEmptyItinerary = (): Itinerary => ({
 
 const TravelApp: React.FC = () => {
   const [isGoogleMapsLoaded, setIsGoogleMapsLoaded] = useState(false);
+
+  // GA4 SPA route-change tracking
+  usePageTracking();
 
 
   // Use centralized store
