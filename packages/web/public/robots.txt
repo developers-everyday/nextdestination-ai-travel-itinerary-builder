@@ -1,0 +1,13 @@
+# NextDestination.ai — Robots.txt
+# https://nextdestination.ai
+
+User-agent: *
+Allow: /
+Disallow: /builder
+Disallow: /profile
+Disallow: /upgrade/
+Disallow: /login
+Disallow: /signup
+
+# Sitemaps
+Sitemap: https://nextdestination.ai/sitemap.xml

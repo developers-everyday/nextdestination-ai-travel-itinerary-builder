@@ -2,6 +2,7 @@ import React, { useState, useCallback, Suspense } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './components/AuthContext';
 import Navbar from './components/Navbar';
+import SEOHead, { homePageSchema, faqSchema, communityPageSchema, howItWorksSchema } from './components/SEOHead';
 import { generateQuickItinerary, getDemoItinerary } from '@nextdestination/shared';
 import { Itinerary } from '@nextdestination/shared';
 
@@ -23,28 +24,28 @@ import { APIProvider } from '@vis.gl/react-google-maps';
 // This cuts the initial JS payload that every visitor must parse and execute.
 
 // Route-specific pages
-const ItineraryBuilder    = React.lazy(() => import('./components/ItineraryDisplay'));
-const CommunityPage       = React.lazy(() => import('./components/CommunityPage'));
+const ItineraryBuilder = React.lazy(() => import('./components/ItineraryDisplay'));
+const CommunityPage = React.lazy(() => import('./components/CommunityPage'));
 const PlanningSuggestions = React.lazy(() => import('./components/PlanningSuggestions'));
-const LoginPage           = React.lazy(() => import('./components/LoginPage'));
-const SignupPage           = React.lazy(() => import('./components/SignupPage'));
+const LoginPage = React.lazy(() => import('./components/LoginPage'));
+const SignupPage = React.lazy(() => import('./components/SignupPage'));
 const SharedItineraryPage = React.lazy(() => import('./components/SharedItineraryPage'));
-const ProfilePage         = React.lazy(() => import('./components/ProfilePage'));
-const UpgradeSuccess      = React.lazy(() => import('./components/UpgradeSuccess'));
+const ProfilePage = React.lazy(() => import('./components/ProfilePage'));
+const UpgradeSuccess = React.lazy(() => import('./components/UpgradeSuccess'));
 
 // Always-mounted but activation-gated — load silently in background, never
 // show a spinner (user doesn't interact with these until well after page load)
-const VoiceAgent    = React.lazy(() => import('./components/VoiceAgent'));
+const VoiceAgent = React.lazy(() => import('./components/VoiceAgent'));
 const SettingsModal = React.lazy(() => import('./components/SettingsModal'));
 
 // Footer pages — rarely visited; no reason to ship in the main bundle.
 // All come from the same module so it is fetched only once by the browser.
-const HowItWorks             = React.lazy(() => import('./components/FooterPages').then(m => ({ default: m.HowItWorks })));
-const ContactUs              = React.lazy(() => import('./components/FooterPages').then(m => ({ default: m.ContactUs })));
-const SiteMap                = React.lazy(() => import('./components/FooterPages').then(m => ({ default: m.SiteMap })));
-const TermsOfUse             = React.lazy(() => import('./components/FooterPages').then(m => ({ default: m.TermsOfUse })));
-const PrivacyPolicy          = React.lazy(() => import('./components/FooterPages').then(m => ({ default: m.PrivacyPolicy })));
-const CookieConsent          = React.lazy(() => import('./components/FooterPages').then(m => ({ default: m.CookieConsent })));
+const HowItWorks = React.lazy(() => import('./components/FooterPages').then(m => ({ default: m.HowItWorks })));
+const ContactUs = React.lazy(() => import('./components/FooterPages').then(m => ({ default: m.ContactUs })));
+const SiteMap = React.lazy(() => import('./components/FooterPages').then(m => ({ default: m.SiteMap })));
+const TermsOfUse = React.lazy(() => import('./components/FooterPages').then(m => ({ default: m.TermsOfUse })));
+const PrivacyPolicy = React.lazy(() => import('./components/FooterPages').then(m => ({ default: m.PrivacyPolicy })));
+const CookieConsent = React.lazy(() => import('./components/FooterPages').then(m => ({ default: m.CookieConsent })));
 const AccessibilityStatement = React.lazy(() => import('./components/FooterPages').then(m => ({ default: m.AccessibilityStatement })));
 
 // Shared full-page loading fallback — matches the app's visual language
@@ -138,6 +139,12 @@ const TravelApp: React.FC = () => {
           {/* Home Page Route */}
           <Route path="/" element={
             <div className="min-h-screen bg-white">
+              <SEOHead
+                title="AI Travel Planner — Build Your Perfect Itinerary"
+                description="Plan your dream trip in seconds with AI. Get personalized travel itineraries with flights, hotels, and activities. Free AI-powered travel planner for 150+ destinations."
+                canonicalPath="/"
+                structuredData={{ '@context': 'https://schema.org', '@graph': [...homePageSchema['@graph'], ...faqSchema.mainEntity.map(q => q)] }}
+              />
               <Navbar onOpenBuilder={handleOpenDemo} />
               <main className="pt-24">
                 <SearchHeader
@@ -231,22 +238,43 @@ const TravelApp: React.FC = () => {
 
           {/* Community Page Route */}
           <Route path="/community" element={
-            <Suspense fallback={<PageLoader />}><CommunityPage /></Suspense>
+            <Suspense fallback={<PageLoader />}>
+              <SEOHead
+                title="Community Travel Itineraries — Real Trips by Real Travelers"
+                description="Browse and remix travel itineraries created by our community. Solo trips, couple getaways, and family vacations to 150+ destinations."
+                canonicalPath="/community"
+                structuredData={communityPageSchema}
+              />
+              <CommunityPage />
+            </Suspense>
           } />
 
           {/* Planning Suggestions Route */}
           <Route path="/planning-suggestions" element={
-            <Suspense fallback={<PageLoader />}><PlanningSuggestions /></Suspense>
+            <Suspense fallback={<PageLoader />}>
+              <SEOHead
+                title="Plan Your Trip — AI Itinerary Builder"
+                description="Create a custom travel itinerary with AI. Choose your destination, dates, travel style and interests — our AI builds your perfect plan in seconds."
+                canonicalPath="/planning-suggestions"
+              />
+              <PlanningSuggestions />
+            </Suspense>
           } />
 
           {/* Login Page Route */}
           <Route path="/login" element={
-            <Suspense fallback={<PageLoader />}><LoginPage /></Suspense>
+            <Suspense fallback={<PageLoader />}>
+              <SEOHead title="Log In" description="Log in to NextDestination.ai to access your saved itineraries and travel plans." canonicalPath="/login" noindex />
+              <LoginPage />
+            </Suspense>
           } />
 
           {/* Signup Page Route */}
           <Route path="/signup" element={
-            <Suspense fallback={<PageLoader />}><SignupPage /></Suspense>
+            <Suspense fallback={<PageLoader />}>
+              <SEOHead title="Sign Up" description="Create your free NextDestination.ai account and start building AI-powered travel itineraries." canonicalPath="/signup" noindex />
+              <SignupPage />
+            </Suspense>
           } />
 
           {/* Profile Page Route */}
@@ -299,13 +327,48 @@ const TravelApp: React.FC = () => {
           } />
 
           {/* Footer pages — all lazy; share one downloaded chunk */}
-          <Route path="/how-it-works" element={<Suspense fallback={<PageLoader />}><Navbar onOpenBuilder={handleOpenDemo} /><HowItWorks /></Suspense>} />
-          <Route path="/contact"      element={<Suspense fallback={<PageLoader />}><Navbar onOpenBuilder={handleOpenDemo} /><ContactUs /></Suspense>} />
-          <Route path="/sitemap"      element={<Suspense fallback={<PageLoader />}><Navbar onOpenBuilder={handleOpenDemo} /><SiteMap /></Suspense>} />
-          <Route path="/terms"        element={<Suspense fallback={<PageLoader />}><Navbar onOpenBuilder={handleOpenDemo} /><TermsOfUse /></Suspense>} />
-          <Route path="/privacy"      element={<Suspense fallback={<PageLoader />}><Navbar onOpenBuilder={handleOpenDemo} /><PrivacyPolicy /></Suspense>} />
-          <Route path="/cookie-consent"  element={<Suspense fallback={<PageLoader />}><Navbar onOpenBuilder={handleOpenDemo} /><CookieConsent /></Suspense>} />
-          <Route path="/accessibility"   element={<Suspense fallback={<PageLoader />}><Navbar onOpenBuilder={handleOpenDemo} /><AccessibilityStatement /></Suspense>} />
+          <Route path="/how-it-works" element={
+            <Suspense fallback={<PageLoader />}>
+              <SEOHead title="How It Works — AI-Powered Travel Planning" description="See how NextDestination.ai uses AI to create personalized travel itineraries in 3 simple steps. Plan smarter, travel better." canonicalPath="/how-it-works" structuredData={howItWorksSchema} />
+              <Navbar onOpenBuilder={handleOpenDemo} /><HowItWorks />
+            </Suspense>
+          } />
+          <Route path="/contact" element={
+            <Suspense fallback={<PageLoader />}>
+              <SEOHead title="Contact Us" description="Get in touch with the NextDestination.ai team. We'd love to hear your feedback, questions, or partnership ideas." canonicalPath="/contact" />
+              <Navbar onOpenBuilder={handleOpenDemo} /><ContactUs />
+            </Suspense>
+          } />
+          <Route path="/sitemap" element={
+            <Suspense fallback={<PageLoader />}>
+              <SEOHead title="Site Map" description="Navigate all pages on NextDestination.ai — the AI-powered travel itinerary planner." canonicalPath="/sitemap" />
+              <Navbar onOpenBuilder={handleOpenDemo} /><SiteMap />
+            </Suspense>
+          } />
+          <Route path="/terms" element={
+            <Suspense fallback={<PageLoader />}>
+              <SEOHead title="Terms of Use" description="Read the terms of use for NextDestination.ai, the AI-powered travel planning platform." canonicalPath="/terms" />
+              <Navbar onOpenBuilder={handleOpenDemo} /><TermsOfUse />
+            </Suspense>
+          } />
+          <Route path="/privacy" element={
+            <Suspense fallback={<PageLoader />}>
+              <SEOHead title="Privacy Policy" description="Learn how NextDestination.ai collects, uses, and protects your personal data." canonicalPath="/privacy" />
+              <Navbar onOpenBuilder={handleOpenDemo} /><PrivacyPolicy />
+            </Suspense>
+          } />
+          <Route path="/cookie-consent" element={
+            <Suspense fallback={<PageLoader />}>
+              <SEOHead title="Cookie Policy" description="Understand how NextDestination.ai uses cookies to improve your travel planning experience." canonicalPath="/cookie-consent" />
+              <Navbar onOpenBuilder={handleOpenDemo} /><CookieConsent />
+            </Suspense>
+          } />
+          <Route path="/accessibility" element={
+            <Suspense fallback={<PageLoader />}>
+              <SEOHead title="Accessibility Statement" description="NextDestination.ai is committed to making travel planning accessible to everyone." canonicalPath="/accessibility" />
+              <Navbar onOpenBuilder={handleOpenDemo} /><AccessibilityStatement />
+            </Suspense>
+          } />
         </Routes>
       </AuthProvider >
     </APIProvider>
