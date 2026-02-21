@@ -139,6 +139,9 @@ app.use('/api/wishlist', wishlistRoutes);
 import profileRoutes from './routes/userProfile.js';
 app.use('/api/profile', profileRoutes);
 
+import destinationRoutes from './routes/destinations.js';
+app.use('/api/destinations', destinationRoutes);
+
 // Health Check
 app.get('/', (req, res) => {
     res.send('NextDestination API is running');

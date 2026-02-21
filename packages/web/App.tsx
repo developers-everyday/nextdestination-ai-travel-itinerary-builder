@@ -31,6 +31,7 @@ const PlanningSuggestions = React.lazy(() => import('./components/PlanningSugges
 const LoginPage = React.lazy(() => import('./components/LoginPage'));
 const SignupPage = React.lazy(() => import('./components/SignupPage'));
 const SharedItineraryPage = React.lazy(() => import('./components/SharedItineraryPage'));
+const DestinationPage = React.lazy(() => import('./components/DestinationPage'));
 const ProfilePage = React.lazy(() => import('./components/ProfilePage'));
 const UpgradeSuccess = React.lazy(() => import('./components/UpgradeSuccess'));
 
@@ -295,6 +296,13 @@ const TravelApp: React.FC = () => {
           <Route path="/share/:id" element={
             <Suspense fallback={<PageLoader />}>
               <SharedItineraryPage isScriptLoaded={isGoogleMapsLoaded} />
+            </Suspense>
+          } />
+
+          {/* Destination Landing Page Route */}
+          <Route path="/destinations/:city" element={
+            <Suspense fallback={<PageLoader />}>
+              <DestinationPage />
             </Suspense>
           } />
 
