@@ -1,7 +1,6 @@
 // Services
 export * from './services/supabaseClient';
 export * from './services/geminiService';
-export * from './services/geminiConfig';
 export * from './services/itineraryService';
 export * from './services/userProfileService';
 export * from './services/transportService';
