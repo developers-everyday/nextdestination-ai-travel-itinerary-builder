@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Playfair_Display } from "next/font/google";
 import Script from "next/script";
+import Providers from "./Providers";
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -64,7 +65,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192.svg" />
       </head>
       <body className="bg-slate-50 text-slate-900 selection:bg-indigo-100 selection:text-indigo-900">
-        {children}
+        <Providers>{children}</Providers>
 
         {/* Google Analytics 4 */}
         <Script

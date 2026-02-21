@@ -1,6 +1,6 @@
 import { Itinerary } from '../types';
 
-const API_BASE_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/itineraries`;
+const API_BASE_URL = `${import.meta.env?.VITE_API_URL || 'http://localhost:3001'}/api/itineraries`;
 
 export const saveItineraryToBackend = async (itinerary: Itinerary, token?: string, isPublic?: boolean): Promise<string> => {
     const headers: HeadersInit = {

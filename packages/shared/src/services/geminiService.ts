@@ -4,7 +4,7 @@
 
 import { supabase } from './supabaseClient';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = import.meta.env?.VITE_API_URL || 'http://localhost:3001';
 
 // ── analyzeTravelQuery ───────────────────────────────────────────────────────
 // Parses a free-text user query into structured intent.
