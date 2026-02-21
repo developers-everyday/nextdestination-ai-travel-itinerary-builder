@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: "Site Map",
   description:
     "Navigate all pages on NextDestination.ai — the AI-powered travel itinerary planner.",
-  alternates: { canonical: "/sitemap" },
+  alternates: { canonical: "/sitemap-page" },
 };
 
 export default function SiteMapPage() {
