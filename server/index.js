@@ -84,6 +84,10 @@ app.use(cors({
     credentials: true,
 }));
 
+// Dynamic sitemap — mounted before rate limiter (crawlers must not be blocked)
+import sitemapRoute from './routes/sitemap.js';
+app.use('/api/sitemap.xml', sitemapRoute);
+
 // Apply general limiter to all /api routes, stricter limiter to AI endpoints
 app.use('/api/', generalLimiter);
 app.use('/api/suggestions', aiLimiter);

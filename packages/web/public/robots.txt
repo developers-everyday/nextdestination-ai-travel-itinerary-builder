@@ -1,5 +1,4 @@
-# NextDestination.ai — Robots.txt
-# https://nextdestination.ai
+# https://nextdestination.ai/robots.txt
 
 User-agent: *
 Allow: /
@@ -9,5 +8,5 @@ Disallow: /upgrade/
 Disallow: /login
 Disallow: /signup
 
-# Sitemaps
-Sitemap: https://nextdestination.ai/sitemap.xml
+# Dynamic sitemap (auto-updated with new destinations and shared itineraries)
+Sitemap: https://nextdestination.ai/api/sitemap.xml
