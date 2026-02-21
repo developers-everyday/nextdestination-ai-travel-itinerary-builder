@@ -58,8 +58,20 @@ const MIME_TYPES = {
 
 /**
  * Finds Chrome/Chromium executable on the system.
+ * Checks: Puppeteer cache (CI/Vercel) → system installs → `which` fallback
  */
 function findChrome() {
+    // Check Puppeteer's default cache directory first (for CI environments like Vercel)
+    const homeDir = process.env.HOME || process.env.USERPROFILE || '';
+    const puppeteerCacheDir = path.join(homeDir, '.cache', 'puppeteer');
+    if (fs.existsSync(puppeteerCacheDir)) {
+        try {
+            // Find any chrome executable in the cache
+            const result = execSync(`find "${puppeteerCacheDir}" -name "chrome" -o -name "google-chrome" | head -1`, { encoding: 'utf-8' }).trim();
+            if (result && fs.existsSync(result)) return result;
+        } catch { /* continue to other methods */ }
+    }
+
     const paths = [
         '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
         '/Applications/Chromium.app/Contents/MacOS/Chromium',
