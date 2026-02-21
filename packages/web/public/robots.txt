@@ -8,5 +8,5 @@ Disallow: /upgrade/
 Disallow: /login
 Disallow: /signup
 
-# Dynamic sitemap (auto-updated with new destinations and shared itineraries)
-Sitemap: https://nextdestination.ai/api/sitemap.xml
+# Static sitemap (served by Vercel from /public)
+Sitemap: https://nextdestination.ai/sitemap.xml
