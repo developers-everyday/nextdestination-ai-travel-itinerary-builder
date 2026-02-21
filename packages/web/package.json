@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:prerender": "vite build && node prerender.js",
+    "prerender": "node prerender.js",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit"
   },
