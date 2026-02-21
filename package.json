@@ -8,6 +8,8 @@
   ],
   "scripts": {
     "dev:web": "npm run dev -w @nextdestination/web",
+    "dev:web-next": "npm run dev -w @nextdestination/web-next",
+    "build:web-next": "npm run build -w @nextdestination/web-next",
     "dev:mobile": "npm run dev -w @nextdestination/mobile",
     "dev:server": "npm run dev --prefix server",
     "dev:all": "concurrently \"npm run dev:web\" \"npm run dev:server\"",
