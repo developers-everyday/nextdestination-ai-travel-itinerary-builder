@@ -329,11 +329,19 @@ const ItineraryBuilder: React.FC<Props> = ({
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const update = () => setIsMobile(window.innerWidth < 768);
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
 
   const handleFocusMap = (coords: [number, number]) => {
     setFocusedLocation(coords);
     if (rightPanelMode !== 'ACTIVITY_SEARCH') setRightPanelMode('MAP');
-    if (window.innerWidth < 768) setMobileView('MAP');
+    if (isMobile) setMobileView('MAP');
   };
 
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
