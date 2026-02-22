@@ -363,7 +363,9 @@ graph TD
 3. ~~Install `react-helmet-async` and add per-page `<title>`, meta description, OG tags~~ ✅ `SEOHead.tsx` + all routes
 4. ~~Add canonical URLs to every page~~ ✅ Via `SEOHead.tsx`
 5. ~~Register Google Search Console~~ ✅ Done — Resubmit updated sitemap after Next.js migration — 🔴 **TODO**
+   - Sitemap URL: `https://nextdestination.ai/sitemap.xml`
 6. Register Bing Webmaster Tools + submit sitemap — 🔴 **TODO**
+   - Sitemap URL: `https://nextdestination.ai/sitemap.xml`
 7. Set up Google Analytics 4 — 🔴 **TODO**
 
 ### ✅ Week 2 — Structured Data (COMPLETED)
