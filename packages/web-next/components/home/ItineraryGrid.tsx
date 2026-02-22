@@ -2,8 +2,10 @@
 
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import type { CommunityItinerary } from "@nextdestination/shared";
+import type { CommunityItinerary, Itinerary } from "@nextdestination/shared";
+import { useItineraryStore } from "@nextdestination/shared";
 import CommunityItineraryCard from "@/components/CommunityItineraryCard";
+import ItineraryDetailModal from "@/components/ItineraryDetailModal";
 import ItineraryCard, { ItineraryCardProps } from "./ItineraryCard";
 
 interface ItineraryGridProps {
@@ -197,10 +199,13 @@ const ItineraryGrid: React.FC<ItineraryGridProps> = ({
   initialData,
 }) => {
   const router = useRouter();
+  const { setItinerary } = useItineraryStore();
   const [fetchedItineraries, setFetchedItineraries] = useState<
     CommunityItinerary[]
   >(initialData || []);
   const [loading, setLoading] = useState(false);
+  const [selectedItinerary, setSelectedItinerary] =
+    useState<CommunityItinerary | null>(null);
   // Skip the very first fetch when SSR data is present for 'all' category
   const isInitialMount = useRef(true);
 
@@ -242,11 +247,30 @@ const ItineraryGrid: React.FC<ItineraryGridProps> = ({
   }, [source, category]);
 
   const handleRemix = (itinerary: CommunityItinerary) => {
-    // Navigate to planning-suggestions for now; full builder remix is Week 3
-    const destination = itinerary.destination || itinerary.location;
-    router.push(
-      `/planning-suggestions?destination=${encodeURIComponent(destination)}`
-    );
+    setSelectedItinerary(itinerary);
+  };
+
+  const handleCustomize = (itinerary: CommunityItinerary) => {
+    const rawData = itinerary.itinerary;
+    const builderItinerary: Itinerary = {
+      destination: itinerary.destination || itinerary.location || "Unknown",
+      days: rawData?.days?.map((day: any) => ({
+        day: day.day,
+        theme: day.theme || `Day ${day.day}`,
+        activities: (day.activities || []).map((act: any) => ({
+          id: act.id || Math.random().toString(36).substr(2, 9),
+          time: act.time || "09:00",
+          activity: act.activity || act.name || "",
+          description: act.description || "",
+          location: act.location || "",
+          type: act.type || "activity",
+        })),
+      })) || [{ day: 1, theme: "Day 1", activities: [] }],
+      hasArrivalFlight: true,
+      hasDepartureFlight: true,
+    };
+    setItinerary(builderItinerary);
+    router.push("/builder");
   };
 
   const displayItineraries = useMemo(() => {
@@ -336,6 +360,14 @@ const ItineraryGrid: React.FC<ItineraryGridProps> = ({
           </button>
         )}
       </div>
+
+      {selectedItinerary && (
+        <ItineraryDetailModal
+          itinerary={selectedItinerary}
+          onClose={() => setSelectedItinerary(null)}
+          onCustomize={handleCustomize}
+        />
+      )}
     </div>
   );
 };
