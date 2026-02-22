@@ -5,7 +5,7 @@
 NextDestination.ai is an **AI-powered travel itinerary planner** with community-driven trip sharing, voice-assisted planning, hotel/flight/activity search, and Stripe-based premium upgrades. This document outlines a battle-tested SEO strategy to capture high-intent travel planning traffic.
 
 > [!NOTE]
-> **Last updated: 2026-02-22** — Phase 1 foundation complete. Google Search Console registered and sitemap submitted. See [Progress Tracker](#-prioritized-action-items) below for status.
+> **Last updated: 2026-02-22** — Phase 1 foundation implemented. Post Next.js migration: sitemap resubmission and Bing Webmaster verification still pending. See [Progress Tracker](#-prioritized-action-items) below for status.
 
 ---
 
@@ -28,7 +28,7 @@ NextDestination.ai is an **AI-powered travel itinerary planner** with community-
 | Core Web Vitals | ⚠️ Unknown | Need Lighthouse audit |
 | Internal linking | ⚠️ Weak | Only navbar + footer links |
 | URL structure | ✅ Clean | `/community`, `/planning-suggestions` |
-| Google Search Console | ✅ Done | Registered + sitemap submitted |
+| Google Search Console | ⚠️ Partial | Registered on old SPA — sitemap resubmission needed after Next.js migration |
 | Google Analytics 4 | 🔴 Pending | Needs setup |
 
 > [!WARNING]
@@ -362,8 +362,9 @@ graph TD
 2. ~~Create static `sitemap.xml`~~ ✅ `packages/web/public/sitemap.xml`
 3. ~~Install `react-helmet-async` and add per-page `<title>`, meta description, OG tags~~ ✅ `SEOHead.tsx` + all routes
 4. ~~Add canonical URLs to every page~~ ✅ Via `SEOHead.tsx`
-5. ~~Submit sitemap to Google Search Console & Bing Webmaster Tools~~ ✅ Done
-6. ~~Register Google Search Console~~ ✅ Done | Set up Google Analytics 4 — 🔴 **TODO**
+5. ~~Register Google Search Console~~ ✅ Done — Resubmit updated sitemap after Next.js migration — 🔴 **TODO**
+6. Register Bing Webmaster Tools + submit sitemap — 🔴 **TODO**
+7. Set up Google Analytics 4 — 🔴 **TODO**
 
 ### ✅ Week 2 — Structured Data (COMPLETED)
 7. Implement pre-rendering solution (Prerender.io or Vercel ISR) — 🟠 **TODO**
