@@ -4,6 +4,20 @@ import type { CommunityItinerary } from "@nextdestination/shared";
 import Navbar from "@/components/Navbar";
 import CommunityPage from "@/components/CommunityPage";
 
+const communityPageSchema = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  name: "Community Travel Itineraries",
+  description:
+    "Browse and remix real travel itineraries created by our community of travelers. Solo trips, couple getaways, and family vacations to 150+ destinations.",
+  url: "https://nextdestination.ai/community",
+  isPartOf: {
+    "@type": "WebSite",
+    name: "NextDestination.ai",
+    url: "https://nextdestination.ai",
+  },
+};
+
 export const metadata: Metadata = {
   title: "Community Itineraries — Real Journeys by Travelers",
   description:
@@ -66,6 +80,10 @@ export default async function CommunityRoute() {
 
   return (
     <div className="pt-[72px]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(communityPageSchema) }}
+      />
       <Navbar />
       <CommunityPage initialItineraries={initialItineraries} />
     </div>

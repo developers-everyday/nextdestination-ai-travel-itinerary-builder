@@ -5,7 +5,7 @@
 NextDestination.ai is an **AI-powered travel itinerary planner** with community-driven trip sharing, voice-assisted planning, hotel/flight/activity search, and Stripe-based premium upgrades. This document outlines a battle-tested SEO strategy to capture high-intent travel planning traffic.
 
 > [!NOTE]
-> **Last updated: 2026-02-22** — Phase 1 foundation implemented. Post Next.js migration: sitemap resubmission and Bing Webmaster verification still pending. See [Progress Tracker](#-prioritized-action-items) below for status.
+> **Last updated: 2026-02-22** — Post Next.js App Router migration. The app now runs on `packages/web-next/` with full SSR/ISR, native metadata API, dynamic sitemap, and JSON-LD on all key routes. See the [status tracker](#seo-audit--status-tracker) and [action items](#-prioritized-action-items) below for current priorities.
 
 ---
 
@@ -13,26 +13,116 @@ NextDestination.ai is an **AI-powered travel itinerary planner** with community-
 
 | Area | Status | Notes |
 |------|--------|-------|
-| Meta Description | ✅ Done | Per-page via `react-helmet-async` in `SEOHead.tsx` |
-| Open Graph / Twitter Cards | ✅ Done | All 14 routes + default in `index.html` |
-| `robots.txt` | ✅ Done | `/packages/web/public/robots.txt` |
-| `sitemap.xml` | ✅ Done | Static sitemap in `/packages/web/public/sitemap.xml` |
-| Structured Data (JSON-LD) | ✅ Done | WebApplication, FAQ, CollectionPage, HowTo, TouristTrip |
-| Canonical URLs | ✅ Done | Per-page via `SEOHead.tsx` |
-| Default OG Image | ✅ Done | `/packages/web/public/og-default.png` |
-| Page-level `<title>` tags | ✅ Done | Unique titles on all 14 routes |
-| Alt text on images | ⚠️ Pending | Image SEO still needs attention |
+| Meta Description | ✅ Done | Per-page via Next.js `metadata` API + `generateMetadata` |
+| Open Graph / Twitter Cards | ✅ Done | Root layout defaults + per-route overrides |
+| `robots.ts` | ✅ Done | `packages/web-next/app/robots.ts` (native Next.js) |
+| `sitemap.ts` | ✅ Done | `packages/web-next/app/sitemap.ts` — dynamic, pulls destinations + trending shares from API |
+| Structured Data (JSON-LD) | ⚠️ Partial | Done: TouristDestination, Trip, CollectionPage, HowTo, WebApplication, FAQPage. Missing: WebSite schema |
+| Canonical URLs | ✅ Done | Per-page via `alternates.canonical` in metadata |
+| Default OG Image | ✅ Done | `/og-default.png` referenced in root layout `metadataBase` |
+| Page-level `<title>` tags | ✅ Done | Unique titles on all routes via metadata API |
+| Client-side rendering (CSR) | ✅ Done | Resolved by Next.js SSR/ISR — no pre-rendering needed |
+| Google Analytics 4 | ✅ Done | GA4 ID `G-JNN7SPCFSW` configured in `layout.tsx` |
+| Destination landing pages | ✅ Done | `/destinations/[city]` with ISR (1hr revalidate) + TouristDestination JSON-LD |
+| Share pages | ✅ Done | `/share/[id]` with ISR (24hr revalidate) + Trip JSON-LD |
+| Alt text on images | ⚠️ Pending | Image SEO needs audit across components |
 | Heading hierarchy | ⚠️ Partial | Needs audit across components |
-| Client-side rendering (CSR) | 🔴 Pending | Pre-rendering solution needed |
-| Image optimization (WebP, lazy) | ⚠️ Partial | Some images from CDNs |
-| Core Web Vitals | ⚠️ Unknown | Need Lighthouse audit |
-| Internal linking | ⚠️ Weak | Only navbar + footer links |
-| URL structure | ✅ Clean | `/community`, `/planning-suggestions` |
-| Google Search Console | ⚠️ Partial | Registered on old SPA — sitemap resubmission needed after Next.js migration |
-| Google Analytics 4 | 🔴 Pending | Needs setup |
+| Image optimization (WebP, lazy) | ⚠️ Partial | Next.js `<Image>` used on some pages; others use `<img>` |
+| Core Web Vitals | ⚠️ Unknown | Need Lighthouse audit against production |
+| Internal linking | ⚠️ Weak | Only navbar + footer links; destination ↔ share cross-links added |
+| URL structure | ✅ Clean | `/community`, `/planning-suggestions`, `/destinations/[city]`, `/share/[id]` |
+| Google Search Console | ⚠️ Pending | Registered on old SPA — **resubmit `https://nextdestination.ai/sitemap.xml`** after Next.js migration |
+| Bing Webmaster Tools | 🔴 Pending | Not yet registered |
+| `/planning-suggestions` metadata | ✅ Done | Added via `app/planning-suggestions/layout.tsx` (workaround for `"use client"` page) |
+| `/sitemap-page` in sitemap | ✅ Done | Added with `priority: 0.1` |
 
-> [!WARNING]
-> **Remaining blocker**: NextDestination.ai is a client-side SPA. Google can render JavaScript but it's unreliable and slow. Without **pre-rendering or SSR**, some pages may not get indexed reliably.
+### Current JSON-LD Coverage Per Route
+
+| Route | Metadata | JSON-LD | ISR | Notes |
+|-------|----------|---------|-----|-------|
+| `/` | ✅ layout default | ✅ WebApplication + FAQPage | SSR 60s | Done |
+| `/community` | ✅ | ✅ CollectionPage | SSR 60s | Done |
+| `/destinations/[city]` | ✅ generateMetadata | ✅ TouristDestination | 1hr | Done |
+| `/share/[id]` | ✅ generateMetadata | ✅ Trip | 24hr | Done |
+| `/how-it-works` | ✅ | ✅ HowTo | Static | Done |
+| `/planning-suggestions` | ✅ via layout.tsx | ❌ | Client | No server wrapper for JSON-LD |
+| `/contact` | ✅ | — | Static | OK |
+| `/terms` | ✅ | — | Static | OK |
+| `/privacy` | ✅ | — | Static | OK |
+| `/sitemap-page` | ✅ | — | Static | Low-priority utility page |
+
+---
+
+## Next.js SEO Architecture
+
+### Metadata API
+
+All metadata is set via the Next.js App Router `metadata` export or `generateMetadata` function. No external library (`react-helmet-async`) is needed.
+
+```ts
+// Static metadata (server components and layouts)
+export const metadata: Metadata = {
+  title: "Page Title",
+  description: "Page description",
+  alternates: { canonical: "/path" },
+  openGraph: { title: "...", description: "..." },
+};
+
+// Dynamic metadata (data-dependent pages)
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const data = await fetchData(params.id);
+  return { title: data.name, description: data.summary };
+}
+```
+
+**metadataBase** is set in `app/layout.tsx` to `https://nextdestination.ai`. All relative paths in `alternates.canonical` and OG image references resolve against this base automatically.
+
+### JSON-LD Pattern
+
+Structured data is added as `<script type="application/ld+json">` inside server components. Do not use client components for JSON-LD:
+
+```tsx
+// In any server component (page.tsx, layout.tsx)
+const schema = { "@context": "https://schema.org", "@type": "...", ... };
+
+return (
+  <>
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+    />
+    {/* page content */}
+  </>
+);
+```
+
+**Reference implementations**:
+- `app/destinations/[city]/page.tsx` — TouristDestination schema
+- `app/share/[id]/page.tsx` — Trip schema
+- `app/page.tsx` — WebApplication + FAQPage schema
+- `app/community/page.tsx` — CollectionPage schema
+- `app/how-it-works/page.tsx` — HowTo schema
+
+### ISR Caching Strategy
+
+| Route type | Revalidation | Rationale |
+|-----------|-------------|-----------|
+| Homepage trending | 60s | Fresh community content |
+| `/destinations/[city]` | 3600s (1hr) | Destination data changes infrequently |
+| `/share/[id]` | 86400s (24hr) | Shared itineraries rarely edited after publishing |
+| Sitemap | 3600s | Keeps destination list current |
+| Static pages | None (build-time) | Terms, privacy, how-it-works |
+
+### Metadata for `"use client"` Pages
+
+Client components cannot export `metadata`. The fix is a `layout.tsx` in the same route segment:
+
+```
+app/
+  planning-suggestions/
+    layout.tsx   ← exports metadata (server component)
+    page.tsx     ← "use client" component (no metadata export)
+```
 
 ---
 
@@ -83,160 +173,65 @@ These are **scalable**. Every destination you support becomes a keyword opportun
 
 ## 📐 Technical SEO — Implementation Roadmap
 
-### Phase 1: Foundation (Week 1–2) — *Must Do Before Anything Else*
+### Phase 1: Foundation — *Largely Complete*
 
-#### 1.1 Pre-rendering / SSR Strategy
+#### 1.1 ✅ SSR / ISR — Resolved by Next.js Migration
 
-Since the app is a Vite SPA, choose one of these approaches:
+The original SPA used Vite with client-side rendering, which risked unreliable Google indexing. The migration to Next.js App Router resolves this entirely:
 
-| Approach | Effort | SEO Benefit | Recommended? |
-|----------|--------|-------------|-------------|
-| **Prerender.io or similar service** | Low | High | ✅ Quick win |
-| **Vite SSG plugin** (`vite-ssg`) | Medium | High | ✅ Best for static pages |
-| **Migrate to Next.js** | High | Highest | 🔮 Long-term ideal |
-| **Dynamic rendering** (serve pre-rendered to bots) | Medium | High | ✅ Good interim |
+- All public pages render on the server (SSR or ISR)
+- Googlebot receives fully-rendered HTML with meta tags, JSON-LD, and content
+- No pre-rendering service, Prerender.io, or dynamic rendering middleware needed
 
-> [!IMPORTANT]
-> **Recommended approach**: Use a **dynamic rendering** service (like Prerender.io or Rendertron) as an immediate fix. This serves fully-rendered HTML to search engine crawlers while keeping your SPA experience for users. Add Vercel Edge middleware to detect crawler user-agents and redirect them to pre-rendered versions.
+#### 1.2 ✅ `robots.ts` — Done
 
-#### 1.2 Create `robots.txt`
+Native Next.js `app/robots.ts` blocks authenticated routes (`/builder`, `/profile`) and references the sitemap.
 
-```
-# /public/robots.txt
-User-agent: *
-Allow: /
-Disallow: /builder
-Disallow: /profile
-Disallow: /upgrade/
-Disallow: /login
-Disallow: /signup
+#### 1.3 ✅ `sitemap.ts` — Done (Dynamic)
 
-Sitemap: https://nextdestination.ai/sitemap.xml
-```
+`app/sitemap.ts` generates a dynamic sitemap including:
+- All static routes (homepage, community, how-it-works, contact, terms, privacy, cookie-consent, accessibility, sitemap-page)
+- All destination pages from `/api/destinations`
+- Top 100 trending shared itineraries from `/api/itineraries/trending`
 
-> [!TIP]
-> Block authenticated-only pages (`/builder`, `/profile`) — they have no SEO value and dilute crawl budget.
+Resubmit `https://nextdestination.ai/sitemap.xml` in Google Search Console after migration.
 
-#### 1.3 Create `sitemap.xml`
+#### 1.4 ✅ Per-Page Metadata — Done
 
-Generate a dynamic sitemap that includes:
+All routes have title + description + OG tags + canonical URL via the Next.js `metadata` API. The `/planning-suggestions` route uses `app/planning-suggestions/layout.tsx` to export metadata despite the page being a client component.
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <!-- Static pages -->
-  <url><loc>https://nextdestination.ai/</loc><priority>1.0</priority><changefreq>weekly</changefreq></url>
-  <url><loc>https://nextdestination.ai/community</loc><priority>0.9</priority><changefreq>daily</changefreq></url>
-  <url><loc>https://nextdestination.ai/how-it-works</loc><priority>0.6</priority><changefreq>monthly</changefreq></url>
-  <url><loc>https://nextdestination.ai/contact</loc><priority>0.3</priority><changefreq>monthly</changefreq></url>
+#### 1.5 ✅ Structured Data (JSON-LD) — Mostly Done
 
-  <!-- Dynamic: Shared itineraries (crawl goldmine!) -->
-  <url><loc>https://nextdestination.ai/share/abc123</loc><priority>0.7</priority></url>
-  <!-- ... more shared itineraries ... -->
-</urlset>
-```
+| Schema | Page | Status |
+|--------|------|--------|
+| WebApplication | Homepage | ✅ |
+| FAQPage | Homepage | ✅ |
+| CollectionPage | Community | ✅ |
+| TouristDestination | `/destinations/[city]` | ✅ |
+| Trip | `/share/[id]` | ✅ |
+| HowTo | How It Works | ✅ |
 
-> [!IMPORTANT]
-> **Shared itineraries** (`/share/:id`) are your single biggest SEO asset. Each is a unique, user-generated page about a specific destination. A dynamic sitemap pulling from your database is essential.
+#### 1.6 ✅ Google Analytics 4 — Done
 
-#### 1.4 Per-Page Meta Tags & Open Graph
+GA4 tracking ID `G-JNN7SPCFSW` configured in `app/layout.tsx` via `next/script` with `afterInteractive` strategy.
 
-Add `react-helmet-async` (or equivalent) to set per-route meta tags:
+#### 1.7 ✅ Google Search Console — Registered (Resubmit Sitemap Needed)
 
-| Page | Title Tag | Meta Description |
-|------|-----------|-----------------|
-| `/` (Home) | `AI Travel Planner — Build Your Perfect Itinerary │ NextDestination.ai` | `Plan your dream trip in seconds with AI. Get personalized itineraries with flights, hotels, and activities. Free travel planner powered by AI.` |
-| `/community` | `Community Travel Itineraries — Real Trips by Real Travelers │ NextDestination.ai` | `Browse and remix travel itineraries created by our community. Solo trips, couple getaways, and family vacations to 150+ destinations.` |
-| `/planning-suggestions` | `Plan Your {Destination} Trip — AI Itinerary Builder │ NextDestination.ai` | `Create a custom {destination} itinerary. Choose your dates, travel style, and interests — AI builds your perfect plan in seconds.` |
-| `/share/:id` | `{Destination} Itinerary — {N} Day Trip │ NextDestination.ai` | `Explore this {N}-day {destination} itinerary with {activity_count} activities, hotels, and travel tips. Remix it for your own trip.` |
-| `/how-it-works` | `How It Works — AI-Powered Travel Planning │ NextDestination.ai` | `See how NextDestination.ai uses AI to create personalized travel itineraries. Plan smarter, travel better.` |
+GSC was registered on the old SPA. After the Next.js migration, resubmit `https://nextdestination.ai/sitemap.xml` to ensure the dynamic sitemap is picked up.
 
-**Open Graph tags** for every page (critical for social sharing):
-```html
-<meta property="og:type" content="website" />
-<meta property="og:title" content="..." />
-<meta property="og:description" content="..." />
-<meta property="og:image" content="https://nextdestination.ai/og-image.jpg" />
-<meta property="og:url" content="https://nextdestination.ai/..." />
-<meta name="twitter:card" content="summary_large_image" />
-```
+#### 1.8 🔴 Bing Webmaster Tools — Pending
 
-#### 1.5 Structured Data (JSON-LD)
-
-Add schema markup to appear in Google's rich results:
-
-**Homepage** — `WebApplication` + `Organization`:
-```json
-{
-  "@context": "https://schema.org",
-  "@type": "WebApplication",
-  "name": "NextDestination.ai",
-  "url": "https://nextdestination.ai",
-  "description": "AI-powered travel itinerary planner",
-  "applicationCategory": "TravelApplication",
-  "operatingSystem": "Web",
-  "offers": {
-    "@type": "Offer",
-    "price": "0",
-    "priceCurrency": "USD"
-  }
-}
-```
-
-**Shared Itineraries** — `TouristTrip` + `ItemList`:
-```json
-{
-  "@context": "https://schema.org",
-  "@type": "TouristTrip",
-  "name": "5-Day Paris Adventure",
-  "touristType": "Couple",
-  "itinerary": {
-    "@type": "ItemList",
-    "numberOfItems": 15,
-    "itemListElement": [
-      { "@type": "TouristAttraction", "name": "Eiffel Tower" },
-      { "@type": "TouristAttraction", "name": "Louvre Museum" }
-    ]
-  }
-}
-```
-
-**Community Page** — `CollectionPage`:
-```json
-{
-  "@context": "https://schema.org",
-  "@type": "CollectionPage",
-  "name": "Community Travel Itineraries",
-  "description": "Browse real travel itineraries made by our community"
-}
-```
+Register at [bing.com/webmasters](https://www.bing.com/webmasters) and submit `https://nextdestination.ai/sitemap.xml`.
 
 ---
 
-### Phase 2: Content Engine (Week 3–6)
+### Phase 2: Content Engine (Active Priority)
 
-#### 2.1 Destination Landing Pages (Programmatic SEO)
+#### 2.1 ✅ Destination Landing Pages — Done
 
-This is the **highest ROI SEO activity**. Create auto-generated destination pages at URLs like:
+`/destinations/[city]` pages are live with ISR (1hr), `generateMetadata`, TouristDestination JSON-LD, attractions, general info, and community trip cross-links.
 
-```
-/destinations/paris
-/destinations/tokyo
-/destinations/bali
-```
-
-Each page should contain:
-- ✅ Destination name, country, hero image (AI-generated or Unsplash)
-- ✅ AI-generated "General Info" (you already cache this in your `destinations` table!)
-- ✅ Top attractions (from your cached `attractions` data!)
-- ✅ Community itineraries for that destination (filtered from your `itineraries` table)
-- ✅ CTA: "Plan Your {City} Trip Now" → links to `/planning-suggestions`
-- ✅ Proper H1, meta tags, structured data for each
-
-> [!TIP]
-> You already have the data — `destinations` table has `general_info` and `attractions`. This is pure SEO gold sitting unused. Each destination page targets `"{city} travel guide"`, `"{city} itinerary"`, `"things to do in {city}"` keywords.
-
-**Estimated pages**: Start with top 50 destinations → scale to 500+. Each page targets 5–10 long-tail keywords.
+**Next steps**: Seed more destinations into the database. Aim for top 50 destinations as a starting target.
 
 #### 2.2 Blog / Travel Guides Section
 
@@ -254,18 +249,6 @@ Create a `/blog` route with content targeting informational keywords:
 
 > [!TIP]
 > Every blog post should link to your **planner tool** with a specific CTA. For example, "Paris in 3 Days" → "Create your own Paris itinerary with AI" button.
-
-#### 2.3 FAQ Section / Schema
-
-Add FAQPage structured data targeting "People Also Ask" results:
-
-```
-Q: Is NextDestination.ai free?
-Q: How does AI travel planning work?
-Q: Can I customize my itinerary?
-Q: How do I share my travel itinerary?
-Q: What destinations does NextDestination.ai support?
-```
 
 ---
 
@@ -300,20 +283,20 @@ graph TD
     H["🏠 Homepage"] --> C["🌍 Community"]
     H --> D["📍 /destinations/:city"]
     H --> B["📝 /blog"]
-    
+
     D --> PS["⚡ /planning-suggestions"]
     D --> S["📋 /share/:id (destination filtered)"]
-    
+
     C --> S
     C --> D
-    
+
     B --> D
     B --> PS
     B --> C
-    
+
     S --> PS
     S --> D
-    
+
     PS --> BU["🔧 /builder"]
 ```
 
@@ -357,42 +340,48 @@ graph TD
 
 ## 🏁 Prioritized Action Items
 
-### ✅ Week 1 — Critical Foundation (COMPLETED)
-1. ~~Add `robots.txt` to `/public`~~ ✅ `packages/web/public/robots.txt`
-2. ~~Create static `sitemap.xml`~~ ✅ `packages/web/public/sitemap.xml`
-3. ~~Install `react-helmet-async` and add per-page `<title>`, meta description, OG tags~~ ✅ `SEOHead.tsx` + all routes
-4. ~~Add canonical URLs to every page~~ ✅ Via `SEOHead.tsx`
-5. ~~Register Google Search Console~~ ✅ Done — Resubmit updated sitemap after Next.js migration — 🔴 **TODO**
-   - Sitemap URL: `https://nextdestination.ai/sitemap.xml`
-6. Register Bing Webmaster Tools + submit sitemap — 🔴 **TODO**
-   - Sitemap URL: `https://nextdestination.ai/sitemap.xml`
-7. Set up Google Analytics 4 — 🔴 **TODO**
+### ✅ Foundation — COMPLETED
+1. ~~SSR / pre-rendering solution~~ ✅ Resolved by Next.js App Router migration
+2. ~~`robots.txt`~~ ✅ `app/robots.ts`
+3. ~~Dynamic `sitemap.xml`~~ ✅ `app/sitemap.ts` — destinations + trending shares
+4. ~~Per-page metadata (`<title>`, description, OG)~~ ✅ All routes via metadata API
+5. ~~Canonical URLs~~ ✅ `alternates.canonical` in metadata
+6. ~~Google Analytics 4~~ ✅ GA4 `G-JNN7SPCFSW` in `layout.tsx`
+7. ~~Destination landing pages~~ ✅ `/destinations/[city]` with ISR
+8. ~~Share pages~~ ✅ `/share/[id]` with ISR
+9. ~~JSON-LD: WebApplication + FAQPage~~ ✅ `app/page.tsx`
+10. ~~JSON-LD: CollectionPage~~ ✅ `app/community/page.tsx`
+11. ~~JSON-LD: HowTo~~ ✅ `app/how-it-works/page.tsx`
+12. ~~JSON-LD: TouristDestination~~ ✅ `app/destinations/[city]/page.tsx`
+13. ~~JSON-LD: Trip~~ ✅ `app/share/[id]/page.tsx`
+14. ~~`/planning-suggestions` metadata~~ ✅ `app/planning-suggestions/layout.tsx`
+15. ~~`/sitemap-page` in sitemap~~ ✅ Added with `priority: 0.1`
 
-### ✅ Week 2 — Structured Data (COMPLETED)
-7. Implement pre-rendering solution (Prerender.io or Vercel ISR) — 🟠 **TODO**
-8. ~~Add JSON-LD structured data to homepage, community, shared itineraries~~ ✅ 5 schemas
-9. ~~Create OG image assets (default + per-shared-itinerary using AI images)~~ ✅ `og-default.png` + dynamic
-10. Fix heading hierarchy across all pages — 🟠 **TODO**
+### 🔴 Immediate — Manual Actions Required
+1. **Google Search Console** — Resubmit `https://nextdestination.ai/sitemap.xml` (new dynamic sitemap post-migration)
+2. **Bing Webmaster Tools** — Register site and submit sitemap
+3. **Lighthouse audit** — Run against production to get Core Web Vitals baseline
+4. **Image alt text audit** — Review all `<img>` tags; migrate to Next.js `<Image>` where possible
 
-### 🟡 Week 3–4 — Content Pages
-11. Build `/destinations/:city` route with programmatic pages from existing database
-12. ~~Add FAQ section to homepage with FAQPage schema~~ ✅ FAQPage JSON-LD added
-13. Ensure all images have descriptive `alt` text
+### 🟡 Near-Term — Code Priorities
+5. Replace bare `<img>` tags with Next.js `<Image>` across components (LCP + CLS improvement)
+6. Fix heading hierarchy (`h1` → `h2` → `h3`) audit across all page components
+7. Seed top 50 destinations into the database for programmatic SEO at scale
+8. Add breadcrumb structured data (`BreadcrumbList`) to destination + share pages
 
-### 🟢 Week 5–8 — Growth
-14. Launch `/blog` section with first 5 articles
-15. Product Hunt launch
-16. Begin travel blogger outreach
-17. Start Pinterest strategy with itinerary infographics
-18. Build dynamic sitemap API pulling from database
+### 🟢 Growth — Week 5–8
+9. Launch `/blog` section with first 5 articles targeting informational keywords
+10. Product Hunt launch
+11. Begin travel blogger outreach
+12. Start Pinterest strategy with itinerary infographics
 
-### 🔵 Month 3+ — Scale
-19. Scale destination pages to 200+
-20. Publish 2 blog posts/week
-21. A/B test meta descriptions for CTR improvement
-22. Implement `hreflang` tags if you go multi-language
-23. Add breadcrumb structured data
-24. Explore Google Travel integration
+### 🔵 Scale — Month 3+
+13. Scale destination pages to 200+
+14. Publish 2 blog posts/week
+15. A/B test meta descriptions for CTR improvement
+16. Implement `hreflang` tags if adding multi-language support
+17. Add `WebSite` schema with `SearchAction` (Sitelinks Search Box eligibility)
+18. Explore Google Travel integration
 
 ---
 
@@ -401,7 +390,7 @@ graph TD
 Your app has **built-in data moats** that most travel SEO competitors lack:
 
 1. **AI-generated itineraries** = unique, non-duplicated content at scale
-2. **Community itineraries** = user-generated content that grows organically  
+2. **Community itineraries** = user-generated content that grows organically
 3. **Cached destination data** (general info + attractions) = ready-made destination pages
 4. **AI-generated infographic images** = shareable visual assets for Pinterest/Instagram
 5. **Voice-assisted planning** = differentiator for "ai travel planner" positioning
@@ -411,4 +400,4 @@ Your app has **built-in data moats** that most travel SEO competitors lack:
 
 ---
 
-*This strategy is designed specifically for NextDestination.ai's architecture, data assets, and growth stage. Execution priority should follow the phased roadmap above.*
+*This strategy is designed specifically for NextDestination.ai's Next.js App Router architecture, data assets, and growth stage. Execution priority should follow the phased roadmap above.*

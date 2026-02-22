@@ -53,6 +53,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.2,
     },
+    {
+      url: `${BASE_URL}/sitemap-page`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.1,
+    },
   ];
 
   // Dynamic destination pages from the backend
