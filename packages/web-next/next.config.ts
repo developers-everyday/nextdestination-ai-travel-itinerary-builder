@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   // Transpile the shared monorepo package so Next.js can process its TypeScript/JSX
@@ -15,4 +16,12 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  // Suppress noisy Sentry build output
+  silent: true,
+  // Disable telemetry sent to Sentry
+  telemetry: false,
+  // Source map upload — add SENTRY_AUTH_TOKEN + org/project to enable
+  // org: "nextdestination",
+  // project: "nextdestination-web",
+});
