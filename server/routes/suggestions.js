@@ -1,6 +1,6 @@
 import express from 'express';
 import crypto from 'crypto';
-import { generateEmbedding, generateQuickItinerary } from '../services/gemini.js';
+import { generateEmbedding, generateQuickItinerary, analyzeQuery } from '../services/gemini.js';
 import { searchSimilarItineraries, storeItinerary } from '../services/vectorService.js';
 import { verifyAuth } from '../middleware/auth.js';
 import { getAuthenticatedClient } from '../db/supabase.js';
@@ -175,6 +175,33 @@ router.get('/status/:jobId', verifyAuth, async (req, res) => {
     } catch (error) {
         console.error('Error checking job status:', error);
         res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// ============================================================
+// POST /api/suggestions/analyze — Parse user travel chat intent
+// No auth required — used by the home page chat widget before login
+// ============================================================
+router.post('/analyze', async (req, res) => {
+    try {
+        const { query } = req.body;
+
+        if (!query || typeof query !== 'string') {
+            return res.status(400).json({ error: 'Query string is required' });
+        }
+
+        const result = await analyzeQuery(query);
+        res.json(result);
+
+    } catch (error) {
+        console.error('Error in analyze route:', error);
+        res.status(500).json({
+            destination: null,
+            days: null,
+            interests: [],
+            intent: 'continue_chat',
+            response: "I'm having trouble connecting to the travel servers. Please try again!"
+        });
     }
 });
 

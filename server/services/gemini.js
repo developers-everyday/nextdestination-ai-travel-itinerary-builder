@@ -488,6 +488,71 @@ export const estimateFlightDuration = async (from, to) => {
     }, 'estimateFlightDuration'); // circuit breaker
 };
 
+export const analyzeQuery = async (query) => {
+    return callWithCircuitBreaker(async () => {
+        try {
+            const prompt = `
+      You are an expert travel assistant for "NextDestination.ai".
+      Your goal is to helpfully interact with users to understand their travel plans.
+
+      User Query: "${query}"
+
+      Analyze the query and extract:
+      1. Destination (City/Country)
+      2. Duration (in days, default to 3 if not specified but implied short trip, or null if unknown)
+      3. Interests (list of strings like "Food", "History", "Adventure")
+      4. Intent:
+         - "generate_itinerary": User wants a plan now and has provided enough info (at least destination).
+         - "explore_suggestions": User is asking for ideas, general browsing, or vague queries better served by community lists.
+         - "continue_chat": User context is still unclear, ask for more details.
+      5. Response: A natural, friendly, brief reply to the user.
+         - If "generate_itinerary": "Great! I can plan that for you." (Don't say "I have generated")
+         - If "continue_chat": Ask for the missing key info (Destination is most important).
+
+      Output strictly JSON:
+      {
+        "destination": "Paris" | null,
+        "days": 3 | null,
+        "interests": ["Food", "Museums"] | [],
+        "intent": "generate_itinerary" | "explore_suggestions" | "continue_chat",
+        "response": "String response to show user"
+      }
+    `;
+
+            const response = await withTimeout(
+                ai.models.generateContent({
+                    model: "gemini-3-flash-preview",
+                    contents: prompt
+                }),
+                15_000,
+                'analyzeQuery'
+            );
+
+            let textResponse;
+            if (typeof response.text === 'function') {
+                textResponse = response.text();
+            } else if (typeof response.text === 'string') {
+                textResponse = response.text;
+            } else {
+                textResponse = response.candidates[0].content.parts[0].text;
+            }
+
+            const jsonMatch = textResponse.match(/\{[\s\S]*\}/);
+            const jsonString = jsonMatch ? jsonMatch[0] : textResponse;
+            return JSON.parse(jsonString);
+        } catch (error) {
+            console.error("Error analyzing query:", error);
+            return {
+                destination: null,
+                days: null,
+                interests: [],
+                intent: 'continue_chat',
+                response: "I'm having a bit of trouble connecting. Could you try asking that again?"
+            };
+        }
+    }, 'analyzeQuery');
+};
+
 export const generateAttractions = async (destination) => {
     return callWithCircuitBreaker(async () => {
     try {

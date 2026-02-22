@@ -13,8 +13,9 @@ export interface SettingsState {
 
 // Get env vars safely (works in both web and mobile)
 const getEnvVar = (key: string): string => {
-    if (typeof import.meta !== 'undefined' && import.meta.env) {
-        return (import.meta.env as Record<string, string>)[key] || '';
+    const metaEnv = (import.meta as any).env;
+    if (metaEnv) {
+        return (metaEnv as Record<string, string>)[key] || '';
     }
     return '';
 };
