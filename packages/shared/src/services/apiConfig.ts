@@ -20,8 +20,9 @@ export function getApiUrl(): string {
     // Next.js — process.env.NEXT_PUBLIC_* is statically replaced at build time
     // by webpack / turbopack. The literal string MUST appear here for the
     // replacement to work, so we cannot use dynamic property access.
+    // @ts-ignore — process may not be typed in the shared package
     if (typeof process !== 'undefined') {
-        // @ts-ignore — process may not be typed in the shared package
+        // @ts-ignore
         const nextUrl = process.env.NEXT_PUBLIC_API_URL;
         if (nextUrl) return nextUrl;
     }

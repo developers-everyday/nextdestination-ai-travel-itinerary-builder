@@ -178,13 +178,14 @@ router.get('/trending', async (req, res) => {
             throw error;
         }
 
-        // Deduplicate by ID to prevent duplicate key issues in frontend
+        // Deduplicate by DB primary key; id: item.id must come after the spread
+        // so it overwrites any stale metadata.id stored inside the JSON column.
         const uniqueMap = new Map();
         data.forEach(item => {
             if (!uniqueMap.has(item.id)) {
                 uniqueMap.set(item.id, {
-                    id: item.id,
                     ...item.metadata,
+                    id: item.id,        // DB primary key must win over metadata.id
                     userId: item.user_id,
                     metadata: item.metadata
                 });
