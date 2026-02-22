@@ -1,10 +1,5 @@
 {
-    "buildCommand": "npm run build:shared && npm run build:web",
-    "outputDirectory": "packages/web/dist",
-    "rewrites": [
-        {
-            "source": "/(.*)",
-            "destination": "/index.html"
-        }
-    ]
+    "buildCommand": "npm run build:shared && npm run build:web-next",
+    "outputDirectory": "packages/web-next/.next",
+    "framework": "nextjs"
 }
