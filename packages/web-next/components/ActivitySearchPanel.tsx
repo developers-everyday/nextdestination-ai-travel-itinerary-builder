@@ -1,0 +1,335 @@
+"use client";
+
+import React, { useState, useMemo, useEffect } from 'react';
+import MapComponent from './MapComponent';
+import { useItineraryStore } from '@nextdestination/shared';
+import { useSettingsStore } from '@nextdestination/shared';
+
+interface ActivitySearchPanelProps {
+    onSearch: (searchData: any) => void;
+    onCancel?: () => void;
+    onAddActivity: (activity: any) => void;
+    destination?: string;
+    activeDay?: number;
+}
+
+const typeConfig: Record<string, { icon: string; gradient: string }> = {
+    meal: { icon: '🍽️', gradient: 'from-orange-400 to-red-400' },
+    restaurant: { icon: '🍽️', gradient: 'from-orange-400 to-red-400' },
+    food: { icon: '🍜', gradient: 'from-amber-400 to-orange-500' },
+    landmark: { icon: '🏛️', gradient: 'from-blue-400 to-indigo-500' },
+    museum: { icon: '🎨', gradient: 'from-purple-400 to-indigo-500' },
+    activity: { icon: '🧭', gradient: 'from-emerald-400 to-teal-500' },
+    adventure: { icon: '🏔️', gradient: 'from-green-400 to-emerald-500' },
+    beach: { icon: '🏖️', gradient: 'from-cyan-400 to-blue-400' },
+    park: { icon: '🌳', gradient: 'from-green-400 to-lime-500' },
+    shopping: { icon: '🛍️', gradient: 'from-pink-400 to-rose-500' },
+    nightlife: { icon: '🌃', gradient: 'from-violet-500 to-purple-600' },
+    temple: { icon: '⛩️', gradient: 'from-red-400 to-rose-500' },
+    church: { icon: '⛪', gradient: 'from-slate-400 to-blue-500' },
+};
+const defaultTypeConfig = { icon: '📍', gradient: 'from-indigo-400 to-blue-500' };
+const getTypeConfig = (type?: string) => typeConfig[(type || '').toLowerCase()] || defaultTypeConfig;
+
+const ActivitySearchPanel: React.FC<ActivitySearchPanelProps> = ({ onSearch, onCancel, onAddActivity, destination, activeDay }) => {
+    const { toggleVoice, isVoiceActive, voiceStatus, isMuted, toggleMute, setFocusedLocation, setFocusedPlace } = useItineraryStore();
+    const { setSettingsOpen } = useSettingsStore();
+
+    const [location, setLocation] = useState('');
+    const [category, setCategory] = useState('All');
+    const [hoveredId, setHoveredId] = useState<string | null>(null);
+    const [wishlist, setWishlist] = useState<Set<string>>(new Set());
+    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
+
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+    React.useEffect(() => {
+        const fetchInitialSuggestions = async () => {
+            if (!destination) return;
+            setSearchResults([]);
+            try {
+                const response = await fetch(`${API_URL}/api/activities/popular?destination=${encodeURIComponent(destination)}`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.results && data.results.length > 0) {
+                        setSearchResults(data.results.map((item: any) => ({
+                            place_id: item.id || Math.random().toString(),
+                            structured_formatting: {
+                                main_text: item.name,
+                                secondary_text: item.location || item.description
+                            },
+                            ...item
+                        })));
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to fetch initial suggestions:", error);
+            }
+        };
+        fetchInitialSuggestions();
+    }, [destination]);
+
+    const searchScope = destination
+        ? { label: `Searching in ${destination}`, active: true }
+        : { label: "Global Search", active: false };
+
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const query = (e as CustomEvent).detail?.query;
+            if (query) setLocation(query);
+        };
+        window.addEventListener('voice-search', handler);
+        return () => window.removeEventListener('voice-search', handler);
+    }, []);
+
+    React.useEffect(() => {
+        if (!location || location.length < 3) {
+            setSearchResults([]);
+            return;
+        }
+        const timer = setTimeout(async () => {
+            setIsSearching(true);
+            try {
+                const response = await fetch(`${API_URL}/api/activities/search`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: location, destination: destination || 'Global' })
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.results) {
+                        setSearchResults(data.results.map((item: any) => ({
+                            place_id: item.id || Math.random().toString(),
+                            structured_formatting: {
+                                main_text: item.name,
+                                secondary_text: item.location || item.description
+                            },
+                            ...item
+                        })));
+                    }
+                }
+            } catch (error) {
+                console.error("Search failed:", error);
+            } finally {
+                setIsSearching(false);
+            }
+        }, 800);
+        return () => clearTimeout(timer);
+    }, [location, destination]);
+
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        onSearch({ location, category });
+    };
+
+    const toggleWishlist = (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setWishlist(prev => {
+            const newWishlist = new Set(prev);
+            if (newWishlist.has(id)) newWishlist.delete(id);
+            else newWishlist.add(id);
+            return newWishlist;
+        });
+    };
+
+    const sortedResults = useMemo(() => {
+        return [...searchResults].sort((a, b) => {
+            const aW = wishlist.has(a.id);
+            const bW = wishlist.has(b.id);
+            if (aW && !bW) return -1;
+            if (!aW && bW) return 1;
+            return 0;
+        });
+    }, [searchResults, wishlist]);
+
+    return (
+        <div className="h-full flex flex-col bg-white overflow-hidden animate-slide-in-right">
+            <div className="flex-1 flex overflow-hidden">
+                {/* Left Panel: List */}
+                <div className="w-full lg:w-[55%] overflow-y-auto p-4 border-r border-slate-200 shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-10 scrollbar-hide bg-slate-50 flex flex-col">
+                    <div className="mb-2">
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                                {onCancel && (
+                                    <button
+                                        onClick={onCancel}
+                                        className="p-2 -ml-2 hover:bg-slate-100 rounded-full text-slate-500 hover:text-indigo-600 transition-colors"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                                        </svg>
+                                    </button>
+                                )}
+                                <h2 className="text-lg font-bold text-slate-800">Search Activities</h2>
+                            </div>
+                            <div className={`px-2 py-1 rounded-md text-[10px] font-bold border ${searchScope.active ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                                {searchScope.label}
+                            </div>
+                        </div>
+                        <form onSubmit={handleSearch} className="relative z-50">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <input
+                                type="text"
+                                className="w-full pl-10 pr-20 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700 text-sm placeholder:text-slate-400 shadow-sm"
+                                placeholder="Search activities..."
+                                value={location}
+                                onChange={(e) => setLocation(e.target.value)}
+                            />
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                {isVoiceActive && (
+                                    <button
+                                        type="button"
+                                        onClick={toggleMute}
+                                        className={`p-1.5 rounded-full transition-colors relative ${isMuted ? 'text-red-500 bg-red-50' : 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100'}`}
+                                        title={isMuted ? "Unmute" : "Mute"}
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                        </svg>
+                                    </button>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={toggleVoice}
+                                    className={`flex items-center justify-center w-8 h-8 rounded-full border cursor-pointer transition-all ${isVoiceActive ? 'bg-red-50 border-red-200 text-red-500' : 'bg-white border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200'}`}
+                                    title={isVoiceActive ? "Stop Voice Agent" : "Start Voice Agent"}
+                                >
+                                    <span className={`text-base ${isVoiceActive ? 'animate-pulse' : ''}`}>🤖</span>
+                                </button>
+                            </div>
+                            {voiceStatus !== 'Idle' && (
+                                <div className="absolute top-full left-0 mt-2 w-full flex justify-center pointer-events-none">
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full bg-white border shadow-sm ${voiceStatus.startsWith('Error') ? 'text-red-500 border-red-200' : 'text-indigo-600 border-indigo-200'}`}>
+                                        {voiceStatus}
+                                    </span>
+                                </div>
+                            )}
+                        </form>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        {isSearching ? (
+                            <div className="col-span-2 text-center py-10 text-slate-400">Searching...</div>
+                        ) : sortedResults.length > 0 ? (
+                            sortedResults.map((item, idx) => (
+                                <div
+                                    key={item.id || idx}
+                                    className={`group bg-white border rounded-2xl overflow-hidden hover:border-indigo-300 hover:shadow-lg transition-all cursor-pointer relative flex flex-col ${hoveredId === item.id ? 'border-indigo-400 shadow-md ring-1 ring-indigo-400/20' : 'border-neutral-200'}`}
+                                    onMouseEnter={() => setHoveredId(item.id)}
+                                    onMouseLeave={() => setHoveredId(null)}
+                                    onClick={() => {
+                                        const lat = item.coordinates?.lat || item.coordinates?.[1];
+                                        const lng = item.coordinates?.lng || item.coordinates?.[0];
+                                        if (lat && lng) {
+                                            setFocusedLocation([lng, lat]);
+                                            setFocusedPlace(item);
+                                        }
+                                    }}
+                                >
+                                    <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
+                                        {item.metadata?.image || item.image ? (
+                                            <img
+                                                src={item.metadata?.image || item.image}
+                                                alt={item.name}
+                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                            />
+                                        ) : (
+                                            <div className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${getTypeConfig(item.metadata?.type || item.type).gradient}`}>
+                                                <span className="text-4xl drop-shadow-md group-hover:scale-125 transition-transform duration-500">
+                                                    {getTypeConfig(item.metadata?.type || item.type).icon}
+                                                </span>
+                                            </div>
+                                        )}
+                                        <button
+                                            onClick={(e) => toggleWishlist(item.id, e)}
+                                            className={`absolute top-2 right-2 p-1.5 rounded-full backdrop-blur-md transition-all ${wishlist.has(item.id) ? 'bg-white text-red-500 shadow-sm' : 'bg-white/30 text-white hover:bg-white hover:text-red-500'}`}
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                                            </svg>
+                                        </button>
+                                        <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded text-[10px] font-bold text-white">
+                                            {item.metadata?.type || item.type || 'Activity'}
+                                        </div>
+                                    </div>
+
+                                    <div className="p-3 flex flex-col flex-1">
+                                        <div className="mb-2">
+                                            <div className="flex justify-between items-start mb-1 h-10">
+                                                <h4 className="font-bold text-slate-800 text-sm leading-tight line-clamp-2">{item.name}</h4>
+                                            </div>
+                                            {(item.metadata?.rating || item.rating) ? (
+                                                <div className="flex items-center gap-1 mb-2">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                    </svg>
+                                                    <span className="text-xs font-bold text-slate-700">{item.metadata?.rating || item.rating}</span>
+                                                    {(item.metadata?.reviews || item.reviews) && (
+                                                        <span className="text-[10px] text-slate-400">({item.metadata?.reviews || item.reviews})</span>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-1 mb-2">
+                                                    <span className="text-[10px] text-slate-400 italic">No rating yet</span>
+                                                </div>
+                                            )}
+                                            {(item.metadata?.duration || item.duration) ? (
+                                                <p className="text-xs text-slate-500 line-clamp-1">{item.metadata?.duration || item.duration}</p>
+                                            ) : (
+                                                <p className="text-xs text-slate-400 line-clamp-1 italic">{item.description ? item.description.substring(0, 40) + (item.description.length > 40 ? '…' : '') : (item.metadata?.type || item.type || 'Activity')}</p>
+                                            )}
+                                        </div>
+                                        <div className="mt-auto pt-2 border-t border-slate-50 flex items-end justify-between">
+                                            <div className="text-slate-900">
+                                                {(item.metadata?.price || item.price) ? (
+                                                    <span className="text-lg font-bold">{item.metadata?.price || item.price}</span>
+                                                ) : (
+                                                    <span className="text-xs text-slate-400 italic">Free / Varies</span>
+                                                )}
+                                            </div>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onAddActivity({
+                                                        ...item,
+                                                        activity: item.name,
+                                                        location: item.location,
+                                                        description: item.description,
+                                                        coordinates: [item.coordinates?.lng || 0, item.coordinates?.lat || 0]
+                                                    });
+                                                }}
+                                                className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm active:scale-95"
+                                            >
+                                                Add
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="col-span-2 text-center py-10 text-slate-400">
+                                No activities found. Try searching for something!
+                            </div>
+                        )}
+                    </div>
+                    <div className="py-8 text-center text-xs text-slate-400">
+                        {searchResults.length > 0 ? "End of results" : ""}
+                    </div>
+                </div>
+
+                {/* Right Panel: Map */}
+                <div className="flex-1 bg-[#e2e8f0] relative overflow-hidden hidden lg:block h-full">
+                    <MapComponent activeDay={activeDay} onAddActivity={onAddActivity} />
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default ActivitySearchPanel;
