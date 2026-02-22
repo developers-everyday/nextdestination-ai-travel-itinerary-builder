@@ -1,6 +1,7 @@
 import { UserProfile } from '../types';
+import { getApiUrl } from './apiConfig';
 
-const API_BASE_URL = `${import.meta.env?.VITE_API_URL || 'http://localhost:3001'}/api/profile`;
+const API_BASE_URL = `${getApiUrl()}/api/profile`;
 
 export const fetchMyProfile = async (token: string): Promise<UserProfile> => {
     const response = await fetch(`${API_BASE_URL}/me`, {

@@ -1,6 +1,7 @@
 import { Itinerary } from '../types';
+import { getApiUrl } from './apiConfig';
 
-const API_BASE_URL = `${import.meta.env?.VITE_API_URL || 'http://localhost:3001'}/api/itineraries`;
+const API_BASE_URL = `${getApiUrl()}/api/itineraries`;
 
 export const saveItineraryToBackend = async (itinerary: Itinerary, token?: string, isPublic?: boolean): Promise<string> => {
     const headers: HeadersInit = {
@@ -28,12 +29,14 @@ export const saveItineraryToBackend = async (itinerary: Itinerary, token?: strin
 
     if (!response.ok) {
         const errorText = await response.text();
+        let message = `Failed to save itinerary: ${response.status} ${response.statusText}`;
         try {
             const errorData = JSON.parse(errorText);
-            throw new Error(errorData.error || 'Failed to save itinerary');
-        } catch (e) {
-            throw new Error(`Failed to save itinerary: ${response.status} ${response.statusText} - ${errorText}`);
+            if (errorData.error) message = errorData.error;
+        } catch {
+            if (errorText) message += ` - ${errorText}`;
         }
+        throw new Error(message);
     }
 
     const data = await response.json();

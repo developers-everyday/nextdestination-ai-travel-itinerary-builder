@@ -8,13 +8,13 @@ import Navbar from '@/components/Navbar';
 import {
   getSavedItineraries,
   deleteSavedItinerary,
-  supabase,
   CommunityItinerary,
   fetchUserItineraries,
   updateItineraryPrivacy,
   updateMyProfile,
   useItineraryStore
 } from '@nextdestination/shared';
+import { supabase } from '@/lib/supabaseClient';
 import CommunityItineraryCard from '@/components/CommunityItineraryCard';
 
 const ROLE_LABELS: Record<string, { icon: string; label: string; color: string }> = {
@@ -51,65 +51,59 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const loadData = async () => {
-      if (user) {
+      // Wait until session is available — user is implied by session
+      if (!session?.access_token) {
+        return;
+      }
+
+      const token = session.access_token;
+
+      try {
         try {
-          const { data: { session } } = await supabase.auth.getSession();
-          const token = session?.access_token;
-
-          if (token) {
-            try {
-              const backendTrips = await fetchUserItineraries(token);
-              setItineraries(backendTrips);
-            } catch (err) {
-              console.error("Failed to fetch backend trips", err);
-              const local = await getSavedItineraries();
-              setItineraries(local as any[]);
-            }
-          }
-
-          if (!token) {
-            console.error("No active session for wishlist fetch");
-            setIsLoading(false);
-            return;
-          }
-
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/wishlist`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            const mapped = data.map((item: any) => ({
-              id: item.id,
-              name: item.destination ? `Trip to ${item.destination}` : 'Trip',
-              location: item.destination,
-              destination: item.destination,
-              image: item.image || 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=800&auto=format&fit=crop',
-              creator: {
-                id: 'community',
-                name: 'Community Member',
-                avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + item.id,
-                verified: true
-              },
-              saveCount: item.saveCount || 0,
-              duration: item.days?.length || 0,
-              tags: ['Wishlisted'],
-              category: 'Adventure',
-              itinerary: item,
-              createdAt: item.wishlistedAt,
-              trending: false
-            }));
-            setBucketList(mapped);
-          }
-        } catch (error) {
-          console.error("Failed to load profile data", error);
-        } finally {
-          setIsLoading(false);
+          const backendTrips = await fetchUserItineraries(token);
+          setItineraries(backendTrips);
+        } catch (err) {
+          console.error("Failed to fetch backend trips", err);
+          const local = await getSavedItineraries();
+          setItineraries(local as any[]);
         }
+
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/wishlist`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const mapped = data.map((item: any) => ({
+            id: item.id,
+            name: item.destination ? `Trip to ${item.destination}` : 'Trip',
+            location: item.destination,
+            destination: item.destination,
+            image: item.image || 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=800&auto=format&fit=crop',
+            creator: {
+              id: 'community',
+              name: 'Community Member',
+              avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + item.id,
+              verified: true
+            },
+            saveCount: item.saveCount || 0,
+            duration: item.days?.length || 0,
+            tags: ['Wishlisted'],
+            category: 'Adventure',
+            itinerary: item,
+            createdAt: item.wishlistedAt,
+            trending: false
+          }));
+          setBucketList(mapped);
+        }
+      } catch (error) {
+        console.error("Failed to load profile data", error);
+      } finally {
+        setIsLoading(false);
       }
     };
     loadData();
-  }, [user]);
+  }, [session]);
 
   const handleLogout = async () => {
     await signOut();
@@ -119,8 +113,7 @@ export default function ProfilePage() {
   const handleUpgrade = async (plan: string) => {
     try {
       setUpgrading(true);
-      const { data: { session: authSession } } = await supabase.auth.getSession();
-      const token = authSession?.access_token;
+      const token = session?.access_token;
       if (!token) {
         alert('Please log in first');
         return;
@@ -508,7 +501,12 @@ const TripsList: React.FC<{
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const filteredTrips = trips.filter(trip => {
+  // Deduplicate by id first — guards against stale DB rows with the same metadata.id
+  const uniqueTrips = trips.filter((trip, index, self) =>
+    index === self.findIndex(t => t.id === trip.id)
+  );
+
+  const filteredTrips = uniqueTrips.filter(trip => {
     if (!trip.startDate) return filter === 'upcoming';
     const tripDate = new Date(trip.startDate);
     return filter === 'upcoming' ? tripDate >= today : tripDate < today;

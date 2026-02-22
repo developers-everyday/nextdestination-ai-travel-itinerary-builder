@@ -43,7 +43,7 @@ app.use(compression());
 // General limit: protects all API routes from brute-force and runaway clients.
 const generalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15-minute window
-    max: 100,                   // 100 requests per window per IP
+    max: process.env.NODE_ENV === 'production' ? 100 : 500, // relax limit in dev
     standardHeaders: true,      // Return RateLimit-* headers (RFC 6585)
     legacyHeaders: false,
     message: { error: 'Too many requests. Please try again in a few minutes.' }

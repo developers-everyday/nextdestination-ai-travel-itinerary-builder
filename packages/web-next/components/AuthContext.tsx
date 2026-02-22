@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { fetchMyProfile } from "@nextdestination/shared";
 import type { UserProfile } from "@nextdestination/shared";
@@ -45,11 +45,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
 
+  const profileInFlight = useRef(false);
+
   const loadProfile = useCallback(async (currentSession: Session | null) => {
     if (!currentSession?.access_token) {
       setUserProfile(null);
       return;
     }
+
+    // Prevent duplicate concurrent calls (StrictMode double-mount + INITIAL_SESSION)
+    if (profileInFlight.current) return;
+    profileInFlight.current = true;
 
     try {
       setProfileLoading(true);
@@ -60,6 +66,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUserProfile(null);
     } finally {
       setProfileLoading(false);
+      profileInFlight.current = false;
     }
   }, []);
 
@@ -72,9 +79,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
-      if (session) {
-        loadProfile(session);
-      }
+      // Don't call loadProfile here — onAuthStateChange fires INITIAL_SESSION
+      // immediately on subscribe and will call it once.
     });
 
     const {

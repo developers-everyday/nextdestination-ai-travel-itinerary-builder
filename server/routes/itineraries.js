@@ -217,8 +217,8 @@ router.get('/my-trips', verifyAuth, async (req, res) => {
         if (error) throw error;
 
         const results = data.map(item => ({
-            id: item.id,
             ...item.metadata,
+            id: item.id,        // DB primary key must win over any id stored in metadata
             isPublic: item.is_public,
             userId: item.user_id
         }));
