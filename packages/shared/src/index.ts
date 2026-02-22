@@ -1,5 +1,6 @@
 // Services
-export * from './services/supabaseClient';
+// supabaseClient is intentionally NOT exported — each app (web-next, server)
+// uses its own dedicated Supabase client to avoid cross-environment pollution.
 export * from './services/geminiService';
 export * from './services/itineraryService';
 export * from './services/userProfileService';
