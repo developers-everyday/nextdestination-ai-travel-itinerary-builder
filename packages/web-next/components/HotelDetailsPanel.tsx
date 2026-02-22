@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from 'react';
+import Image from 'next/image';
 import { Map, AdvancedMarker, InfoWindow } from '@vis.gl/react-google-maps';
 import { MapPin } from 'lucide-react';
 
@@ -193,7 +194,7 @@ const HotelDetailsPanel: React.FC<HotelDetailsPanelProps> = ({ onBack, onSelect,
                                     onClick={() => setSelectedHotel(hotel)}
                                 >
                                     <div className="relative aspect-[4/3] rounded-xl overflow-hidden mb-3 bg-slate-100">
-                                        <img src={hotel.image} alt={hotel.name} className="w-full h-full object-cover" />
+                                        <Image src={hotel.image} alt={hotel.name} fill className="object-cover" sizes="(max-width: 768px) 100vw, 320px" />
                                         <button className="absolute top-3 right-3 p-1.5 rounded-full bg-black/10 hover:bg-white text-white hover:text-red-500 transition-all backdrop-blur-sm">
                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -277,7 +278,9 @@ const HotelDetailsPanel: React.FC<HotelDetailsPanelProps> = ({ onBack, onSelect,
                                 <div className="p-2 min-w-[200px]">
                                     <h3 className="font-bold text-slate-900">{selectedHotel.name}</h3>
                                     <p className="text-xs text-slate-500 mb-2 line-clamp-2">{selectedHotel.location}</p>
-                                    <img src={selectedHotel.image} alt={selectedHotel.name} className="w-full h-24 object-cover rounded-lg mb-2" />
+                                    <div className="relative h-24 rounded-lg overflow-hidden mb-2">
+                                      <Image src={selectedHotel.image} alt={selectedHotel.name} fill className="object-cover" sizes="200px" />
+                                    </div>
                                     <button
                                         onClick={() => handleAddToItinerary(selectedHotel)}
                                         className="w-full py-1.5 bg-indigo-600 text-white rounded text-xs font-bold hover:bg-indigo-700"

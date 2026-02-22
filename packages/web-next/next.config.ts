@@ -5,6 +5,18 @@ const nextConfig: NextConfig = {
   // Transpile the shared monorepo package so Next.js can process its TypeScript/JSX
   transpilePackages: ["@nextdestination/shared"],
 
+  images: {
+    remotePatterns: [
+      // Google Places API photos
+      { protocol: "https", hostname: "lh3.googleusercontent.com" },
+      { protocol: "https", hostname: "maps.googleapis.com" },
+      // Unsplash fallback hotel images
+      { protocol: "https", hostname: "images.unsplash.com" },
+      // Supabase storage (user avatars)
+      { protocol: "https", hostname: "*.supabase.co" },
+    ],
+  },
+
   // Proxy all /api/* requests to the Express backend on Render (or localhost in dev)
   async rewrites() {
     return [
