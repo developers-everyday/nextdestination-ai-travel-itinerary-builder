@@ -61,6 +61,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${jakarta.variable} ${playfair.variable}`}>
       <head>
+        <meta name="msvalidate.01" content="D18AFBE1B7E9200307D199D563C28119" />
         <meta name="theme-color" content="#4f46e5" />
         <link rel="apple-touch-icon" href="/icons/icon-192.svg" />
       </head>
