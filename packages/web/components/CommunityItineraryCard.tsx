@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { CommunityItinerary, supabase } from '@nextdestination/shared';
+import { CommunityItinerary } from '@nextdestination/shared';
+import { supabase } from '../lib/supabaseClient';
 
 interface CommunityItineraryCardProps {
     itinerary: CommunityItinerary;
