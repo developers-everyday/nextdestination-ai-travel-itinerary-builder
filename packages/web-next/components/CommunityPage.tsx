@@ -250,7 +250,7 @@ const CommunityPage: React.FC<CommunityPageProps> = ({
         ) : error ? (
           <div className="text-center py-20">
             <div className="bg-red-50 text-red-600 p-8 rounded-3xl inline-block">
-              <h3 className="text-xl font-bold mb-2">Oops!</h3>
+              <h2 className="text-xl font-bold mb-2">Oops!</h2>
               <p>{error}</p>
               <button
                 onClick={() => window.location.reload()}
@@ -288,9 +288,9 @@ const CommunityPage: React.FC<CommunityPageProps> = ({
                 />
               </svg>
             </div>
-            <h3 className="text-2xl font-black text-slate-900 mb-3">
+            <h2 className="text-2xl font-black text-slate-900 mb-3">
               No itineraries found
-            </h3>
+            </h2>
             <p className="text-slate-500 font-medium mb-8">
               Try adjusting your filters or search query
             </p>

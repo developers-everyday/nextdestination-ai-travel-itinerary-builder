@@ -85,11 +85,40 @@ export default async function SharePage({ params }: Props) {
     touristType: ["Solo Travelers", "Couples", "Families"],
   };
 
+  const breadcrumbData = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: "https://nextdestination.ai",
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Community Trips",
+        item: "https://nextdestination.ai/community",
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: `${data.destination} — ${data.days.length}-Day Trip`,
+        item: `https://nextdestination.ai/share/${id}`,
+      },
+    ],
+  };
+
   return (
     <div className="min-h-screen bg-white">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbData) }}
       />
       <Navbar />
       <div className="pt-[72px]">

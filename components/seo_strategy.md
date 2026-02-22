@@ -31,8 +31,8 @@ NextDestination.ai is an **AI-powered travel itinerary planner** with community-
 | Core Web Vitals | ⚠️ Unknown | Need Lighthouse audit against production |
 | Internal linking | ⚠️ Weak | Only navbar + footer links; destination ↔ share cross-links added |
 | URL structure | ✅ Clean | `/community`, `/planning-suggestions`, `/destinations/[city]`, `/share/[id]` |
-| Google Search Console | ⚠️ Pending | Registered on old SPA — **resubmit `https://nextdestination.ai/sitemap.xml`** after Next.js migration |
-| Bing Webmaster Tools | 🔴 Pending | Not yet registered |
+| Google Search Console | ✅ Done | Sitemap resubmitted post Next.js migration |
+| Bing Webmaster Tools | ✅ Done | Verified via HTML meta tag (`msvalidate.01`) in `layout.tsx` |
 | `/planning-suggestions` metadata | ✅ Done | Added via `app/planning-suggestions/layout.tsx` (workaround for `"use client"` page) |
 | `/sitemap-page` in sitemap | ✅ Done | Added with `priority: 0.1` |
 
@@ -357,17 +357,19 @@ graph TD
 14. ~~`/planning-suggestions` metadata~~ ✅ `app/planning-suggestions/layout.tsx`
 15. ~~`/sitemap-page` in sitemap~~ ✅ Added with `priority: 0.1`
 
-### 🔴 Immediate — Manual Actions Required
-1. **Google Search Console** — Resubmit `https://nextdestination.ai/sitemap.xml` (new dynamic sitemap post-migration)
-2. **Bing Webmaster Tools** — Register site and submit sitemap
-3. **Lighthouse audit** — Run against production to get Core Web Vitals baseline
-4. **Image alt text audit** — Review all `<img>` tags; migrate to Next.js `<Image>` where possible
+### ✅ Manual Actions — COMPLETED
+1. ~~Google Search Console~~ ✅ Sitemap resubmitted post Next.js migration
+2. ~~Bing Webmaster Tools~~ ✅ Verified via HTML meta tag (`msvalidate.01`) in `layout.tsx`
 
-### 🟡 Near-Term — Code Priorities
-5. Replace bare `<img>` tags with Next.js `<Image>` across components (LCP + CLS improvement)
-6. Fix heading hierarchy (`h1` → `h2` → `h3`) audit across all page components
-7. Seed top 50 destinations into the database for programmatic SEO at scale
-8. Add breadcrumb structured data (`BreadcrumbList`) to destination + share pages
+### 🟡 Active — Code Priorities
+3. Replace bare `<img>` tags with Next.js `<Image>` across components (LCP + CLS improvement)
+4. Fix heading hierarchy (`h1` → `h2` → `h3`) audit across all page components
+5. Add breadcrumb structured data (`BreadcrumbList`) to destination + share pages
+6. Seed top 50 destinations into the database for programmatic SEO at scale
+
+### 🟠 Deferred — Manual Audits
+7. **Lighthouse audit** — Run against production for Core Web Vitals baseline
+8. **Image alt text audit** — Review all `<img>` tags across components
 
 ### 🟢 Growth — Week 5–8
 9. Launch `/blog` section with first 5 articles targeting informational keywords

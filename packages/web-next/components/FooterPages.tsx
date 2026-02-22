@@ -25,7 +25,7 @@ export const HowItWorks: React.FC = () => (
           1
         </div>
         <div>
-          <h3 className="text-2xl font-bold text-slate-900 mb-2">Tell Us Your Dreams</h3>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">Tell Us Your Dreams</h3>
           <p>
             Start by entering your destination. Whether it&apos;s a specific city like
             &quot;Tokyo&quot; or a region like &quot;Amalfi Coast&quot;, our AI understands
@@ -38,7 +38,7 @@ export const HowItWorks: React.FC = () => (
           2
         </div>
         <div>
-          <h3 className="text-2xl font-bold text-slate-900 mb-2">We Build the Skeleton</h3>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">We Build the Skeleton</h3>
           <p>
             Our intelligent algorithms instantly generate a day-by-day itinerary based on
             the optimal route, popular attractions, and local hidden gems.
@@ -50,7 +50,7 @@ export const HowItWorks: React.FC = () => (
           3
         </div>
         <div>
-          <h3 className="text-2xl font-bold text-slate-900 mb-2">You Make It Yours</h3>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">You Make It Yours</h3>
           <p>
             Use our drag-and-drop builder to adjust timings, add new stops from our
             search, or remove activities. It&apos;s your trip, we just help you organize
@@ -70,7 +70,7 @@ export const ContactUs: React.FC = () => (
     </p>
     <div className="grid md:grid-cols-2 gap-8 mb-12">
       <div className="bg-slate-50 p-8 rounded-2xl border border-slate-100">
-        <h3 className="text-xl font-bold text-slate-900 mb-4">Support</h3>
+        <h2 className="text-xl font-bold text-slate-900 mb-4">Support</h3>
         <p className="mb-4">For help with your itinerary or account:</p>
         <a
           href="mailto:support@nextdestination.ai"
@@ -80,7 +80,7 @@ export const ContactUs: React.FC = () => (
         </a>
       </div>
       <div className="bg-slate-50 p-8 rounded-2xl border border-slate-100">
-        <h3 className="text-xl font-bold text-slate-900 mb-4">Partnerships</h3>
+        <h2 className="text-xl font-bold text-slate-900 mb-4">Partnerships</h3>
         <p className="mb-4">For business, press, and partnership inquiries:</p>
         <a
           href="mailto:partners@nextdestination.ai"
@@ -90,7 +90,7 @@ export const ContactUs: React.FC = () => (
         </a>
       </div>
     </div>
-    <h3>Office Location</h3>
+    <h2>Office Location</h2>
     <p>
       123 Innovation Drive, Suite 100
       <br />
@@ -105,7 +105,7 @@ export const SiteMap: React.FC = () => (
   <PageWrapper title="Site Map">
     <div className="grid md:grid-cols-2 gap-8">
       <div>
-        <h3 className="text-xl font-bold text-slate-900 mb-4">Main</h3>
+        <h2 className="text-xl font-bold text-slate-900 mb-4">Main</h2>
         <ul className="list-disc pl-5 space-y-2">
           <li>
             <a href="/" className="text-indigo-600 hover:underline">
@@ -125,7 +125,7 @@ export const SiteMap: React.FC = () => (
         </ul>
       </div>
       <div>
-        <h3 className="text-xl font-bold text-slate-900 mb-4">Support & Legal</h3>
+        <h2 className="text-xl font-bold text-slate-900 mb-4">Support & Legal</h2>
         <ul className="list-disc pl-5 space-y-2">
           <li>
             <a href="/how-it-works" className="text-indigo-600 hover:underline">
@@ -156,23 +156,23 @@ export const SiteMap: React.FC = () => (
 export const TermsOfUse: React.FC = () => (
   <PageWrapper title="Terms of Use">
     <p className="text-sm text-slate-400 mb-8">Last Updated: December 29, 2025</p>
-    <h3>1. Acceptance of Terms</h3>
+    <h2>1. Acceptance of Terms</h2>
     <p>
       By accessing and using NextDestination.ai, you accept and agree to be bound by the
       terms and provision of this agreement.
     </p>
-    <h3>2. Use of Service</h3>
+    <h2>2. Use of Service</h2>
     <p>
       NextDestination.ai provides an AI-powered travel itinerary building service. You
       agree to use this service only for lawful purposes along with personal,
       non-commercial use.
     </p>
-    <h3>3. Intellectual Property</h3>
+    <h2>3. Intellectual Property</h2>
     <p>
       All AI-generated content, designs, and code on this website are the intellectual
       property of NextDestination.ai unless otherwise stated.
     </p>
-    <h3>4. Limitation of Liability</h3>
+    <h2>4. Limitation of Liability</h2>
     <p>
       We do our best to provide accurate travel information, but we are not responsible
       for any changes in schedules, closures, or other real-world discrepancies.
@@ -183,19 +183,19 @@ export const TermsOfUse: React.FC = () => (
 export const PrivacyPolicy: React.FC = () => (
   <PageWrapper title="Privacy Policy">
     <p className="text-sm text-slate-400 mb-8">Last Updated: December 29, 2025</p>
-    <h3>1. Information We Collect</h3>
+    <h2>1. Information We Collect</h2>
     <p>
       We collect information you provide directly to us, such as your travel preferences,
       search queries, and account information.
     </p>
-    <h3>2. How We Use Information</h3>
+    <h2>2. How We Use Information</h2>
     <p>We use the information to:</p>
     <ul className="list-disc pl-5">
       <li>Generate personalized travel itineraries.</li>
       <li>Improve our AI models (anonymized data only).</li>
       <li>Communicate with you about your account.</li>
     </ul>
-    <h3>3. Data Sharing</h3>
+    <h2>3. Data Sharing</h2>
     <p>
       We do not sell your personal data. We may share data with service providers who
       help us run our operations (e.g., cloud hosting).
@@ -206,7 +206,7 @@ export const PrivacyPolicy: React.FC = () => (
 export const CookieConsent: React.FC = () => (
   <PageWrapper title="Cookie Policy">
     <p>NextDestination.ai uses cookies to improve your experience and analyze our traffic.</p>
-    <h3>Types of Cookies We Use</h3>
+    <h2>Types of Cookies We Use</h2>
     <ul className="list-disc pl-5 space-y-4 mt-4">
       <li>
         <strong>Essential Cookies:</strong> Necessary for the website to function (e.g.,
@@ -221,7 +221,7 @@ export const CookieConsent: React.FC = () => (
         our website (e.g., Google Analytics).
       </li>
     </ul>
-    <h3 className="mt-8">Managing Cookies</h3>
+    <h2 className="mt-8">Managing Cookies</h2>
     <p>
       You can control and/or delete cookies as you wish through your browser settings.
     </p>
@@ -235,13 +235,13 @@ export const AccessibilityStatement: React.FC = () => (
       disabilities. We are continually improving the user experience for everyone and
       applying the relevant accessibility standards.
     </p>
-    <h3>Measures to Support Accessibility</h3>
+    <h2>Measures to Support Accessibility</h2>
     <ul className="list-disc pl-5">
       <li>Include accessibility as part of our mission statement.</li>
       <li>Integrate accessibility into our procurement practices.</li>
       <li>Provide continual accessibility training for our staff.</li>
     </ul>
-    <h3>Feedback</h3>
+    <h2>Feedback</h2>
     <p>
       We welcome your feedback on the accessibility of NextDestination.ai. Please let us
       know if you encounter accessibility barriers on{" "}

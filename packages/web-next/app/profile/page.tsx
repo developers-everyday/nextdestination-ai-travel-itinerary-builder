@@ -540,10 +540,12 @@ const TripsList: React.FC<{
         >
           <div className="aspect-[3/4] bg-slate-200 relative overflow-hidden">
             {item.image ? (
-              <img
+              <Image
                 src={item.image}
                 alt={item.destination}
-                className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                fill
+                className="object-cover transition-transform duration-500 group-hover:scale-105"
+                sizes="(max-width: 768px) 100vw, 33vw"
               />
             ) : (
               <>

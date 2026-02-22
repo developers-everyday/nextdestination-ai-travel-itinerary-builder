@@ -95,11 +95,34 @@ export default async function DestinationRoute({ params }: Props) {
     }),
   };
 
+  const breadcrumbData = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: "https://nextdestination.ai",
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: `${displayName} Travel Guide`,
+        item: `https://nextdestination.ai/destinations/${slug}`,
+      },
+    ],
+  };
+
   return (
     <div className="min-h-screen bg-white">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbData) }}
       />
       <Navbar />
       <div className="pt-[72px]">
