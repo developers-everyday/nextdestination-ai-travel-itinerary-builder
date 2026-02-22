@@ -99,9 +99,17 @@ const CommunityPage: React.FC<CommunityPageProps> = ({
         if (!res.ok) throw new Error(`Failed to fetch: ${res.statusText}`);
 
         const rawData = await res.json();
-        setItineraries(
-          Array.isArray(rawData) ? rawData.map(mapToCommunityItinerary) : []
-        );
+        if (Array.isArray(rawData)) {
+          const mapped = rawData.map(mapToCommunityItinerary);
+          const seen = new Set<string>();
+          setItineraries(mapped.filter((item) => {
+            if (seen.has(item.id)) return false;
+            seen.add(item.id);
+            return true;
+          }));
+        } else {
+          setItineraries([]);
+        }
       } catch (e: any) {
         console.error("Error fetching community itineraries", e);
         setError(e.message || "Failed to load itineraries");
