@@ -25,7 +25,7 @@ export const HowItWorks: React.FC = () => (
           1
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-2">Tell Us Your Dreams</h3>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">Tell Us Your Dreams</h2>
           <p>
             Start by entering your destination. Whether it&apos;s a specific city like
             &quot;Tokyo&quot; or a region like &quot;Amalfi Coast&quot;, our AI understands
@@ -38,7 +38,7 @@ export const HowItWorks: React.FC = () => (
           2
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-2">We Build the Skeleton</h3>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">We Build the Skeleton</h2>
           <p>
             Our intelligent algorithms instantly generate a day-by-day itinerary based on
             the optimal route, popular attractions, and local hidden gems.
@@ -50,7 +50,7 @@ export const HowItWorks: React.FC = () => (
           3
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-2">You Make It Yours</h3>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">You Make It Yours</h2>
           <p>
             Use our drag-and-drop builder to adjust timings, add new stops from our
             search, or remove activities. It&apos;s your trip, we just help you organize
@@ -70,7 +70,7 @@ export const ContactUs: React.FC = () => (
     </p>
     <div className="grid md:grid-cols-2 gap-8 mb-12">
       <div className="bg-slate-50 p-8 rounded-2xl border border-slate-100">
-        <h2 className="text-xl font-bold text-slate-900 mb-4">Support</h3>
+        <h2 className="text-xl font-bold text-slate-900 mb-4">Support</h2>
         <p className="mb-4">For help with your itinerary or account:</p>
         <a
           href="mailto:support@nextdestination.ai"
@@ -80,7 +80,7 @@ export const ContactUs: React.FC = () => (
         </a>
       </div>
       <div className="bg-slate-50 p-8 rounded-2xl border border-slate-100">
-        <h2 className="text-xl font-bold text-slate-900 mb-4">Partnerships</h3>
+        <h2 className="text-xl font-bold text-slate-900 mb-4">Partnerships</h2>
         <p className="mb-4">For business, press, and partnership inquiries:</p>
         <a
           href="mailto:partners@nextdestination.ai"
