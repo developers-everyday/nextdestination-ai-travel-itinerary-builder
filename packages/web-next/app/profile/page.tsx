@@ -225,7 +225,7 @@ export default function ProfilePage() {
               <div className="flex flex-col items-center text-center mb-6">
                 <div className="relative mb-4">
                   {userProfile?.avatarUrl ? (
-                    <Image src={userProfile.avatarUrl} alt={userProfile.displayName || ''} width={96} height={96} className="w-24 h-24 rounded-full object-cover border-4 border-indigo-100" />
+                    <Image src={userProfile.avatarUrl} alt={userProfile.displayName || 'User profile avatar'} width={96} height={96} className="w-24 h-24 rounded-full object-cover border-4 border-indigo-100" />
                   ) : (
                     <div className="w-24 h-24 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 text-3xl font-black">
                       {(userProfile?.displayName || user.email || 'U').charAt(0).toUpperCase()}
