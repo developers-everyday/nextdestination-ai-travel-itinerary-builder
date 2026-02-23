@@ -28,7 +28,7 @@ NextDestination.ai is an **AI-powered travel itinerary planner** with community-
 | Alt text on images | ✅ Done | 13/13 images have alt text; profile avatar fallback fixed |
 | Heading hierarchy | ✅ Done | H1→H2 on all public pages (FooterPages, CommunityPage fixed) |
 | Image optimization (WebP, lazy) | ⚠️ Partial | Profile trip cards migrated to `<Image>`; external URLs still use `<img>` |
-| Core Web Vitals | ⚠️ Measured | SEO: 100, A11y: 90, Perf: 60 — LCP 14.5s (redirect chain + unused JS) |
+| Core Web Vitals | ✅ Measured + Fixed | SEO: 100, A11y: 90, Perf: 60 — Cloudflare redirect chain fixed (www→non-www 301 + proxied DNS + Always Use HTTPS) |
 | Internal linking | ⚠️ Weak | Only navbar + footer links; destination ↔ share cross-links added |
 | URL structure | ✅ Clean | `/community`, `/planning-suggestions`, `/destinations/[city]`, `/share/[id]` |
 | Google Search Console | ✅ Done | Sitemap resubmitted post Next.js migration |
@@ -368,7 +368,7 @@ graph TD
 6. Seed top 50 destinations into the database for programmatic SEO at scale — 🟡 **TODO**
 
 ### ✅ Manual Audits — COMPLETED
-7. ~~Lighthouse audit~~ ✅ SEO: 100, Best Practices: 100, Accessibility: 90, Performance: 60 — LCP needs redirect chain fix in Cloudflare
+7. ~~Lighthouse audit~~ ✅ SEO: 100, Best Practices: 100, Accessibility: 90, Performance: 60 — Cloudflare redirect chain fixed (www→non-www 301, proxied DNS, Always Use HTTPS)
 8. ~~Image alt text audit~~ ✅ 13/13 images have alt text; fixed profile avatar empty fallback
 
 ### 🟢 Growth — Week 5–8
