@@ -146,6 +146,9 @@ app.use('/api/profile', profileRoutes);
 import destinationRoutes from './routes/destinations.js';
 app.use('/api/destinations', destinationRoutes);
 
+import adminRoutes from './routes/admin.js';
+app.use('/api/admin', adminRoutes);
+
 // Health Check
 app.get('/', (req, res) => {
     res.send('NextDestination API is running');

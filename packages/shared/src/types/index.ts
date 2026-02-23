@@ -62,7 +62,7 @@ export interface CommunityItinerary {
 }
 
 // User Roles & Plans
-export type UserRole = 'explorer' | 'influencer' | 'agent';
+export type UserRole = 'explorer' | 'influencer' | 'agent' | 'admin';
 export type UserPlan = 'starter' | 'explorer' | 'custom';
 
 export interface UserProfile {

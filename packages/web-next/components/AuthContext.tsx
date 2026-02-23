@@ -14,6 +14,7 @@ interface AuthContextType {
   profileLoading: boolean;
   canGenerate: boolean;
   canSave: boolean;
+  isAdmin: boolean;
   isAgent: boolean;
   isInfluencer: boolean;
   isPro: boolean;
@@ -30,6 +31,7 @@ const AuthContext = createContext<AuthContextType>({
   profileLoading: false,
   canGenerate: true,
   canSave: true,
+  isAdmin: false,
   isAgent: false,
   isInfluencer: false,
   isPro: false,
@@ -136,6 +138,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     ? userProfile.savesUsed < userProfile.maxSaves
     : true;
 
+  const isAdmin = userProfile?.role === "admin";
   const isAgent = userProfile?.role === "agent";
   const isInfluencer = userProfile?.role === "influencer";
   const isPro =
@@ -176,6 +179,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         profileLoading,
         canGenerate,
         canSave,
+        isAdmin,
         isAgent,
         isInfluencer,
         isPro,
