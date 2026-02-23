@@ -9,6 +9,33 @@ This skill provides guidance on the structure, location, and usage of all automa
 
 ---
 
+## 🌿 Branching Convention
+
+Automation test branches follow this naming pattern:
+
+```
+release/001/test/automation/nd-01-automations-test-{feature-name}
+```
+
+| Segment | Value | Notes |
+|---|---|---|
+| `release/001` | Release identifier | Increment for new test release cycles |
+| `test/automation` | Test type | Always `test/automation` for automation tests |
+| `nd-01` | Ticket prefix | Auto-incrementing: `nd-01`, `nd-02`, etc. |
+| `automations-test-{feature-name}` | Description | Kebab-case feature name from the test plan |
+
+**Examples:**
+- `release/001/test/automation/nd-01-automations-test-plan-documentation`
+- `release/001/test/automation/nd-02-automations-test-authentication`
+- `release/001/test/automation/nd-03-automations-test-shared-package`
+
+**Rules:**
+- Create branches from `main`
+- Commit message format: `nd-{XX} {message}` (one-liner starting with ticket number)
+- Never stage or commit `.classpath` and `build.xml` files
+
+---
+
 ## 📁 Test Plan Documentation Structure
 
 All test plan documentation lives under:
