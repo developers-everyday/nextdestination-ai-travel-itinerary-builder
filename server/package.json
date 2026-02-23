@@ -8,7 +8,10 @@
         "start": "node index.js",
         "dev": "nodemon index.js",
         "seed": "node db/seed.js",
-        "build": "echo 'No build step required'"
+        "build": "echo 'No build step required'",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "test:coverage": "vitest run --coverage"
     },
     "keywords": [
         "travel",
@@ -32,6 +35,7 @@
         "stripe": "^20.3.1"
     },
     "devDependencies": {
-        "nodemon": "^3.1.7"
+        "nodemon": "^3.1.7",
+        "vitest": "^4.0.18"
     }
 }
