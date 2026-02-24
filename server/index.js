@@ -88,6 +88,10 @@ app.use(cors({
 import sitemapRoute from './routes/sitemap.js';
 app.use('/api/sitemap.xml', sitemapRoute);
 
+// Health check — mounted before rate limiter (uptime monitors must not be blocked)
+import healthRoute from './routes/health.js';
+app.use('/api/health', healthRoute);
+
 // Apply general limiter to all /api routes, stricter limiter to AI endpoints
 app.use('/api/', generalLimiter);
 app.use('/api/suggestions', aiLimiter);
