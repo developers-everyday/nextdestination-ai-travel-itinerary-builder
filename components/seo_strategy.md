@@ -231,7 +231,7 @@ Register at [bing.com/webmasters](https://www.bing.com/webmasters) and submit `h
 
 `/destinations/[city]` pages are live with ISR (1hr), `generateMetadata`, TouristDestination JSON-LD, attractions, general info, and community trip cross-links.
 
-**Next steps**: Seed more destinations into the database. Aim for top 50 destinations as a starting target.
+**Seeding**: ✅ 50 seasonal destinations (March–June 2026) seeded via `server/scripts/seed-destinations.js`. Sitemap now populates with 50+ destination URLs.
 
 #### 2.2 Blog / Travel Guides Section
 
@@ -365,7 +365,7 @@ graph TD
 3. ~~Replace bare `<img>` tags with Next.js `<Image>`~~ ✅ Profile trip cards migrated
 4. ~~Fix heading hierarchy~~ ✅ FooterPages + CommunityPage h3→h2
 5. ~~Add BreadcrumbList JSON-LD~~ ✅ Destination + share pages
-6. Seed top 50 destinations into the database for programmatic SEO at scale — 🟡 **TODO**
+6. ~~Seed top 50 destinations into the database for programmatic SEO at scale~~ ✅ `server/scripts/seed-destinations.js` — 50 seasonal destinations (March–June 2026)
 
 ### ✅ Manual Audits — COMPLETED
 7. ~~Lighthouse audit~~ ✅ SEO: 100, Best Practices: 100, Accessibility: 90, Performance: 60 — Cloudflare redirect chain fixed (www→non-www 301, proxied DNS, Always Use HTTPS)

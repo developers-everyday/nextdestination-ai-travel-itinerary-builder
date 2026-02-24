@@ -25,7 +25,7 @@ export interface ItineraryRow {
   hasEmbedding: boolean;
   hasImage: boolean;
   isPublic: boolean;
-  createdAt: string;
+  createdAt?: string;
 }
 
 interface ItinerariesTableProps {

@@ -266,8 +266,8 @@ router.get('/itineraries', async (req, res) => {
     try {
         const { data, error } = await supabase
             .from('itineraries')
-            .select('id, content, metadata, embedding, is_public, user_id, created_at')
-            .order('created_at', { ascending: false });
+            .select('id, metadata, embedding, is_public, user_id')
+            .order('id', { ascending: false });
 
         if (error) throw error;
 
@@ -280,7 +280,6 @@ router.get('/itineraries', async (req, res) => {
             hasEmbedding: !!i.embedding,
             hasImage: !!i.metadata?.image,
             isPublic: i.is_public,
-            createdAt: i.created_at,
         }));
 
         res.json(itineraries);
