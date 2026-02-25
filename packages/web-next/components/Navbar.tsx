@@ -121,7 +121,12 @@ const Navbar: React.FC<Props> = ({ onOpenBuilder }) => {
 
         {/* Center Links */}
         <div className="hidden md:flex items-center gap-8 font-medium text-slate-600">
-          {/* Links removed as per request to move Saved Trips to Profile */}
+          <Link href="/community" className="hover:text-indigo-600 transition-colors">
+            Community
+          </Link>
+          <Link href="/blog" className="hover:text-indigo-600 transition-colors">
+            Blog
+          </Link>
         </div>
 
         {/* Right Side - Auth */}
