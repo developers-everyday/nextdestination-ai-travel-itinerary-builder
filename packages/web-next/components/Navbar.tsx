@@ -119,18 +119,23 @@ const Navbar: React.FC<Props> = ({ onOpenBuilder }) => {
           </span>
         </Link>
 
-        {/* Center Links */}
-        <div className="hidden md:flex items-center gap-8 font-medium text-slate-600">
-          <Link href="/community" className="hover:text-indigo-600 transition-colors">
-            Community
-          </Link>
-          <Link href="/blog" className="hover:text-indigo-600 transition-colors">
-            Blog
-          </Link>
-        </div>
-
-        {/* Right Side - Auth */}
+        {/* Right Side - Links & Auth */}
         <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
+          {/* Nav Links */}
+          <div className="hidden md:flex items-center gap-1 mr-2">
+            <Link
+              href="/community"
+              className="relative px-3 py-2 text-sm font-medium text-slate-600 rounded-lg hover:text-indigo-600 hover:bg-indigo-50 transition-all duration-200"
+            >
+              Community
+            </Link>
+            <Link
+              href="/blog"
+              className="relative px-3 py-2 text-sm font-medium text-slate-600 rounded-lg hover:text-indigo-600 hover:bg-indigo-50 transition-all duration-200"
+            >
+              Blog
+            </Link>
+          </div>
           {/* Install App Button */}
           {showInstallButton && (
             <button
