@@ -3,7 +3,7 @@ import { Itinerary, DayPlan, ItineraryItem } from '../types';
 
 export type GenerationStatus = 'idle' | 'loading' | 'partial' | 'complete' | 'error';
 
-export type RightPanelMode = 'MAP' | 'TRANSPORT_INFO' | 'ACTIVITY_SEARCH' | 'HOTEL_DETAILS';
+export type RightPanelMode = 'MAP' | 'TRANSPORT_INFO' | 'ACTIVITY_SEARCH' | 'HOTEL_DETAILS' | 'FLIGHT_SEARCH';
 
 export interface ItineraryState {
     itinerary: Itinerary | null;

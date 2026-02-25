@@ -47,3 +47,47 @@ export const getFlightEstimates = async (from: string, to: string, date: string)
         throw error;
     }
 };
+
+// ── Travelpayouts-powered endpoints ─────────────────────────────────────────
+
+export const searchFlightsTP = async (origin: string, destination: string, departDate?: string, returnDate?: string) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/flights/search`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ origin, destination, departDate, returnDate })
+        });
+        if (!response.ok) throw new Error('Failed to search flights');
+        return await response.json();
+    } catch (error) {
+        console.error("Error searching flights:", error);
+        throw error;
+    }
+};
+
+export const lookupIataCode = async (query: string) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/flights/iata-lookup?query=${encodeURIComponent(query)}`);
+        if (!response.ok) throw new Error('Failed to lookup IATA code');
+        return await response.json();
+    } catch (error) {
+        console.error("Error looking up IATA code:", error);
+        throw error;
+    }
+};
+
+export const getAffiliateLinks = async (destination: string, options?: { hotelName?: string; activityName?: string; checkIn?: string; checkOut?: string }) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/affiliate-links`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ destination, ...options })
+        });
+        if (!response.ok) throw new Error('Failed to get affiliate links');
+        return await response.json();
+    } catch (error) {
+        console.error("Error getting affiliate links:", error);
+        throw error;
+    }
+};
+
