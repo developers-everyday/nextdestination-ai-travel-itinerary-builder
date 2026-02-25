@@ -122,6 +122,11 @@ export const SiteMap: React.FC = () => (
               Community
             </a>
           </li>
+          <li>
+            <a href="/blog" className="text-indigo-600 hover:underline">
+              Blog
+            </a>
+          </li>
         </ul>
       </div>
       <div>

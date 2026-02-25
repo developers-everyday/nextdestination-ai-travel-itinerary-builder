@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { blogPosts } from "@/lib/blog-data";
 
 const BASE_URL = "https://nextdestination.ai";
 
@@ -86,8 +87,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let shareRoutes: MetadataRoute.Sitemap = [];
   try {
     const res = await fetch(
-      `${
-        process.env.EXPRESS_API_URL || "http://localhost:3001"
+      `${process.env.EXPRESS_API_URL || "http://localhost:3001"
       }/api/itineraries/trending?limit=100`,
       { next: { revalidate: 3600 } }
     );
@@ -104,6 +104,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   } catch {
     // Graceful degradation
   }
+  // Blog routes (from static data)
+  const blogRoutes: MetadataRoute.Sitemap = [
+    {
+      url: `${BASE_URL}/blog`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    ...blogPosts.map((post) => ({
+      url: `${BASE_URL}/blog/${post.slug}`,
+      lastModified: new Date(post.updatedAt),
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    })),
+  ];
 
-  return [...staticRoutes, ...destinationRoutes, ...shareRoutes];
+  return [...staticRoutes, ...destinationRoutes, ...shareRoutes, ...blogRoutes];
 }
