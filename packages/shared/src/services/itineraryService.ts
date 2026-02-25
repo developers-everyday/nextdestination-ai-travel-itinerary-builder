@@ -97,3 +97,47 @@ export const fetchUserItineraries = async (token: string): Promise<any[]> => {
 
     return response.json();
 };
+
+// ── Influencer Growth Features ──────────────────────────────────────────────
+
+export const submitTranscript = async (transcript: string, token: string): Promise<{ id: string; shareUrl: string; status: string }> => {
+    const response = await fetch(`${API_BASE_URL}/async-from-transcript`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ transcript })
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to submit transcript');
+    }
+
+    return response.json();
+};
+
+export const pollItineraryStatus = async (id: string): Promise<{ status: string; itinerary?: Itinerary }> => {
+    const response = await fetch(`${API_BASE_URL}/status/${id}`);
+
+    if (!response.ok) {
+        if (response.status === 404) {
+            return { status: 'not_found' };
+        }
+        throw new Error('Failed to poll status');
+    }
+
+    return response.json();
+};
+
+export const fetchCreatorItineraries = async (userId: string): Promise<any[]> => {
+    const response = await fetch(`${API_BASE_URL}/by-user/${userId}`);
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to fetch creator itineraries');
+    }
+
+    return response.json();
+};

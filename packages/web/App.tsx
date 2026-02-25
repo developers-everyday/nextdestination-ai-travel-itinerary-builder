@@ -34,6 +34,8 @@ const SharedItineraryPage = React.lazy(() => import('./components/SharedItinerar
 const DestinationPage = React.lazy(() => import('./components/DestinationPage'));
 const ProfilePage = React.lazy(() => import('./components/ProfilePage'));
 const UpgradeSuccess = React.lazy(() => import('./components/UpgradeSuccess'));
+const TranscriptImportPage = React.lazy(() => import('./components/TranscriptImportPage'));
+const CreatorProfilePage = React.lazy(() => import('./components/CreatorProfilePage'));
 
 // Always-mounted but activation-gated — load silently in background, never
 // show a spinner (user doesn't interact with these until well after page load)
@@ -296,6 +298,22 @@ const TravelApp: React.FC = () => {
           <Route path="/share/:id" element={
             <Suspense fallback={<PageLoader />}>
               <SharedItineraryPage isScriptLoaded={isGoogleMapsLoaded} />
+            </Suspense>
+          } />
+
+          {/* Transcript Import — Creator Feature (Protected) */}
+          <Route path="/create-from-transcript" element={
+            <RequireAuth>
+              <Suspense fallback={<PageLoader />}>
+                <TranscriptImportPage />
+              </Suspense>
+            </RequireAuth>
+          } />
+
+          {/* Public Creator Profile */}
+          <Route path="/creator/:userId" element={
+            <Suspense fallback={<PageLoader />}>
+              <CreatorProfilePage />
             </Suspense>
           } />
 

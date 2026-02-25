@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import Navbar from './Navbar';
 import {
-  getSavedItineraries,
-  deleteSavedItinerary,
-  supabase,
-  CommunityItinerary,
-  fetchUserItineraries,
-  updateItineraryPrivacy,
-  updateMyProfile
+    getSavedItineraries,
+    deleteSavedItinerary,
+    supabase,
+    CommunityItinerary,
+    fetchUserItineraries,
+    updateItineraryPrivacy,
+    updateMyProfile,
+    fetchCreatorItineraries
 } from '@nextdestination/shared';
 import CommunityItineraryCard from './CommunityItineraryCard';
 
@@ -37,6 +38,7 @@ const ProfilePage: React.FC = () => {
     const [editingName, setEditingName] = useState(false);
     const [nameText, setNameText] = useState('');
     const [upgrading, setUpgrading] = useState(false);
+    const [creatorStats, setCreatorStats] = useState<{ totalTrips: number; totalViews: number; totalRemixes: number } | null>(null);
 
     useEffect(() => {
         if (userProfile) {
@@ -119,6 +121,23 @@ const ProfilePage: React.FC = () => {
             }
         };
         loadData();
+    }, [user]);
+
+    // Load creator stats for users with public itineraries
+    useEffect(() => {
+        if (user) {
+            fetchCreatorItineraries(user.id)
+                .then(trips => {
+                    if (trips.length > 0) {
+                        setCreatorStats({
+                            totalTrips: trips.length,
+                            totalViews: trips.reduce((s: number, t: any) => s + (t.viewCount || 0), 0),
+                            totalRemixes: trips.reduce((s: number, t: any) => s + (t.remixCount || 0), 0)
+                        });
+                    }
+                })
+                .catch(() => { /* not critical */ });
+        }
     }, [user]);
 
     const handleLogout = async () => {
@@ -385,6 +404,41 @@ const ProfilePage: React.FC = () => {
                                         </p>
                                     )}
                                 </div>
+
+                                {/* Creator Stats — show if user has public trips */}
+                                {creatorStats && creatorStats.totalTrips > 0 && (
+                                    <div className="p-4 bg-gradient-to-br from-violet-50 to-indigo-50 rounded-2xl border border-indigo-100">
+                                        <h3 className="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-3">Creator Stats</h3>
+                                        <div className="grid grid-cols-3 gap-2 mb-3">
+                                            <div className="text-center">
+                                                <div className="text-lg font-black text-slate-900">{creatorStats.totalTrips}</div>
+                                                <div className="text-[10px] font-bold text-slate-400 uppercase">Public</div>
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="text-lg font-black text-slate-900">{creatorStats.totalViews}</div>
+                                                <div className="text-[10px] font-bold text-slate-400 uppercase">Views</div>
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="text-lg font-black text-slate-900">{creatorStats.totalRemixes}</div>
+                                                <div className="text-[10px] font-bold text-slate-400 uppercase">Remixes</div>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <button
+                                                onClick={() => navigate('/create-from-transcript')}
+                                                className="w-full text-xs font-bold text-violet-700 bg-violet-100 hover:bg-violet-200 px-3 py-2 rounded-xl transition-colors flex items-center justify-center gap-1"
+                                            >
+                                                🎬 Create from Transcript
+                                            </button>
+                                            <button
+                                                onClick={() => navigate(`/creator/${user?.id}`)}
+                                                className="w-full text-xs font-bold text-indigo-600 bg-white hover:bg-indigo-50 px-3 py-2 rounded-xl transition-colors border border-indigo-100"
+                                            >
+                                                👤 View Creator Profile
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Account Details */}
                                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
