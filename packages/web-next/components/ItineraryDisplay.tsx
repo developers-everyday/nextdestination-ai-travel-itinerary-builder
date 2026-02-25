@@ -26,6 +26,7 @@ import { Itinerary, ItineraryItem, saveItinerary, saveItineraryToBackend, update
 import TransportInfoPanel from './TransportInfoPanel';
 import ActivitySearchPanel from './ActivitySearchPanel';
 import HotelDetailsPanel from './HotelDetailsPanel';
+import FlightSearchPanel from './FlightSearchPanel';
 
 interface Props {
   data: Itinerary;
@@ -324,7 +325,8 @@ const ItineraryBuilder: React.FC<Props> = ({
     setFocusedLocation, focusedLocation,
     voiceActionToast,
     isJourneyActive, currentStopIndex,
-    toggleVoice, isVoiceActive, voiceStatus
+    toggleVoice, isVoiceActive, voiceStatus,
+    setHasHotel, setHasArrivalFlight, setHasDepartureFlight
   } = useItineraryStore();
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -1006,6 +1008,50 @@ const ItineraryBuilder: React.FC<Props> = ({
                           </span>
                           Activity
                         </button>
+
+                        {/* Hotel Search — only when hotel card was removed and no hotel activity exists */}
+                        {currentDay.hasHotel === false && !currentDay.activities.some(a => a.type === 'hotel') && (
+                          <button
+                            onClick={() => {
+                              setIsAddMenuOpen(false);
+                              setHasHotel(safeDayIndex, true);
+                              let coordinates = undefined;
+                              if (searchBounds) {
+                                const center = searchBounds.getCenter();
+                                coordinates = [center.lng(), center.lat()];
+                              } else if (focusedLocation) {
+                                coordinates = focusedLocation;
+                              }
+                              handleHotelSearch({ location: data.destination, coordinates });
+                            }}
+                            className="w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 hover:text-[#ff385c] transition-colors flex items-center gap-3"
+                          >
+                            <span className="w-6 h-6 rounded-full bg-red-50 flex items-center justify-center text-[#ff385c]">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+                              </svg>
+                            </span>
+                            Hotel Search
+                          </button>
+                        )}
+
+                        {/* Flight Search — only when no flight activity exists for this day */}
+                        {!currentDay.activities.some(a => a.type === 'flight') && (
+                          <button
+                            onClick={() => {
+                              setIsAddMenuOpen(false);
+                              setRightPanelMode('FLIGHT_SEARCH');
+                            }}
+                            className="w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors flex items-center gap-3"
+                          >
+                            <span className="w-6 h-6 rounded-full bg-blue-50 flex items-center justify-center text-blue-500">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 transform rotate-45" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                              </svg>
+                            </span>
+                            Flight Search
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1060,6 +1106,15 @@ const ItineraryBuilder: React.FC<Props> = ({
               searchData={searchData}
               onBack={() => setRightPanelMode('MAP')}
               onSelect={handleSelectHotel}
+            />
+          )}
+
+          {rightPanelMode === 'FLIGHT_SEARCH' && (
+            <FlightSearchPanel
+              onClose={() => setRightPanelMode('MAP')}
+              onSelectFlight={handleSelectFlight}
+              destination={data.destination}
+              startDate={data.startDate}
             />
           )}
         </div>
