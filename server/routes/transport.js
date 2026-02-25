@@ -1,5 +1,6 @@
 import express from 'express';
 import { generateTransportOptions, generateGeneralInfo, estimateFlightDuration, generateAttractions } from '../services/gemini.js';
+import { searchFlights, lookupIataCode, getHotelAffiliateLink, getHotelBookingLink, getActivityAffiliateLink } from '../services/travelpayouts.js';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 
@@ -197,6 +198,114 @@ router.post('/flight-estimates', async (req, res) => {
     } catch (error) {
         console.error('Error getting flight estimates:', error);
         res.status(500).json({ error: 'Failed to get flight estimates' });
+    }
+});
+
+// ── Travelpayouts-Powered Flight Search ─────────────────────────────────────
+// Uses real Travelpayouts data when configured, falls back to AI estimates.
+router.post('/flights/search', async (req, res) => {
+    try {
+        const { origin, destination, departDate, returnDate } = req.body;
+
+        if (!origin || !destination) {
+            return res.status(400).json({ error: 'Origin and destination IATA codes are required' });
+        }
+
+        // Try Travelpayouts first
+        const tpResult = await searchFlights(origin, destination, departDate, returnDate);
+
+        if (tpResult.configured && tpResult.results.length > 0) {
+            console.log(`[Flights] Travelpayouts returned ${tpResult.results.length} results for ${origin}->${destination}`);
+            return res.json(tpResult);
+        }
+
+        // Fallback: use AI-estimated slots (existing logic)
+        console.log(`[Flights] Falling back to AI estimates for ${origin}->${destination}`);
+        const duration = await estimateFlightDuration(origin, destination);
+
+        const slots = [
+            {
+                id: 'morning-flight',
+                airline: 'Morning Flight',
+                flightNumber: 'EST-M',
+                departure: '06:00',
+                arrival: addDurationToTime('06:00', duration),
+                duration: duration,
+                price: 'Check Online',
+                type: 'flight',
+                source: 'estimate'
+            },
+            {
+                id: 'afternoon-flight',
+                airline: 'Afternoon Flight',
+                flightNumber: 'EST-A',
+                departure: '12:00',
+                arrival: addDurationToTime('12:00', duration),
+                duration: duration,
+                price: 'Check Online',
+                type: 'flight',
+                source: 'estimate'
+            },
+            {
+                id: 'evening-flight',
+                airline: 'Evening Flight',
+                flightNumber: 'EST-E',
+                departure: '18:00',
+                arrival: addDurationToTime('18:00', duration),
+                duration: duration,
+                price: 'Check Online',
+                type: 'flight',
+                source: 'estimate'
+            }
+        ];
+
+        res.json({
+            results: slots,
+            affiliateSearchUrl: tpResult.affiliateSearchUrl || '',
+            configured: tpResult.configured
+        });
+    } catch (error) {
+        console.error('Error searching flights:', error);
+        res.status(500).json({ error: 'Failed to search flights' });
+    }
+});
+
+// ── IATA Code Lookup (City/Airport Autocomplete) ────────────────────────────
+router.get('/flights/iata-lookup', async (req, res) => {
+    try {
+        const { query } = req.query;
+
+        if (!query || query.length < 2) {
+            return res.json({ results: [] });
+        }
+
+        const results = await lookupIataCode(query);
+        res.json({ results });
+    } catch (error) {
+        console.error('Error looking up IATA code:', error);
+        res.status(500).json({ error: 'Failed to lookup IATA code' });
+    }
+});
+
+// ── Affiliate Links Generator ───────────────────────────────────────────────
+router.post('/affiliate-links', async (req, res) => {
+    try {
+        const { destination, hotelName, activityName, checkIn, checkOut } = req.body;
+
+        if (!destination) {
+            return res.status(400).json({ error: 'Destination is required' });
+        }
+
+        const links = {
+            hotelSearch: getHotelAffiliateLink(destination, checkIn, checkOut),
+            ...(hotelName && { hotelBooking: getHotelBookingLink(hotelName, destination) }),
+            ...(activityName && { activityBooking: getActivityAffiliateLink(activityName, destination) })
+        };
+
+        res.json({ links });
+    } catch (error) {
+        console.error('Error generating affiliate links:', error);
+        res.status(500).json({ error: 'Failed to generate affiliate links' });
     }
 });
 

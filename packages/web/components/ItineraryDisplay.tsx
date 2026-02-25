@@ -25,6 +25,7 @@ import TransportInfoPanel from './TransportInfoPanel';
 
 import ActivitySearchPanel from './ActivitySearchPanel';
 import HotelDetailsPanel from './HotelDetailsPanel';
+import FlightSearchPanel from './FlightSearchPanel';
 
 interface Props {
   data: Itinerary;
@@ -1104,18 +1105,31 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
                     ) : (
                       <>
                         <div className="mb-4">
-                          <p className="text-xs text-slate-500 mb-3 leading-relaxed">Need to get here? Let AI find the best flights, trains, and travel tips for you.</p>
-                          <button
-                            onClick={() => setRightPanelMode('TRANSPORT_INFO')}
-                            className="w-full bg-[#eff6ff] hover:bg-blue-50 transition-colors rounded-lg py-3 text-center group/btn border border-blue-100"
-                          >
-                            <span className="text-[#3b82f6] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 group-hover/btn:scale-105 transition-transform">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                              </svg>
-                              Explore Transport Options
-                            </span>
-                          </button>
+                          <p className="text-xs text-slate-500 mb-3 leading-relaxed">Need to get here? Search real flights or explore other transport options.</p>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setRightPanelMode('FLIGHT_SEARCH')}
+                              className="flex-1 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 transition-colors rounded-lg py-3 text-center group/btn border border-blue-200"
+                            >
+                              <span className="text-blue-600 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 group-hover/btn:scale-105 transition-transform">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 transform rotate-45" viewBox="0 0 20 20" fill="currentColor">
+                                  <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                                </svg>
+                                ✈️ Search Flights
+                              </span>
+                            </button>
+                            <button
+                              onClick={() => setRightPanelMode('TRANSPORT_INFO')}
+                              className="flex-1 bg-[#eff6ff] hover:bg-blue-50 transition-colors rounded-lg py-3 text-center group/btn border border-blue-100"
+                            >
+                              <span className="text-[#3b82f6] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 group-hover/btn:scale-105 transition-transform">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                                </svg>
+                                🚌 Transport
+                              </span>
+                            </button>
+                          </div>
                         </div>
                       </>
                     )}
@@ -1241,18 +1255,31 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
                     ) : (
                       <>
                         <div className="mb-4">
-                          <p className="text-xs text-slate-500 mb-3 leading-relaxed">Heading home or to your next stop? Check available options.</p>
-                          <button
-                            onClick={() => setRightPanelMode('TRANSPORT_INFO')}
-                            className="w-full bg-[#eff6ff] hover:bg-blue-50 transition-colors rounded-lg py-3 text-center group/btn border border-blue-100"
-                          >
-                            <span className="text-[#3b82f6] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 group-hover/btn:scale-105 transition-transform">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                              </svg>
-                              Explore Transport Options
-                            </span>
-                          </button>
+                          <p className="text-xs text-slate-500 mb-3 leading-relaxed">Heading home or to your next stop? Search flights or check other options.</p>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setRightPanelMode('FLIGHT_SEARCH')}
+                              className="flex-1 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 transition-colors rounded-lg py-3 text-center group/btn border border-blue-200"
+                            >
+                              <span className="text-blue-600 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 group-hover/btn:scale-105 transition-transform">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 transform rotate-45" viewBox="0 0 20 20" fill="currentColor">
+                                  <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                                </svg>
+                                ✈️ Search Flights
+                              </span>
+                            </button>
+                            <button
+                              onClick={() => setRightPanelMode('TRANSPORT_INFO')}
+                              className="flex-1 bg-[#eff6ff] hover:bg-blue-50 transition-colors rounded-lg py-3 text-center group/btn border border-blue-100"
+                            >
+                              <span className="text-[#3b82f6] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 group-hover/btn:scale-105 transition-transform">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                                </svg>
+                                🚌 Transport
+                              </span>
+                            </button>
+                          </div>
                         </div>
                       </>
                     )}
@@ -1346,6 +1373,15 @@ const ItineraryBuilder: React.FC<Props & { isScriptLoaded: boolean }> = ({
               searchData={searchData}
               onBack={() => setRightPanelMode('MAP')}
               onSelect={handleSelectHotel}
+            />
+          )}
+
+          {rightPanelMode === 'FLIGHT_SEARCH' && (
+            <FlightSearchPanel
+              onClose={() => setRightPanelMode('MAP')}
+              onSelectFlight={handleSelectFlight}
+              destination={data.destination}
+              startDate={data.startDate}
             />
           )}
         </div>

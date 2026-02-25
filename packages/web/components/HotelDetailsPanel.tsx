@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Map, AdvancedMarker, InfoWindow, useMap } from '@vis.gl/react-google-maps';
 import { MapPin } from 'lucide-react';
+import { getAffiliateLinks } from '@nextdestination/shared';
 
 interface HotelDetailsPanelProps {
     onBack: () => void;
@@ -242,12 +243,26 @@ const HotelDetailsPanel: React.FC<HotelDetailsPanelProps> = ({ onBack, onSelect,
                                                 <div className="flex items-baseline gap-1">
                                                     <span className="font-bold text-slate-900 text-sm">{hotel.price}</span>
                                                 </div>
-                                                <button
-                                                    onClick={(e) => handleAddToItinerary(hotel, e)}
-                                                    className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
-                                                >
-                                                    Add
-                                                </button>
+                                                <div className="flex gap-1.5">
+                                                    <a
+                                                        href={`https://www.booking.com/searchresults.html?ss=${encodeURIComponent(hotel.name + ', ' + (searchData?.location || ''))}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        className="px-2.5 py-1.5 bg-blue-50 text-blue-700 text-[10px] font-bold rounded-lg hover:bg-blue-100 transition-colors border border-blue-200 flex items-center gap-1"
+                                                    >
+                                                        Book
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                        </svg>
+                                                    </a>
+                                                    <button
+                                                        onClick={(e) => handleAddToItinerary(hotel, e)}
+                                                        className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+                                                    >
+                                                        Add
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -315,10 +330,21 @@ const HotelDetailsPanel: React.FC<HotelDetailsPanelProps> = ({ onBack, onSelect,
                                     <img src={selectedHotel.image} alt={selectedHotel.name} className="w-full h-24 object-cover rounded-lg mb-2" />
                                     <button
                                         onClick={() => handleAddToItinerary(selectedHotel)}
-                                        className="w-full py-1.5 bg-indigo-600 text-white rounded text-xs font-bold hover:bg-indigo-700"
+                                        className="w-full py-1.5 bg-indigo-600 text-white rounded text-xs font-bold hover:bg-indigo-700 mb-1.5"
                                     >
                                         Add to Itinerary
                                     </button>
+                                    <a
+                                        href={`https://www.booking.com/searchresults.html?ss=${encodeURIComponent(selectedHotel.name + ', ' + (searchData?.location || ''))}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="w-full py-1.5 bg-blue-50 text-blue-700 rounded text-xs font-bold hover:bg-blue-100 transition-colors border border-blue-200 flex items-center justify-center gap-1"
+                                    >
+                                        Book on Booking.com
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                        </svg>
+                                    </a>
                                 </div>
                             </InfoWindow>
                         )}
