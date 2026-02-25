@@ -12,7 +12,9 @@ import {
   fetchUserItineraries,
   updateItineraryPrivacy,
   updateMyProfile,
-  useItineraryStore
+  useItineraryStore,
+  submitTranscript,
+  fetchCreatorItineraries
 } from '@nextdestination/shared';
 import { supabase } from '@/lib/supabaseClient';
 import CommunityItineraryCard from '@/components/CommunityItineraryCard';
@@ -35,12 +37,19 @@ export default function ProfilePage() {
   const [itineraries, setItineraries] = useState<any[]>([]);
   const [bucketList, setBucketList] = useState<CommunityItinerary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'upcoming' | 'past' | 'bucketlist'>('upcoming');
+  const [activeTab, setActiveTab] = useState<'upcoming' | 'past' | 'bucketlist' | 'creator'>('upcoming');
   const [editingBio, setEditingBio] = useState(false);
   const [bioText, setBioText] = useState('');
   const [editingName, setEditingName] = useState(false);
   const [nameText, setNameText] = useState('');
   const [upgrading, setUpgrading] = useState(false);
+  const [creatorStats, setCreatorStats] = useState<{ totalTrips: number; totalViews: number; totalRemixes: number } | null>(null);
+  // Creator Tools state
+  const [transcript, setTranscript] = useState('');
+  const [isSubmittingTranscript, setIsSubmittingTranscript] = useState(false);
+  const [transcriptError, setTranscriptError] = useState<string | null>(null);
+  const [transcriptSuccess, setTranscriptSuccess] = useState<{ id: string; url: string } | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (userProfile) {
@@ -104,6 +113,23 @@ export default function ProfilePage() {
     };
     loadData();
   }, [session]);
+
+  // Load creator stats
+  useEffect(() => {
+    if (user) {
+      fetchCreatorItineraries(user.id)
+        .then(trips => {
+          if (trips.length > 0) {
+            setCreatorStats({
+              totalTrips: trips.length,
+              totalViews: trips.reduce((s: number, t: any) => s + (t.viewCount || 0), 0),
+              totalRemixes: trips.reduce((s: number, t: any) => s + (t.remixCount || 0), 0)
+            });
+          }
+        })
+        .catch(() => { /* not critical */ });
+    }
+  }, [user]);
 
   const handleLogout = async () => {
     await signOut();
@@ -395,7 +421,7 @@ export default function ProfilePage() {
           <div className="lg:col-span-3">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
               <h2 className="text-3xl font-black text-slate-900 tracking-tight">
-                {activeTab === 'bucketlist' ? 'My Bucket List' : 'My Saved Trips'}
+                {activeTab === 'bucketlist' ? 'My Bucket List' : activeTab === 'creator' ? 'Creator Tools' : 'My Saved Trips'}
               </h2>
 
               <div className="flex bg-slate-100 p-1 rounded-xl self-start md:self-auto">
@@ -416,6 +442,12 @@ export default function ProfilePage() {
                   className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'bucketlist' ? 'bg-white text-pink-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                 >
                   Bucket List
+                </button>
+                <button
+                  onClick={() => setActiveTab('creator')}
+                  className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'creator' ? 'bg-white text-violet-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  🎬 Creator
                 </button>
               </div>
 
@@ -438,6 +470,51 @@ export default function ProfilePage() {
               </div>
             ) : activeTab === 'bucketlist' ? (
               <BucketListSection trips={bucketList} onRemix={handleRemix} />
+            ) : activeTab === 'creator' ? (
+              <CreatorToolsSection
+                transcript={transcript}
+                setTranscript={setTranscript}
+                isSubmitting={isSubmittingTranscript}
+                error={transcriptError}
+                success={transcriptSuccess}
+                fileInputRef={fileInputRef}
+                creatorStats={creatorStats}
+                userId={user?.id}
+                onFileUpload={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const ext = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+                  if (!['.txt', '.vtt', '.srt'].includes(ext)) {
+                    setTranscriptError('Please upload a .txt, .vtt, or .srt file');
+                    return;
+                  }
+                  const reader = new FileReader();
+                  reader.onload = (ev) => { setTranscript(ev.target?.result as string); setTranscriptError(null); };
+                  reader.readAsText(file);
+                }}
+                onSubmit={async () => {
+                  if (!transcript.trim() || transcript.trim().length < 50) {
+                    setTranscriptError('Please paste at least 50 characters of transcript text');
+                    return;
+                  }
+                  if (!session?.access_token) {
+                    setTranscriptError('You must be logged in');
+                    return;
+                  }
+                  setIsSubmittingTranscript(true);
+                  setTranscriptError(null);
+                  setTranscriptSuccess(null);
+                  try {
+                    const result = await submitTranscript(transcript, session.access_token);
+                    setTranscriptSuccess({ id: result.id, url: `${window.location.origin}/share/${result.id}` });
+                    setTranscript('');
+                  } catch (err: any) {
+                    setTranscriptError(err.message || 'Something went wrong');
+                  } finally {
+                    setIsSubmittingTranscript(false);
+                  }
+                }}
+              />
             ) : (
               <TripsList
                 trips={itineraries}
@@ -453,6 +530,142 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+// ─── Creator Tools Tab ─────────────────────────────────────────────────────
+const CreatorToolsSection: React.FC<{
+  transcript: string;
+  setTranscript: (v: string) => void;
+  isSubmitting: boolean;
+  error: string | null;
+  success: { id: string; url: string } | null;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
+  creatorStats: { totalTrips: number; totalViews: number; totalRemixes: number } | null;
+  userId?: string;
+  onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onSubmit: () => void;
+}> = ({ transcript, setTranscript, isSubmitting, error, success, fileInputRef, creatorStats, userId, onFileUpload, onSubmit }) => {
+  return (
+    <div className="space-y-6">
+      {/* Creator Stats */}
+      {creatorStats && creatorStats.totalTrips > 0 && (
+        <div className="bg-gradient-to-br from-violet-50 to-indigo-50 rounded-3xl border border-indigo-100 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider">Your Creator Stats</h3>
+            {userId && (
+              <a href={`/creator/${userId}`} className="text-xs font-bold text-indigo-500 hover:text-indigo-700 transition-colors">
+                View Public Profile →
+              </a>
+            )}
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            {[
+              { label: 'Public Trips', value: creatorStats.totalTrips, icon: '🗺️' },
+              { label: 'Total Views', value: creatorStats.totalViews, icon: '👀' },
+              { label: 'Remixes', value: creatorStats.totalRemixes, icon: '🔄' },
+            ].map((stat, i) => (
+              <div key={i} className="bg-white rounded-2xl p-4 text-center border border-indigo-50">
+                <span className="text-xl mb-1 block">{stat.icon}</span>
+                <div className="text-2xl font-black text-slate-900">{stat.value.toLocaleString()}</div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Transcript Import Tool */}
+      <div className="bg-white rounded-3xl border-2 border-slate-200 p-6 hover:border-indigo-200 transition-colors">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-xl flex items-center justify-center text-xl shadow-md">
+            🎬
+          </div>
+          <div>
+            <h3 className="font-black text-slate-900 text-lg">Create from Transcript</h3>
+            <p className="text-xs text-slate-400 font-medium">Turn your travel video into a shareable itinerary</p>
+          </div>
+        </div>
+
+        {/* Success State */}
+        {success && (
+          <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-5 mb-4">
+            <div className="flex items-start gap-3">
+              <div className="text-2xl">🎉</div>
+              <div className="flex-1">
+                <p className="font-bold text-emerald-800 mb-1">Itinerary is building!</p>
+                <p className="text-sm text-emerald-600 mb-3">Share this link — your itinerary will appear shortly.</p>
+                <div className="flex items-center gap-2">
+                  <input
+                    readOnly
+                    value={success.url}
+                    className="flex-1 bg-white border border-emerald-200 rounded-xl px-3 py-2 text-sm font-mono text-emerald-700 truncate"
+                  />
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(success.url); }}
+                    className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 transition-colors flex-shrink-0"
+                  >
+                    📋 Copy
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Textarea + File Upload */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Video Transcript</label>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 transition-colors"
+            >
+              📎 Upload file
+            </button>
+            <input ref={fileInputRef} type="file" accept=".txt,.vtt,.srt" onChange={onFileUpload} className="hidden" />
+          </div>
+          <textarea
+            value={transcript}
+            onChange={(e) => setTranscript(e.target.value)}
+            placeholder={`Paste your travel video transcript here...\n\nExample: "Hey guys! Just landed in Bali, day one we visited Tirta Empul temple, had lunch at Locavore..."`}
+            rows={8}
+            className="w-full resize-none text-slate-800 font-medium text-sm leading-relaxed bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 placeholder:text-slate-300"
+          />
+          <div className="flex items-center justify-between mt-1.5">
+            <span className="text-xs text-slate-400">{transcript.length.toLocaleString()} chars {transcript.length > 0 && transcript.length < 50 && '(min 50)'}</span>
+            <span className="text-xs text-slate-400">.txt, .vtt, .srt</span>
+          </div>
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div className="bg-red-50 border border-red-100 rounded-xl p-3 mb-4 text-center">
+            <p className="text-red-700 font-bold text-sm">{error}</p>
+          </div>
+        )}
+
+        {/* Submit */}
+        <button
+          onClick={onSubmit}
+          disabled={isSubmitting || transcript.trim().length < 50}
+          className="w-full py-4 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-2xl font-black text-base shadow-lg shadow-indigo-200 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center gap-2"
+        >
+          {isSubmitting ? (
+            <>
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              Creating share link...
+            </>
+          ) : (
+            <>✨ Generate &amp; Get Share Link</>
+          )}
+        </button>
+
+        <p className="text-center text-xs text-slate-400 mt-3">
+          You&apos;ll get an instant share link — the itinerary builds in the background (10–30s).
+        </p>
+      </div>
+    </div>
+  );
+};
 
 const BucketListSection: React.FC<{
   trips: CommunityItinerary[];

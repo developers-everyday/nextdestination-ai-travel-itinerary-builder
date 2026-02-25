@@ -1,11 +1,12 @@
 import express from 'express';
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
-import { generateEmbedding } from '../services/gemini.js';
+import { generateEmbedding, extractItineraryFromTranscript } from '../services/gemini.js';
 import { verifyAuth, optionalAuth } from '../middleware/auth.js';
 import { checkSaveQuota, incrementSaves } from '../middleware/roleAuth.js';
 import dotenv from 'dotenv';
 import path from 'path';
+import { generateAndSaveItineraryImage } from '../services/imageGenerationService.js';
 
 // Load env vars if not already loaded (though server index likely does)
 dotenv.config();
@@ -233,10 +234,160 @@ router.get('/my-trips', verifyAuth, async (req, res) => {
 });
 
 
-// ... (previous imports)
-import { generateAndSaveItineraryImage } from '../services/imageGenerationService.js';
+// ============================================================
+// POST /api/itineraries/async-from-transcript
+// Instant share URL + background itinerary generation from transcript
+// ============================================================
+router.post('/async-from-transcript', verifyAuth, async (req, res) => {
+    try {
+        const { transcript } = req.body;
+        const userId = req.user.id;
+        const token = req.headers.authorization?.split(' ')[1];
 
-// ... (previous code)
+        if (!transcript || typeof transcript !== 'string' || transcript.trim().length < 50) {
+            return res.status(400).json({ error: 'Transcript text is required (minimum 50 characters)' });
+        }
+
+        // Generate ID immediately
+        const idToUse = crypto.randomUUID();
+        const supabaseClient = getSupabase(req);
+
+        // Insert a pending row so the share URL works immediately
+        const { error: insertError } = await supabaseClient
+            .from('itineraries')
+            .insert({
+                id: idToUse,
+                content: 'Generating from transcript...',
+                metadata: { destination: 'Building...', days: [], status: 'pending' },
+                user_id: userId,
+                is_public: true,
+                status: 'pending'
+            });
+
+        if (insertError) {
+            console.error('[Transcript] Failed to insert pending row:', insertError);
+            return res.status(500).json({ error: 'Failed to create itinerary placeholder' });
+        }
+
+        // Respond instantly with share URL
+        res.json({
+            id: idToUse,
+            shareUrl: `/share/${idToUse}`,
+            status: 'pending',
+            message: 'Itinerary is being generated from your transcript. Share the link now!'
+        });
+
+        // ── Background: generate itinerary from transcript ──────────────
+        (async () => {
+            try {
+                console.log(`[Transcript] Starting background generation for ${idToUse}...`);
+                const itinerary = await extractItineraryFromTranscript(transcript);
+
+                const textContent = generateItineraryText(itinerary);
+
+                // Update the pending row with the full itinerary
+                const authClient = getSupabase({ headers: { authorization: `Bearer ${token}` } });
+                const { error: updateError } = await authClient
+                    .from('itineraries')
+                    .update({
+                        content: textContent,
+                        metadata: itinerary,
+                        status: 'ready'
+                    })
+                    .eq('id', idToUse);
+
+                if (updateError) {
+                    console.error(`[Transcript] Failed to update itinerary ${idToUse}:`, updateError);
+                    // Try to mark as error
+                    await authClient.from('itineraries')
+                        .update({ status: 'error' })
+                        .eq('id', idToUse);
+                } else {
+                    console.log(`[Transcript] Itinerary ${idToUse} generated successfully.`);
+                    // Start async embedding
+                    generateAndSaveEmbedding(idToUse, textContent, authClient);
+                }
+            } catch (err) {
+                console.error(`[Transcript] Background generation failed for ${idToUse}:`, err);
+                try {
+                    const authClient = getSupabase({ headers: { authorization: `Bearer ${token}` } });
+                    await authClient.from('itineraries')
+                        .update({ status: 'error' })
+                        .eq('id', idToUse);
+                } catch (_) { /* best effort */ }
+            }
+        })();
+
+    } catch (error) {
+        console.error('Error in async-from-transcript route:', error);
+        res.status(500).json({ error: 'Internal Server Error', details: error.message });
+    }
+});
+
+// ============================================================
+// GET /api/itineraries/status/:id — Poll itinerary build status
+// Used by the share page to poll pending itineraries
+// ============================================================
+router.get('/status/:id', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const { data, error } = await anonClient
+            .from('itineraries')
+            .select('status, metadata')
+            .eq('id', id)
+            .single();
+
+        if (error) {
+            if (error.code === 'PGRST116') {
+                return res.status(404).json({ status: 'not_found' });
+            }
+            throw error;
+        }
+
+        res.json({
+            status: data.status,
+            itinerary: data.status === 'ready' ? data.metadata : null
+        });
+    } catch (error) {
+        console.error('Error polling itinerary status:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// ============================================================
+// GET /api/itineraries/by-user/:userId — Creator's public itineraries
+// Used by the creator profile page
+// ============================================================
+router.get('/by-user/:userId', async (req, res) => {
+    const { userId } = req.params;
+
+    try {
+        const { data, error } = await anonClient
+            .from('itineraries')
+            .select('id, metadata, view_count, remix_count')
+            .eq('user_id', userId)
+            .eq('is_public', true)
+            .eq('status', 'ready')
+            .order('id', { ascending: false })
+            .limit(50);
+
+        if (error) throw error;
+
+        const results = (data || []).map(item => ({
+            ...item.metadata,
+            id: item.id,
+            viewCount: item.view_count || 0,
+            remixCount: item.remix_count || 0
+        }));
+
+        res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=15');
+        res.json(results);
+    } catch (error) {
+        console.error('Error fetching creator itineraries:', error);
+        res.status(500).json({ error: 'Internal Server Error', details: error.message });
+    }
+});
 
 // POST /api/itineraries - Save itinerary (with save quota check)
 // optionalAuth sets req.user for authenticated users; anonymous saves still allowed
@@ -293,6 +444,29 @@ router.post('/', optionalAuth, checkSaveQuota, async (req, res) => {
         // Increment save quota for authenticated users
         if (userId) {
             incrementSaves(userId).catch(err => console.error('[Quota] Save increment failed:', err));
+        }
+
+        // Increment remix_count on source itinerary if this is a remix
+        if (itineraryData.sourceItineraryId) {
+            anonClient
+                .rpc('increment_counter', { row_id: itineraryData.sourceItineraryId, counter_name: 'remix_count' })
+                .then(() => console.log(`[Remix] Incremented remix_count for ${itineraryData.sourceItineraryId}`))
+                .catch(() => {
+                    // Fallback: direct update if RPC not available
+                    anonClient
+                        .from('itineraries')
+                        .select('remix_count')
+                        .eq('id', itineraryData.sourceItineraryId)
+                        .single()
+                        .then(({ data: src }) => {
+                            if (src) {
+                                anonClient.from('itineraries')
+                                    .update({ remix_count: (src.remix_count || 0) + 1 })
+                                    .eq('id', itineraryData.sourceItineraryId)
+                                    .then(() => console.log(`[Remix] Incremented remix_count via fallback`));
+                            }
+                        });
+                });
         }
 
         // Trigger Async Embedding
@@ -365,14 +539,9 @@ router.get('/:id', async (req, res) => {
     const supabaseClient = getSupabase(req);
 
     try {
-        // RLS Policies will filter automatically based on client auth
-        // If public -> access allowed
-        // If private & owner -> access allowed
-        // Else -> empty result (PGRST116) or 406
-
         const { data, error } = await supabaseClient
             .from('itineraries')
-            .select('metadata, is_public, user_id')
+            .select('metadata, is_public, user_id, status, view_count, remix_count')
             .eq('id', id)
             .single();
 
@@ -383,13 +552,32 @@ router.get('/:id', async (req, res) => {
             throw error;
         }
 
+        // Increment view_count in background (fire-and-forget)
+        (async () => {
+            try {
+                await anonClient
+                    .from('itineraries')
+                    .update({ view_count: (data.view_count || 0) + 1 })
+                    .eq('id', id);
+            } catch (err) {
+                console.error('[Views] Failed to increment:', err);
+            }
+        })();
+
         // Public itineraries can be edge-cached; private ones must not leak across users
         if (data.is_public) {
             res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=15');
         } else {
             res.set('Cache-Control', 'private, no-store');
         }
-        res.json({ ...data.metadata, isPublic: data.is_public, userId: data.user_id });
+        res.json({
+            ...data.metadata,
+            isPublic: data.is_public,
+            userId: data.user_id,
+            status: data.status || 'ready',
+            viewCount: data.view_count || 0,
+            remixCount: data.remix_count || 0
+        });
     } catch (error) {
         console.error('Error fetching itinerary:', error);
         res.status(500).json({ error: 'Internal Server Error', details: error.message });
