@@ -81,6 +81,13 @@ export default function RootLayout({
             gtag('config', '${GA_ID}', { send_page_view: false });
           `}
         </Script>
+
+        {/* Travelpayouts – website ownership verification */}
+        <Script
+          id="travelpayouts-verify"
+          strategy="afterInteractive"
+          src="https://emrld.cc/NTAyMjg4.js?t=502288"
+        />
       </body>
     </html>
   );

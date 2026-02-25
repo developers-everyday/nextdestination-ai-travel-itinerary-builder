@@ -14,6 +14,8 @@ import {
   Trash2,
   CheckCircle,
   XCircle,
+  ImageMinus,
+  Link2,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -37,6 +39,7 @@ export default function AdminItineraryEditPage() {
   const [saving, setSaving] = useState(false);
   const [processing, setProcessing] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [assignUrl, setAssignUrl] = useState("");
 
   const token = session?.access_token;
 
@@ -126,10 +129,41 @@ export default function AdminItineraryEditPage() {
     setProcessing("image");
     try {
       const result = await apiAction(`/api/admin/itineraries/${id}/image`);
-      showToast(result?.imageUrl ? "Image generated" : "Image generation failed");
+      showToast(result?.imageUrl ? "Infographic generated" : "Generation failed");
       await fetchItinerary();
     } catch (err) {
       console.error("Image error:", err);
+    } finally {
+      setProcessing(null);
+    }
+  };
+
+  const handleRemoveImage = async () => {
+    if (!confirm("Remove the image from this itinerary?")) return;
+    setProcessing("removeImage");
+    try {
+      await apiAction(`/api/admin/itineraries/${id}/image`, "DELETE");
+      showToast("Image removed");
+      await fetchItinerary();
+    } catch (err) {
+      console.error("Remove image error:", err);
+    } finally {
+      setProcessing(null);
+    }
+  };
+
+  const handleAssignImage = async () => {
+    if (!assignUrl.trim()) return;
+    setProcessing("assignImage");
+    try {
+      await apiAction(`/api/admin/itineraries/${id}/image`, "PATCH", {
+        imageUrl: assignUrl.trim(),
+      });
+      showToast("Image URL assigned");
+      setAssignUrl("");
+      await fetchItinerary();
+    } catch (err) {
+      console.error("Assign image error:", err);
     } finally {
       setProcessing(null);
     }
@@ -300,8 +334,50 @@ export default function AdminItineraryEditPage() {
                 alt="Itinerary"
                 className="aspect-[3/4] w-full object-cover"
               />
+              <div className="border-t border-slate-100 px-3 py-2">
+                <p className="truncate text-xs text-slate-400" title={meta.image}>
+                  {meta.image}
+                </p>
+              </div>
+              <div className="border-t border-slate-100 p-2">
+                <button
+                  onClick={handleRemoveImage}
+                  disabled={!!processing}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
+                >
+                  <ImageMinus className="h-4 w-4" />
+                  {processing === "removeImage" ? "Removing..." : "Remove Image"}
+                </button>
+              </div>
             </div>
           )}
+
+          {/* Assign Image URL */}
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <h3
+              className="mb-3 text-sm font-semibold text-slate-900"
+              style={{ fontFamily: "var(--font-jakarta), sans-serif" }}
+            >
+              Assign Image
+            </h3>
+            <div className="space-y-2">
+              <input
+                type="url"
+                placeholder="https://example.com/image.jpg"
+                value={assignUrl}
+                onChange={(e) => setAssignUrl(e.target.value)}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              />
+              <button
+                onClick={handleAssignImage}
+                disabled={!!processing || !assignUrl.trim()}
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              >
+                <Link2 className="h-4 w-4 text-indigo-500" />
+                {processing === "assignImage" ? "Assigning..." : "Apply Image URL"}
+              </button>
+            </div>
+          </div>
 
           {/* AI Actions */}
           <div className="rounded-xl border border-slate-200 bg-white p-4">
@@ -340,7 +416,7 @@ export default function AdminItineraryEditPage() {
                 <Image className="h-4 w-4 text-blue-500" />
                 {processing === "image"
                   ? "Generating..."
-                  : "Generate Image"}
+                  : "Generate Infographic"}
               </button>
             </div>
           </div>

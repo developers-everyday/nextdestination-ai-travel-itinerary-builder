@@ -279,6 +279,7 @@ router.get('/itineraries', async (req, res) => {
             creator: i.user_id || 'anonymous',
             hasEmbedding: !!i.embedding,
             hasImage: !!i.metadata?.image,
+            imageUrl: i.metadata?.image || null,
             isPublic: i.is_public,
         }));
 
@@ -464,6 +465,89 @@ router.post('/itineraries/:id/image', async (req, res) => {
     } catch (error) {
         console.error('[Admin] Generate image error:', error);
         res.status(500).json({ error: `Failed to generate image: ${error.message}` });
+    }
+});
+
+// DELETE /api/admin/itineraries/:id/image — Remove itinerary image
+router.delete('/itineraries/:id/image', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Fetch current metadata
+        const { data: current, error: fetchErr } = await supabase
+            .from('itineraries')
+            .select('metadata')
+            .eq('id', id)
+            .single();
+
+        if (fetchErr) throw fetchErr;
+        if (!current) return res.status(404).json({ error: 'Itinerary not found' });
+
+        const oldImageUrl = current.metadata?.image;
+
+        // Remove image from metadata
+        const updatedMetadata = { ...current.metadata };
+        delete updatedMetadata.image;
+
+        const { error: updateErr } = await supabase
+            .from('itineraries')
+            .update({ metadata: updatedMetadata, updated_at: new Date().toISOString() })
+            .eq('id', id);
+
+        if (updateErr) throw updateErr;
+
+        // Best-effort: delete from Supabase Storage if it's our bucket URL
+        if (oldImageUrl && oldImageUrl.includes('/itinerary-images/')) {
+            try {
+                const fileName = oldImageUrl.split('/itinerary-images/').pop();
+                if (fileName) {
+                    await supabase.storage.from('itinerary-images').remove([fileName]);
+                }
+            } catch (storageErr) {
+                console.warn('[Admin] Could not delete old image from storage:', storageErr.message);
+            }
+        }
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[Admin] Remove image error:', error);
+        res.status(500).json({ error: 'Failed to remove image' });
+    }
+});
+
+// PATCH /api/admin/itineraries/:id/image — Assign an external image URL
+router.patch('/itineraries/:id/image', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { imageUrl } = req.body;
+
+        if (!imageUrl || typeof imageUrl !== 'string') {
+            return res.status(400).json({ error: 'imageUrl string is required' });
+        }
+
+        // Fetch current metadata
+        const { data: current, error: fetchErr } = await supabase
+            .from('itineraries')
+            .select('metadata')
+            .eq('id', id)
+            .single();
+
+        if (fetchErr) throw fetchErr;
+        if (!current) return res.status(404).json({ error: 'Itinerary not found' });
+
+        const updatedMetadata = { ...current.metadata, image: imageUrl };
+
+        const { error: updateErr } = await supabase
+            .from('itineraries')
+            .update({ metadata: updatedMetadata, updated_at: new Date().toISOString() })
+            .eq('id', id);
+
+        if (updateErr) throw updateErr;
+
+        res.json({ success: true, imageUrl });
+    } catch (error) {
+        console.error('[Admin] Assign image error:', error);
+        res.status(500).json({ error: 'Failed to assign image' });
     }
 });
 

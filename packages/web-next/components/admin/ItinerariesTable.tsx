@@ -14,6 +14,7 @@ import {
   Lock,
   Trash2,
   Search,
+  ImageMinus,
 } from "lucide-react";
 
 export interface ItineraryRow {
@@ -24,6 +25,7 @@ export interface ItineraryRow {
   creator: string;
   hasEmbedding: boolean;
   hasImage: boolean;
+  imageUrl?: string | null;
   isPublic: boolean;
   createdAt?: string;
 }
@@ -32,6 +34,7 @@ interface ItinerariesTableProps {
   data: ItineraryRow[];
   onGenerateEmbedding: (id: string) => void;
   onGenerateImage: (id: string) => void;
+  onRemoveImage: (id: string) => void;
   onTogglePrivacy: (id: string, isPublic: boolean) => void;
   onDelete: (id: string) => void;
   onRegenerate: (id: string) => void;
@@ -42,6 +45,7 @@ export default function ItinerariesTable({
   data,
   onGenerateEmbedding,
   onGenerateImage,
+  onRemoveImage,
   onTogglePrivacy,
   onDelete,
   onRegenerate,
@@ -147,8 +151,19 @@ export default function ItinerariesTable({
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    {itin.hasImage ? (
-                      <CheckCircle className="h-4 w-4 text-green-500" />
+                    {itin.imageUrl ? (
+                      <a
+                        href={itin.imageUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={itin.imageUrl}
+                      >
+                        <img
+                          src={itin.imageUrl}
+                          alt={itin.destination}
+                          className="h-8 w-8 rounded object-cover ring-1 ring-slate-200 hover:ring-indigo-400 transition-all"
+                        />
+                      </a>
                     ) : (
                       <XCircle className="h-4 w-4 text-red-400" />
                     )}
@@ -241,6 +256,18 @@ export default function ItinerariesTable({
                             )}
                             {itin.isPublic ? "Make Private" : "Make Public"}
                           </button>
+                          {itin.hasImage && (
+                            <button
+                              onClick={() => {
+                                setOpenMenu(null);
+                                onRemoveImage(itin.id);
+                              }}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-orange-600 hover:bg-orange-50"
+                            >
+                              <ImageMinus className="h-4 w-4" />
+                              Remove Image
+                            </button>
+                          )}
                           <div className="my-1 border-t border-slate-100" />
                           <button
                             onClick={() => {

@@ -105,6 +105,16 @@ export default function AdminItinerariesPage() {
     }
   };
 
+  const handleRemoveImage = async (id: string) => {
+    if (!confirm("Remove the image from this itinerary?")) return;
+    try {
+      await apiAction(`/api/admin/itineraries/${id}/image`, "DELETE");
+      await fetchItineraries();
+    } catch (err) {
+      console.error("Remove image error:", err);
+    }
+  };
+
   const handleTogglePrivacy = async (id: string, isPublic: boolean) => {
     try {
       await apiAction(`/api/admin/itineraries/${id}/privacy`, "PATCH", {
@@ -164,7 +174,7 @@ export default function AdminItinerariesPage() {
               try {
                 const event: ProgressEvent = JSON.parse(line.slice(6));
                 setProgress((prev) => [...prev, event]);
-              } catch {}
+              } catch { }
             }
           }
           return read();
@@ -306,6 +316,7 @@ export default function AdminItinerariesPage() {
           data={itineraries}
           onGenerateEmbedding={handleGenerateEmbedding}
           onGenerateImage={handleGenerateImage}
+          onRemoveImage={handleRemoveImage}
           onTogglePrivacy={handleTogglePrivacy}
           onDelete={handleDelete}
           onRegenerate={handleRegenerate}
