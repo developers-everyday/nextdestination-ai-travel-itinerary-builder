@@ -144,6 +144,12 @@ app.use('/api/transport', transportRoutes);
 import wishlistRoutes from './routes/wishlist.js';
 app.use('/api/wishlist', wishlistRoutes);
 
+import followsRoutes from './routes/follows.js';
+app.use('/api/follows', followsRoutes);
+
+import creatorsRoutes from './routes/creators.js';
+app.use('/api/creators', creatorsRoutes);
+
 import profileRoutes from './routes/userProfile.js';
 app.use('/api/profile', profileRoutes);
 

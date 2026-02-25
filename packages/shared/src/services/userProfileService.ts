@@ -1,4 +1,4 @@
-import { UserProfile } from '../types';
+import { UserProfile, SocialLinks, CreatorInterest } from '../types';
 import { getApiUrl } from './apiConfig';
 
 const API_BASE_URL = `${getApiUrl()}/api/profile`;
@@ -20,7 +20,7 @@ export const fetchMyProfile = async (token: string): Promise<UserProfile> => {
 
 export const updateMyProfile = async (
     token: string,
-    updates: { displayName?: string; bio?: string; avatarUrl?: string }
+    updates: { displayName?: string; bio?: string; avatarUrl?: string; socialLinks?: SocialLinks; interests?: CreatorInterest[]; role?: 'influencer' }
 ): Promise<Partial<UserProfile>> => {
     const response = await fetch(`${API_BASE_URL}/me`, {
         method: 'PATCH',

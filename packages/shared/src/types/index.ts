@@ -65,6 +65,25 @@ export interface CommunityItinerary {
 export type UserRole = 'explorer' | 'influencer' | 'agent' | 'admin';
 export type UserPlan = 'starter' | 'explorer' | 'custom';
 
+// Creator Discovery
+export type SocialPlatform = 'youtube' | 'instagram' | 'tiktok' | 'twitter' | 'website';
+export type SocialLinks = Partial<Record<SocialPlatform, string>>;
+export type CreatorInterest = 'History' | 'Art' | 'Food' | 'Nature' | 'Adventure' | 'Relaxation' | 'Nightlife' | 'Shopping';
+
+export interface CreatorCardData {
+  userId: string;
+  displayName: string;
+  avatarUrl: string | null;
+  role: UserRole;
+  bio: string | null;
+  isVerified: boolean;
+  followerCount: number;
+  tripCount: number;
+  interests: CreatorInterest[];
+  socialLinks: SocialLinks | null;
+  isFollowing?: boolean;
+}
+
 export interface UserProfile {
   id: string;
   userId: string;
@@ -81,6 +100,10 @@ export interface UserProfile {
   canSellPackages: boolean;
   bio: string | null;
   isVerified: boolean;
+  socialLinks?: SocialLinks | null;
+  interests?: CreatorInterest[];
+  followerCount?: number;
+  followingCount?: number;
   createdAt?: string;
   updatedAt?: string;
 }

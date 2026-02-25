@@ -4,6 +4,7 @@
 export * from './services/geminiService';
 export * from './services/itineraryService';
 export * from './services/userProfileService';
+export * from './services/creatorService';
 export * from './services/transportService';
 export * from './services/weatherService';
 export * from './services/communityData';

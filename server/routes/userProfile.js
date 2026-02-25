@@ -24,6 +24,10 @@ router.get('/me', verifyAuth, async (req, res) => {
                 saves_used,
                 bio,
                 is_verified,
+                social_links,
+                interests,
+                follower_count,
+                following_count,
                 created_at,
                 updated_at,
                 plan_config (
@@ -61,6 +65,10 @@ router.get('/me', verifyAuth, async (req, res) => {
                     saves_used,
                     bio,
                     is_verified,
+                    social_links,
+                    interests,
+                    follower_count,
+                    following_count,
                     created_at,
                     updated_at,
                     plan_config (
@@ -101,6 +109,10 @@ router.get('/me', verifyAuth, async (req, res) => {
             canSellPackages: planConfig.can_sell_packages || false,
             bio: profile.bio,
             isVerified: profile.is_verified,
+            socialLinks: profile.social_links || {},
+            interests: profile.interests || [],
+            followerCount: profile.follower_count || 0,
+            followingCount: profile.following_count || 0,
             createdAt: profile.created_at,
             updatedAt: profile.updated_at
         };
@@ -116,7 +128,7 @@ router.get('/me', verifyAuth, async (req, res) => {
 router.patch('/me', verifyAuth, async (req, res) => {
     try {
         const userId = req.user.id;
-        const { displayName, bio, avatarUrl } = req.body;
+        const { displayName, bio, avatarUrl, socialLinks, interests, role } = req.body;
         const authClient = getAuthenticatedClient(req.headers.authorization?.split(' ')[1]);
 
         // Only allow updating safe fields
@@ -124,6 +136,10 @@ router.patch('/me', verifyAuth, async (req, res) => {
         if (typeof displayName !== 'undefined') updates.display_name = displayName;
         if (typeof bio !== 'undefined') updates.bio = bio;
         if (typeof avatarUrl !== 'undefined') updates.avatar_url = avatarUrl;
+        if (typeof socialLinks !== 'undefined') updates.social_links = socialLinks;
+        if (typeof interests !== 'undefined') updates.interests = interests;
+        // Only allow upgrading to influencer (not downgrading or other roles)
+        if (role === 'influencer') updates.role = 'influencer';
 
         if (Object.keys(updates).length === 0) {
             return res.status(400).json({ error: 'No valid fields to update' });
@@ -144,6 +160,9 @@ router.patch('/me', verifyAuth, async (req, res) => {
             displayName: data.display_name,
             avatarUrl: data.avatar_url,
             bio: data.bio,
+            socialLinks: data.social_links || {},
+            interests: data.interests || [],
+            role: data.role,
             updatedAt: data.updated_at
         });
     } catch (error) {
@@ -168,6 +187,10 @@ router.get('/:userId', async (req, res) => {
                 plan,
                 bio,
                 is_verified,
+                social_links,
+                interests,
+                follower_count,
+                following_count,
                 created_at
             `)
             .eq('user_id', userId)
@@ -190,6 +213,10 @@ router.get('/:userId', async (req, res) => {
             plan: profile.plan,
             bio: profile.bio,
             isVerified: profile.is_verified,
+            socialLinks: profile.social_links || {},
+            interests: profile.interests || [],
+            followerCount: profile.follower_count || 0,
+            followingCount: profile.following_count || 0,
             createdAt: profile.created_at
         });
     } catch (error) {

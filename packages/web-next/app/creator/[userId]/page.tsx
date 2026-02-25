@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import Navbar from "@/components/Navbar";
+import CreatorProfileActions from "@/components/CreatorProfileActions";
 
 export const revalidate = 3600; // Revalidate every hour
 
@@ -10,6 +11,11 @@ interface CreatorProfile {
     avatarUrl?: string;
     role: string;
     bio?: string;
+    isVerified?: boolean;
+    socialLinks?: Record<string, string> | null;
+    interests?: string[];
+    followerCount?: number;
+    followingCount?: number;
     createdAt?: string;
 }
 
@@ -105,18 +111,23 @@ export default async function CreatorPage({ params }: Props) {
                             </div>
 
                             <div className="text-center md:text-left flex-1">
-                                <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-2">
+                                <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-2 flex items-center gap-3 justify-center md:justify-start">
                                     {profile.displayName}
+                                    {profile.isVerified && (
+                                        <span className="text-2xl" title="Verified Creator">✓</span>
+                                    )}
                                 </h1>
                                 {profile.bio && (
                                     <p className="text-lg text-white/70 mb-4 max-w-lg">
                                         {profile.bio}
                                     </p>
                                 )}
-                                <div className="flex items-center gap-3 justify-center md:justify-start">
+                                <div className="flex items-center gap-3 justify-center md:justify-start flex-wrap">
                                     <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-white/20 backdrop-blur-sm border border-white/20">
                                         {profile.role === "influencer"
                                             ? "🌟 Creator"
+                                            : profile.role === "agent"
+                                            ? "🏷️ Agent"
                                             : "✈️ Traveler"}
                                     </span>
                                     {profile.createdAt && (
@@ -129,12 +140,33 @@ export default async function CreatorPage({ params }: Props) {
                                         </span>
                                     )}
                                 </div>
+
+                                {/* Interests */}
+                                {profile.interests && profile.interests.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mt-4 justify-center md:justify-start">
+                                        {profile.interests.map((interest) => (
+                                            <span
+                                                key={interest}
+                                                className="px-3 py-1 bg-white/15 backdrop-blur-sm text-white/90 rounded-full text-xs font-bold border border-white/10"
+                                            >
+                                                {interest}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Follow Button & Social Links */}
+                                <CreatorProfileActions
+                                    userId={userId}
+                                    socialLinks={profile.socialLinks}
+                                />
                             </div>
                         </div>
 
                         {/* Stats */}
-                        <div className="grid grid-cols-3 gap-6 mt-10 max-w-md">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-10 max-w-xl">
                             {[
+                                { label: "Followers", value: profile.followerCount || 0, icon: "👥" },
                                 { label: "Trips", value: itineraries.length, icon: "🗺️" },
                                 { label: "Views", value: totalViews, icon: "👀" },
                                 { label: "Remixes", value: totalRemixes, icon: "🔄" },

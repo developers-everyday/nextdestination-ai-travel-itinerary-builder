@@ -130,6 +130,12 @@ const Navbar: React.FC<Props> = ({ onOpenBuilder }) => {
               Community
             </Link>
             <Link
+              href="/creators"
+              className="relative px-3 py-2 text-sm font-medium text-slate-600 rounded-lg hover:text-indigo-600 hover:bg-indigo-50 transition-all duration-200"
+            >
+              Creators
+            </Link>
+            <Link
               href="/blog"
               className="relative px-3 py-2 text-sm font-medium text-slate-600 rounded-lg hover:text-indigo-600 hover:bg-indigo-50 transition-all duration-200"
             >
