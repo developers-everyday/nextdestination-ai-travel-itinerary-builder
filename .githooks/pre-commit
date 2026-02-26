@@ -1,0 +1,86 @@
+#!/bin/sh
+#
+# Pre-commit hook: Prevent committing files containing API keys or secrets.
+# Scans staged files for common secret patterns (Google API keys, AWS keys,
+# private keys, tokens, etc.) and blocks the commit if any are found.
+#
+
+echo "🔒 Running secret detection pre-commit hook..."
+
+# Patterns to detect (regex)
+SECRET_PATTERNS=(
+    'AIza[A-Za-z0-9_\-]{35}'                          # Google API Key
+    'AKIA[0-9A-Z]{16}'                                 # AWS Access Key ID
+    'sk-[a-zA-Z0-9]{20,}'                              # OpenAI / Stripe Secret Key
+    'ghp_[a-zA-Z0-9]{36}'                              # GitHub Personal Access Token
+    'github_pat_[a-zA-Z0-9]{22}_[a-zA-Z0-9]{59}'       # GitHub Fine-grained PAT
+    'xox[bpors]-[0-9]{10,13}-[a-zA-Z0-9-]+'            # Slack Token
+    '-----BEGIN (RSA |EC |DSA )?PRIVATE KEY-----'       # Private Keys
+    'sk_live_[a-zA-Z0-9]{24,}'                          # Stripe Live Secret Key
+    'rk_live_[a-zA-Z0-9]{24,}'                          # Stripe Live Restricted Key
+    'sq0csp-[a-zA-Z0-9_\-]{43}'                         # Square OAuth Secret
+    'eyJ[a-zA-Z0-9_\-]{30,}\.[a-zA-Z0-9_\-]{30,}'      # JWT Token (long)
+    'supabase_service_role_key'                          # Supabase service role
+)
+
+# Files/patterns to exclude from scanning
+EXCLUDE_PATTERNS=(
+    '\.env\.example$'
+    '\.lock$'
+    'package-lock\.json$'
+    'yarn\.lock$'
+    'pnpm-lock\.yaml$'
+    '\.githooks/'
+)
+
+# Build exclude grep pattern
+EXCLUDE_GREP=""
+for pattern in "${EXCLUDE_PATTERNS[@]}"; do
+    if [ -z "$EXCLUDE_GREP" ]; then
+        EXCLUDE_GREP="$pattern"
+    else
+        EXCLUDE_GREP="$EXCLUDE_GREP|$pattern"
+    fi
+done
+
+FOUND_SECRETS=0
+
+# Get list of staged files (excluding deleted files)
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=d | grep -Ev "$EXCLUDE_GREP" 2>/dev/null)
+
+if [ -z "$STAGED_FILES" ]; then
+    exit 0
+fi
+
+for pattern in "${SECRET_PATTERNS[@]}"; do
+    # Search staged content for each secret pattern
+    MATCHES=$(echo "$STAGED_FILES" | xargs git diff --cached -U0 2>/dev/null | grep -E "^\+" | grep -Ev "^\+\+\+" | grep -E "$pattern" 2>/dev/null)
+    
+    if [ -n "$MATCHES" ]; then
+        if [ $FOUND_SECRETS -eq 0 ]; then
+            echo ""
+            echo "❌ COMMIT BLOCKED: Potential secrets/API keys detected!"
+            echo "==========================================================="
+        fi
+        FOUND_SECRETS=1
+        echo ""
+        echo "⚠️  Pattern matched: $pattern"
+        echo "   In staged changes:"
+        echo "$MATCHES" | head -5 | sed 's/^/   /'
+        echo ""
+    fi
+done
+
+if [ $FOUND_SECRETS -ne 0 ]; then
+    echo "==========================================================="
+    echo ""
+    echo "🛡️  To fix this:"
+    echo "   1. Remove the secret from your code"
+    echo "   2. Use environment variables instead (.env files)"
+    echo "   3. If this is a false positive, use: git commit --no-verify"
+    echo ""
+    exit 1
+fi
+
+echo "✅ No secrets detected. Proceeding with commit."
+exit 0

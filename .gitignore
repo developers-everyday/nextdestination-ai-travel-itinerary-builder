@@ -54,3 +54,19 @@ packages/mobile/ios/capacitor.config.json
 packages/mobile/android/capacitor.config.json
 packages/mobile/ios/App/App.xcworkspace/
 packages/mobile/ios/App/Podfile.lock
+
+# Lighthouse / Performance reports (may contain API keys)
+lighthouse-report.*
+*.lighthouse.*
+lighthouse/
+*.report.json
+*.report.html
+
+# Security - prevent accidental secret/key commits
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+*credentials*.json
+*service-account*.json
