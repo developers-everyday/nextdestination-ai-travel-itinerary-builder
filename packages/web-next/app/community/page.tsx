@@ -39,15 +39,14 @@ function mapApiItem(data: any): CommunityItinerary {
     destination: data.destination || "Unknown",
     image:
       data.image ||
-      `https://images.unsplash.com/photo-${
-        seed % 2 === 0
-          ? "1476514525535-07fb3b4ae5f1"
-          : "1503899036084-c55cdd92da26"
+      `https://images.unsplash.com/photo-${seed % 2 === 0
+        ? "1476514525535-07fb3b4ae5f1"
+        : "1503899036084-c55cdd92da26"
       }?q=80&w=800&auto=format&fit=crop`,
     creator: data.creator || {
       id: "anon",
       name: "Community Traveler",
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.id || "User"}`,
+      avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${data.id || "User"}`,
       verified: false,
     },
     saveCount: data.saveCount || 0,
@@ -65,8 +64,7 @@ export default async function CommunityRoute() {
 
   try {
     const res = await fetch(
-      `${
-        process.env.EXPRESS_API_URL || "http://localhost:3001"
+      `${process.env.EXPRESS_API_URL || "http://localhost:3001"
       }/api/itineraries/trending`,
       { next: { revalidate: 60 } }
     );

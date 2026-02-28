@@ -178,7 +178,7 @@ const ItineraryGrid: React.FC<ItineraryGridProps> = ({ category, source }) => {
                                 creator: {
                                     id: 'community',
                                     name: 'Explorer',
-                                    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + item.id,
+                                    avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=' + item.id,
                                     verified: true
                                 },
                                 saveCount: item.metadata?.saveCount || Math.floor(Math.random() * 500),

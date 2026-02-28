@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { searchFlightsTP, lookupIataCode } from '@nextdestination/shared';
 
 interface IataResult {
@@ -57,6 +57,10 @@ const FlightSearchPanel: React.FC<FlightSearchPanelProps> = ({ onClose, onSelect
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [searched, setSearched] = useState(false);
+
+    // Refs for date inputs so we can trigger the native calendar picker on click
+    const departRef = useRef<HTMLInputElement>(null);
+    const returnRef = useRef<HTMLInputElement>(null);
 
     // Debounced IATA lookup
     const lookupCity = useCallback(async (query: string, setter: (r: IataResult[]) => void) => {
@@ -132,6 +136,18 @@ const FlightSearchPanel: React.FC<FlightSearchPanelProps> = ({ onClose, onSelect
         } finally {
             setLoading(false);
         }
+    };
+
+    // Build a Skyscanner public search URL for a given route
+    const getSkyscannerUrl = (origin: string, dest: string, depart?: string, ret?: string) => {
+        // Skyscanner format: /transport/flights/IATA/IATA/YYMMDD/
+        const fmtDate = (d: string) => {
+            const [y, m, day] = d.split('-');
+            return `${y.slice(2)}${m}${day}`;
+        };
+        const datePart = depart ? `${fmtDate(depart)}/` : '';
+        const retPart = ret ? `${fmtDate(ret)}/` : '';
+        return `https://www.skyscanner.co.in/transport/flights/${origin.toLowerCase()}/${dest.toLowerCase()}/${datePart}${retPart}?adultsv2=1`;
     };
 
     const handleAddToItinerary = (flight: FlightResult) => {
@@ -269,18 +285,22 @@ const FlightSearchPanel: React.FC<FlightSearchPanelProps> = ({ onClose, onSelect
                     <div>
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Depart</label>
                         <input
+                            ref={departRef}
                             type="date"
-                            className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                            className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer"
                             value={departDate}
+                            onClick={() => departRef.current?.showPicker()}
                             onChange={(e) => setDepartDate(e.target.value)}
                         />
                     </div>
                     <div>
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Return <span className="text-slate-400 normal-case">(optional)</span></label>
                         <input
+                            ref={returnRef}
                             type="date"
-                            className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                            className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer"
                             value={returnDate}
+                            onClick={() => returnRef.current?.showPicker()}
                             onChange={(e) => setReturnDate(e.target.value)}
                         />
                     </div>
@@ -331,16 +351,28 @@ const FlightSearchPanel: React.FC<FlightSearchPanelProps> = ({ onClose, onSelect
                     <div className="flex flex-col items-center justify-center h-full text-slate-400">
                         <p className="text-sm font-medium">No flights found</p>
                         <p className="text-xs mt-1">Try different cities or dates</p>
-                        {affiliateSearchUrl && (
-                            <a
-                                href={affiliateSearchUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="mt-4 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors"
-                            >
-                                Search on Aviasales →
-                            </a>
-                        )}
+                        <div className="flex items-center gap-2 mt-4">
+                            {affiliateSearchUrl && (
+                                <a
+                                    href={affiliateSearchUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors"
+                                >
+                                    Search on Aviasales →
+                                </a>
+                            )}
+                            {fromCode && toCode && (
+                                <a
+                                    href={getSkyscannerUrl(fromCode, toCode, departDate, returnDate)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="px-4 py-2 bg-cyan-50 text-cyan-700 rounded-lg text-xs font-bold hover:bg-cyan-100 transition-colors"
+                                >
+                                    Search on Skyscanner →
+                                </a>
+                            )}
+                        </div>
                     </div>
                 )}
 
@@ -351,19 +383,44 @@ const FlightSearchPanel: React.FC<FlightSearchPanelProps> = ({ onClose, onSelect
                             <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                                 {results.length} flight{results.length !== 1 ? 's' : ''} found
                             </p>
-                            {affiliateSearchUrl && (
-                                <a
-                                    href={affiliateSearchUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors flex items-center gap-1"
-                                >
-                                    See all on Aviasales
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                    </svg>
-                                </a>
-                            )}
+                            <div className="flex items-center gap-3">
+                                {affiliateSearchUrl && (
+                                    <a
+                                        href={affiliateSearchUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors flex items-center gap-1"
+                                    >
+                                        Aviasales
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                        </svg>
+                                    </a>
+                                )}
+                                {fromCode && toCode && (
+                                    <a
+                                        href={getSkyscannerUrl(fromCode, toCode, departDate, returnDate)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-xs font-bold text-cyan-600 hover:text-cyan-800 transition-colors flex items-center gap-1"
+                                    >
+                                        Skyscanner
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                        </svg>
+                                    </a>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Approximate price disclaimer */}
+                        <div className="flex items-start gap-2 px-3 py-2 bg-amber-50 border border-amber-200/60 rounded-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                            </svg>
+                            <p className="text-[11px] text-amber-700 leading-snug">
+                                Prices are approximate and may not reflect real-time availability. Click <strong>Book</strong> or compare on <strong>Skyscanner</strong> for live fares.
+                            </p>
                         </div>
 
                         {/* Flight cards */}
@@ -431,7 +488,7 @@ const FlightSearchPanel: React.FC<FlightSearchPanelProps> = ({ onClose, onSelect
                                             href={flight.affiliateLink}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="py-2 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm hover:shadow-md"
+                                            className="py-2 px-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm hover:shadow-md"
                                         >
                                             Book
                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -439,6 +496,17 @@ const FlightSearchPanel: React.FC<FlightSearchPanelProps> = ({ onClose, onSelect
                                             </svg>
                                         </a>
                                     )}
+                                    <a
+                                        href={getSkyscannerUrl(flight.origin, flight.destination, flight.departureDate, flight.returnDate)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="py-2 px-3 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5"
+                                    >
+                                        Skyscanner
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                        </svg>
+                                    </a>
                                 </div>
                             </div>
                         ))}

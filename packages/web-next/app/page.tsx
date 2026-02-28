@@ -91,15 +91,14 @@ function mapApiItem(item: any): CommunityItinerary {
     destination: item.metadata?.destination || "Unknown",
     image:
       item.metadata?.image ||
-      `https://images.unsplash.com/photo-${
-        seed % 2 === 0
-          ? "1476514525535-07fb3b4ae5f1"
-          : "1503899036084-c55cdd92da26"
+      `https://images.unsplash.com/photo-${seed % 2 === 0
+        ? "1476514525535-07fb3b4ae5f1"
+        : "1503899036084-c55cdd92da26"
       }?q=80&w=800&auto=format&fit=crop`,
     creator: {
       id: "community",
       name: "Explorer",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=" + item.id,
+      avatar: "https://api.dicebear.com/7.x/initials/svg?seed=" + item.id,
       verified: true,
     },
     saveCount: item.metadata?.saveCount || 0,
@@ -117,8 +116,7 @@ export default async function HomePage() {
 
   try {
     const res = await fetch(
-      `${
-        process.env.EXPRESS_API_URL || "http://localhost:3001"
+      `${process.env.EXPRESS_API_URL || "http://localhost:3001"
       }/api/itineraries/trending`,
       { next: { revalidate: 60 } }
     );

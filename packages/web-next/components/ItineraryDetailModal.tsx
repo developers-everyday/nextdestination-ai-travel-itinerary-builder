@@ -75,7 +75,7 @@ const ItineraryDetailModal: React.FC<ItineraryDetailModalProps> = ({
           </div>
 
           <div className="p-12">
-            <div className="flex items-center justify-between mb-12 pb-8 border-b border-slate-200">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-12 pb-8 border-b border-slate-200">
               <div className="flex items-center gap-4">
                 <img
                   src={itinerary.creator.avatar}

@@ -32,7 +32,7 @@ const CommunityPage: React.FC = () => {
             creator: data.creator || {
                 id: 'anon',
                 name: 'Community Traveler',
-                avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.id || 'User'}`,
+                avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${data.id || 'User'}`,
                 verified: false
             },
             saveCount: data.saveCount || Math.floor(Math.random() * 500) + 10,
@@ -326,7 +326,7 @@ const ItineraryDetailModal: React.FC<ItineraryDetailModalProps> = ({ itinerary, 
                     {/* Content */}
                     <div className="p-12">
                         {/* Stats Bar */}
-                        <div className="flex items-center justify-between mb-12 pb-8 border-b border-slate-200">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-12 pb-8 border-b border-slate-200">
                             <div className="flex items-center gap-4">
                                 <img
                                     src={itinerary.creator.avatar}

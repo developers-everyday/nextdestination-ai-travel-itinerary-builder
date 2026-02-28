@@ -92,7 +92,7 @@ export default function ProfilePage() {
             creator: {
               id: 'community',
               name: 'Community Member',
-              avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + item.id,
+              avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=' + item.id,
               verified: true
             },
             saveCount: item.saveCount || 0,

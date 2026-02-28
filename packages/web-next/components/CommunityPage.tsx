@@ -27,15 +27,14 @@ function mapToCommunityItinerary(data: any): CommunityItinerary {
     destination: data.destination || "Unknown",
     image:
       data.image ||
-      `https://images.unsplash.com/photo-${
-        seed % 2 === 0
-          ? "1476514525535-07fb3b4ae5f1"
-          : "1503899036084-c55cdd92da26"
+      `https://images.unsplash.com/photo-${seed % 2 === 0
+        ? "1476514525535-07fb3b4ae5f1"
+        : "1503899036084-c55cdd92da26"
       }?q=80&w=800&auto=format&fit=crop`,
     creator: data.creator || {
       id: "anon",
       name: "Community Traveler",
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.id || "User"}`,
+      avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${data.id || "User"}`,
       verified: false,
     },
     saveCount: data.saveCount || Math.floor(Math.random() * 500) + 10,
@@ -71,9 +70,8 @@ const CommunityPage: React.FC<CommunityPageProps> = ({
       setIsLoading(true);
       setError(null);
       try {
-        const API_BASE = `${
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
-        }`;
+        const API_BASE = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
+          }`;
         let url = `${API_BASE}/api/itineraries/trending`;
         let method = "GET";
         let body: string | undefined;
@@ -199,11 +197,10 @@ const CommunityPage: React.FC<CommunityPageProps> = ({
               <button
                 key={category}
                 onClick={() => setSelectedCategory(category)}
-                className={`px-6 py-3 rounded-2xl font-bold text-sm transition-all shrink-0 ${
-                  selectedCategory === category
+                className={`px-6 py-3 rounded-2xl font-bold text-sm transition-all shrink-0 ${selectedCategory === category
                     ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200"
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
+                  }`}
               >
                 {category}
               </button>

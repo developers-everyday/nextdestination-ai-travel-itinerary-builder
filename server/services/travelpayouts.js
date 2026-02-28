@@ -7,15 +7,64 @@
  * When TRAVELPAYOUTS_TOKEN is not set, all methods gracefully degrade
  * (return empty results or generate non-affiliate links).
  */
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.join(__dirname, '../../.env.local') });
+dotenv.config(); // fallback to server/.env or CWD/.env
 
 const TRAVELPAYOUTS_BASE = 'https://api.travelpayouts.com';
 const AVIASALES_SEARCH_BASE = 'https://api.travelpayouts.com/aviasales/v3';
+
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 const getToken = () => process.env.TRAVELPAYOUTS_TOKEN || '';
 const getMarker = () => process.env.TRAVELPAYOUTS_MARKER || '';
 const isConfigured = () => !!getToken();
+
+/**
+ * Extract HH:MM time from an ISO 8601 datetime string.
+ * Works reliably regardless of server locale/timezone.
+ */
+function extractTime(isoString) {
+    if (!isoString) return '--:--';
+    try {
+        const date = new Date(isoString);
+        const hours = date.getUTCHours().toString().padStart(2, '0');
+        const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+        return `${hours}:${minutes}`;
+    } catch {
+        return '--:--';
+    }
+}
+
+/**
+ * Compute arrival time by adding durationMinutes to a departure ISO string.
+ * Returns HH:MM format.
+ */
+function computeArrivalTime(departureIso, durationMinutes) {
+    if (!departureIso || !durationMinutes) return '--:--';
+    try {
+        const dep = new Date(departureIso);
+        const arrival = new Date(dep.getTime() + durationMinutes * 60 * 1000);
+        const hours = arrival.getUTCHours().toString().padStart(2, '0');
+        const minutes = arrival.getUTCMinutes().toString().padStart(2, '0');
+        return `${hours}:${minutes}`;
+    } catch {
+        return '--:--';
+    }
+}
+
+/**
+ * Format duration in minutes as "Xh Ym".
+ */
+function formatDuration(minutes) {
+    if (!minutes) return 'N/A';
+    return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+}
 
 /**
  * Search for flights using Travelpayouts Prices API
@@ -61,26 +110,40 @@ export async function searchFlights(origin, destination, departDate, returnDate)
             return { results: [], affiliateSearchUrl: getFlightSearchUrl(origin, destination, departDate, returnDate), configured: true };
         }
 
+        // Debug: log first raw result to help diagnose field issues
+        if (data.data.length > 0) {
+            console.log('[Travelpayouts] Sample raw flight data:', JSON.stringify(data.data[0], null, 2));
+        }
+
         // Transform to our standard format
-        const results = data.data.map((flight, index) => ({
-            id: `tp-${index}`,
-            airline: flight.airline || 'Unknown',
-            flightNumber: flight.flight_number ? `${flight.airline}${flight.flight_number}` : `Flight ${index + 1}`,
-            departure: flight.departure_at ? new Date(flight.departure_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : '--:--',
-            arrival: flight.return_at ? new Date(flight.return_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : '--:--',
-            departureDate: flight.departure_at ? flight.departure_at.split('T')[0] : departDate,
-            returnDate: flight.return_at ? flight.return_at.split('T')[0] : returnDate,
-            duration: flight.duration ? `${Math.floor(flight.duration / 60)}h ${flight.duration % 60}m` : 'N/A',
-            durationMinutes: flight.duration || null,
-            price: flight.price ? `₹${flight.price.toLocaleString('en-IN')}` : 'Check Online',
-            priceRaw: flight.price || null,
-            transfers: flight.transfers ?? 0,
-            origin: flight.origin || origin,
-            destination: flight.destination || destination,
-            type: 'flight',
-            affiliateLink: getFlightDeepLink(origin, destination, departDate, returnDate),
-            source: 'travelpayouts'
-        }));
+        // Note: API fields:
+        //   departure_at — ISO 8601 outbound departure datetime
+        //   return_at   — ISO 8601 return trip departure datetime (NOT outbound arrival)
+        //   duration_to — outbound flight duration in minutes (preferred)
+        //   duration    — may be total/outbound duration in minutes (fallback)
+        //   price       — numeric price in requested currency
+        const results = data.data.map((flight, index) => {
+            const outboundDuration = flight.duration_to || flight.duration;
+            return {
+                id: `tp-${index}`,
+                airline: flight.airline || 'Unknown',
+                flightNumber: flight.flight_number ? `${flight.airline}${flight.flight_number}` : `Flight ${index + 1}`,
+                departure: extractTime(flight.departure_at),
+                arrival: computeArrivalTime(flight.departure_at, outboundDuration),
+                departureDate: flight.departure_at ? flight.departure_at.split('T')[0] : departDate,
+                returnDate: flight.return_at ? flight.return_at.split('T')[0] : returnDate,
+                duration: formatDuration(outboundDuration),
+                durationMinutes: outboundDuration || null,
+                price: flight.price ? `₹${flight.price.toLocaleString('en-IN')}` : 'Check Online',
+                priceRaw: flight.price || null,
+                transfers: flight.transfers ?? 0,
+                origin: flight.origin || origin,
+                destination: flight.destination || destination,
+                type: 'flight',
+                affiliateLink: getFlightDeepLink(origin, destination, departDate, returnDate),
+                source: 'travelpayouts'
+            };
+        });
 
         return {
             results,

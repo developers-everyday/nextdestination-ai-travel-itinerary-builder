@@ -172,15 +172,14 @@ function mapApiItem(item: any): CommunityItinerary {
     destination: item.metadata?.destination || "Unknown",
     image:
       item.metadata?.image ||
-      `https://images.unsplash.com/photo-${
-        seed % 2 === 0
-          ? "1476514525535-07fb3b4ae5f1"
-          : "1503899036084-c55cdd92da26"
+      `https://images.unsplash.com/photo-${seed % 2 === 0
+        ? "1476514525535-07fb3b4ae5f1"
+        : "1503899036084-c55cdd92da26"
       }?q=80&w=800&auto=format&fit=crop`,
     creator: {
       id: "community",
       name: "Explorer",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=" + item.id,
+      avatar: "https://api.dicebear.com/7.x/initials/svg?seed=" + item.id,
       verified: true,
     },
     saveCount: item.metadata?.saveCount || Math.floor(Math.random() * 500),
@@ -225,9 +224,8 @@ const ItineraryGrid: React.FC<ItineraryGridProps> = ({
       const fetchTrending = async () => {
         setLoading(true);
         try {
-          let url = `${
-            process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
-          }/api/itineraries/trending`;
+          let url = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
+            }/api/itineraries/trending`;
           if (category && category !== "all") {
             url += `?category=${encodeURIComponent(category)}`;
           }
@@ -307,16 +305,16 @@ const ItineraryGrid: React.FC<ItineraryGridProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-10">
         {source === "community"
           ? displayItineraries.map((itinerary: any, index: number) => (
-              <CommunityItineraryCard
-                key={`${itinerary.id}-${index}`}
-                itinerary={itinerary}
-                onClick={() => handleRemix(itinerary)}
-                onRemix={() => handleRemix(itinerary)}
-              />
-            ))
+            <CommunityItineraryCard
+              key={`${itinerary.id}-${index}`}
+              itinerary={itinerary}
+              onClick={() => handleRemix(itinerary)}
+              onRemix={() => handleRemix(itinerary)}
+            />
+          ))
           : displayItineraries.map((itinerary: any) => (
-              <ItineraryCard key={itinerary.id} {...itinerary} />
-            ))}
+            <ItineraryCard key={itinerary.id} {...itinerary} />
+          ))}
       </div>
 
       {displayItineraries.length === 0 && !loading && (
