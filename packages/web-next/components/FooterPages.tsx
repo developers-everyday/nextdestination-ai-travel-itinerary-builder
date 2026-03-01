@@ -187,23 +187,277 @@ export const TermsOfUse: React.FC = () => (
 
 export const PrivacyPolicy: React.FC = () => (
   <PageWrapper title="Privacy Policy">
-    <p className="text-sm text-slate-400 mb-8">Last Updated: December 29, 2025</p>
-    <h2>1. Information We Collect</h2>
+    <p className="text-sm text-slate-400 mb-8">Last Updated: March 1, 2026</p>
+
+    <h2>1. Who We Are</h2>
     <p>
-      We collect information you provide directly to us, such as your travel preferences,
-      search queries, and account information.
+      NextDestination.ai is an AI-powered travel planning platform. We help travelers
+      plan trips, discover destinations, and connect with a community of fellow
+      travelers. We are not a travel agency, tour operator, or direct travel service
+      provider &mdash; we provide planning tools and informational content to help you
+      organize your own trips.
     </p>
-    <h2>2. How We Use Information</h2>
-    <p>We use the information to:</p>
-    <ul className="list-disc pl-5">
-      <li>Generate personalized travel itineraries.</li>
-      <li>Improve our AI models (anonymized data only).</li>
-      <li>Communicate with you about your account.</li>
+
+    <h2>2. Information We Collect</h2>
+    <p>We collect the following types of information when you use our platform:</p>
+    <ul className="list-disc pl-5 space-y-2">
+      <li>
+        <strong>Account Information:</strong> When you create an account, we collect
+        your email address, display name, and profile picture through our
+        authentication provider (Supabase Auth). You may also sign in via third-party
+        providers such as Google, in which case we receive basic profile information
+        from that provider.
+      </li>
+      <li>
+        <strong>Travel Preferences &amp; Itineraries:</strong> Destinations, dates,
+        interests, budget preferences, and the itineraries you create or save on the
+        platform.
+      </li>
+      <li>
+        <strong>Usage Data:</strong> Pages visited, features used, search queries,
+        browser type, device information, IP address, and referring URLs. This helps
+        us understand how our platform is used and improve it.
+      </li>
+      <li>
+        <strong>Payment Information:</strong> If you subscribe to a paid plan, payment
+        details are collected and processed securely by Stripe. We do not store your
+        full credit card number on our servers.
+      </li>
+      <li>
+        <strong>Community Content:</strong> Any content you post publicly, such as
+        shared itineraries, comments, or community posts.
+      </li>
+      <li>
+        <strong>Cookies &amp; Similar Technologies:</strong> We use cookies and local
+        storage to maintain your session, remember preferences, and gather analytics.
+        See our{" "}
+        <a href="/cookie-consent" className="text-indigo-600 underline">
+          Cookie Policy
+        </a>{" "}
+        for details.
+      </li>
     </ul>
-    <h2>3. Data Sharing</h2>
+
+    <h2>3. How We Use Your Information</h2>
+    <p>We use the information we collect to:</p>
+    <ul className="list-disc pl-5 space-y-2">
+      <li>
+        Generate personalized, AI-powered travel itineraries based on your preferences
+        and destination choices.
+      </li>
+      <li>
+        Provide and maintain your account, saved itineraries, and subscription
+        services.
+      </li>
+      <li>
+        Personalize your experience by remembering your travel preferences and
+        interests.
+      </li>
+      <li>
+        Power community features, including shared itineraries and traveler
+        interactions.
+      </li>
+      <li>
+        Analyze platform usage to improve our features, fix bugs, and develop new
+        tools.
+      </li>
+      <li>
+        Communicate with you about account activity, new features, and service
+        updates. You can opt out of non-essential communications at any time.
+      </li>
+      <li>
+        Detect and prevent fraud, abuse, and security threats.
+      </li>
+    </ul>
+
+    <h2>4. AI-Generated Content</h2>
     <p>
-      We do not sell your personal data. We may share data with service providers who
-      help us run our operations (e.g., cloud hosting).
+      NextDestination.ai uses Google&apos;s Gemini AI and Google Maps APIs to generate
+      travel itineraries, destination information, and activity suggestions. Please be
+      aware of the following:
+    </p>
+    <ul className="list-disc pl-5 space-y-2">
+      <li>
+        AI-generated content is provided as suggestions and informational starting
+        points &mdash; not as guaranteed facts or professional travel advice.
+      </li>
+      <li>
+        Attraction hours, prices, availability, and other real-world details may
+        change without notice. Always verify critical details directly with venues and
+        service providers before your trip.
+      </li>
+      <li>
+        Your travel preferences and destination inputs are sent to these AI services
+        to generate results. We do not send your personal account information (such as
+        your email or payment details) to AI providers.
+      </li>
+    </ul>
+
+    <h2>5. Third-Party Services</h2>
+    <p>
+      We integrate with the following third-party services to operate our platform.
+      Each has its own privacy policy governing how it handles your data:
+    </p>
+    <ul className="list-disc pl-5 space-y-2">
+      <li>
+        <strong>Supabase:</strong> Authentication, database, and cloud infrastructure.
+      </li>
+      <li>
+        <strong>Stripe:</strong> Payment processing for subscriptions.
+      </li>
+      <li>
+        <strong>Google Maps Platform:</strong> Maps, places, and geolocation services
+        within itineraries.
+      </li>
+      <li>
+        <strong>Google Analytics:</strong> Website traffic and usage analytics.
+      </li>
+      <li>
+        <strong>Affiliate Partners:</strong> We may display links to travel services
+        through affiliate networks such as Travelpayouts, Booking.com, Skyscanner,
+        GetYourGuide, and others. When you click an affiliate link and make a purchase
+        on a partner site, that partner&apos;s privacy policy applies to your
+        transaction. We may receive a commission but do not share your personal data
+        with these partners.
+      </li>
+    </ul>
+
+    <h2>6. Cookies</h2>
+    <p>
+      We use essential cookies for authentication and site functionality, preference
+      cookies to remember your settings, and analytics cookies to understand how the
+      platform is used. For full details on the types of cookies we use and how to
+      manage them, please see our{" "}
+      <a href="/cookie-consent" className="text-indigo-600 underline">
+        Cookie Policy
+      </a>
+      .
+    </p>
+
+    <h2>7. Data Sharing</h2>
+    <p>
+      We do not sell, rent, or trade your personal information to third parties. We may
+      share your data only in the following limited circumstances:
+    </p>
+    <ul className="list-disc pl-5 space-y-2">
+      <li>
+        <strong>Service Providers:</strong> With trusted providers who help us operate
+        the platform (hosting, payment processing, analytics), under strict
+        contractual obligations to protect your data.
+      </li>
+      <li>
+        <strong>Legal Requirements:</strong> When required by law, regulation, legal
+        process, or governmental request.
+      </li>
+      <li>
+        <strong>Safety &amp; Security:</strong> To protect the rights, safety, or
+        property of NextDestination.ai, our users, or the public.
+      </li>
+      <li>
+        <strong>With Your Consent:</strong> When you explicitly choose to share
+        content publicly (e.g., community posts or shared itineraries).
+      </li>
+    </ul>
+
+    <h2>8. Data Retention &amp; Deletion</h2>
+    <p>
+      We retain your account data and saved itineraries for as long as your account is
+      active. Usage and analytics data is retained in aggregated or anonymized form.
+      If you wish to delete your account and all associated personal data, you can do
+      so from your profile settings or by contacting us at{" "}
+      <a
+        href="mailto:support@nextdestination.ai"
+        className="text-indigo-600 underline"
+      >
+        support@nextdestination.ai
+      </a>
+      . Upon receiving a deletion request, we will remove your personal data within 30
+      days, except where retention is required by law.
+    </p>
+
+    <h2>9. Your Rights</h2>
+    <p>
+      Depending on your location, you may have the following rights regarding your
+      personal data:
+    </p>
+    <ul className="list-disc pl-5 space-y-2">
+      <li>
+        <strong>Access:</strong> Request a copy of the personal data we hold about
+        you.
+      </li>
+      <li>
+        <strong>Correction:</strong> Request that we correct inaccurate or incomplete
+        data.
+      </li>
+      <li>
+        <strong>Deletion:</strong> Request that we delete your personal data.
+      </li>
+      <li>
+        <strong>Portability:</strong> Request your data in a structured,
+        machine-readable format.
+      </li>
+      <li>
+        <strong>Objection:</strong> Object to certain types of processing, such as
+        direct marketing.
+      </li>
+    </ul>
+    <p>
+      To exercise any of these rights, contact us at{" "}
+      <a
+        href="mailto:support@nextdestination.ai"
+        className="text-indigo-600 underline"
+      >
+        support@nextdestination.ai
+      </a>
+      . We will respond within 30 days.
+    </p>
+
+    <h2>10. Children&apos;s Privacy</h2>
+    <p>
+      NextDestination.ai is not intended for children under the age of 13. We do not
+      knowingly collect personal information from children under 13. If we become aware
+      that we have collected data from a child under 13, we will take steps to delete
+      it promptly. If you believe a child has provided us with personal data, please
+      contact us at{" "}
+      <a
+        href="mailto:support@nextdestination.ai"
+        className="text-indigo-600 underline"
+      >
+        support@nextdestination.ai
+      </a>
+      .
+    </p>
+
+    <h2>11. International Data Transfers</h2>
+    <p>
+      Our platform is hosted on cloud infrastructure that may process and store data in
+      various countries. By using NextDestination.ai, you acknowledge that your data
+      may be transferred to and processed in countries other than your own. We take
+      appropriate measures to ensure your data is protected in accordance with this
+      policy regardless of where it is processed.
+    </p>
+
+    <h2>12. Changes to This Policy</h2>
+    <p>
+      We may update this Privacy Policy from time to time to reflect changes in our
+      practices or applicable laws. When we make material changes, we will update the
+      &quot;Last Updated&quot; date at the top of this page and, where appropriate,
+      notify you via email or a prominent notice on our platform. We encourage you to
+      review this policy periodically.
+    </p>
+
+    <h2>13. Contact Us</h2>
+    <p>
+      If you have any questions, concerns, or requests regarding this Privacy Policy or
+      how we handle your data, please contact us at:
+    </p>
+    <p>
+      <a
+        href="mailto:support@nextdestination.ai"
+        className="text-indigo-600 underline"
+      >
+        support@nextdestination.ai
+      </a>
     </p>
   </PageWrapper>
 );
