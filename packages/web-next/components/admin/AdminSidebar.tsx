@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   MapPin,
   Route,
+  Megaphone,
   Menu,
   X,
 } from "lucide-react";
@@ -15,6 +16,7 @@ const links = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
   { href: "/admin/destinations", label: "Destinations", icon: MapPin },
   { href: "/admin/itineraries", label: "Itineraries", icon: Route },
+  { href: "/admin/marketing", label: "Marketing", icon: Megaphone },
 ];
 
 export default function AdminSidebar() {

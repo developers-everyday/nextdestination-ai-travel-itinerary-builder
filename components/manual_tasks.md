@@ -34,10 +34,21 @@ These are **blockers** for revenue. Do these first.
 ### Pinterest (High Priority — Travel is #1 category on Pinterest)
 - [ ] Create a **Pinterest Business account** for NextDestination.ai
 - [ ] Set up boards: "AI Travel Itineraries", "Best Destinations 2026", "{City} Travel Guides"
-- [ ] Pin **5–10 itinerary infographic images** (use the generated 3:4 AI images)
 - [ ] Add website link and verify domain on Pinterest
 - [ ] Enable **Rich Pins** (Article / Product) for auto-pulling metadata from your pages
-- [ ] Set a schedule: pin 3–5 itineraries per week
+
+#### Pinterest Developer API Setup (for admin publishing tool)
+1. Go to [developers.pinterest.com](https://developers.pinterest.com) and create a new app
+2. Set the redirect URI to `https://nextdestination.ai/api/auth/pinterest/callback` (or localhost for dev)
+3. Request access to scopes: `pins:read`, `pins:write`, `boards:read`
+4. Complete the OAuth flow to authorize your business account:
+   - Visit: `https://www.pinterest.com/oauth/?response_type=code&client_id=YOUR_APP_ID&redirect_uri=YOUR_REDIRECT_URI&scope=pins:read,pins:write,boards:read&state=random`
+   - After authorizing, exchange the `code` for tokens via `POST /v5/oauth/token` with `grant_type=authorization_code`
+5. Save the `refresh_token` to your `.env` as `PINTEREST_REFRESH_TOKEN`
+6. Also set `PINTEREST_APP_ID` and `PINTEREST_APP_SECRET` in `.env`
+7. The admin marketing page at `/admin/marketing/pinterest` will now show your boards and let you publish pins
+- [ ] Use the **admin marketing page** (`/admin/marketing/pinterest`) to bulk-publish itinerary pins
+- [ ] Set a schedule: pin 3–5 itineraries per week via admin tool
 
 ### Reddit (Community Engagement)
 - [ ] Identify target subreddits: r/travel, r/solotravel, r/backpacking, r/digitalnomad, r/TravelHacks

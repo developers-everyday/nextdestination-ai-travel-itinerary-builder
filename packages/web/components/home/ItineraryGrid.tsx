@@ -175,7 +175,7 @@ const ItineraryGrid: React.FC<ItineraryGridProps> = ({ category, source }) => {
                                 destination: item.metadata?.destination || 'Unknown',
                                 // Use real image if available, else standard fallback
                                 image: item.metadata?.image || `https://images.unsplash.com/photo-${seed % 2 === 0 ? '1476514525535-07fb3b4ae5f1' : '1503899036084-c55cdd92da26'}?q=80&w=800&auto=format&fit=crop`,
-                                creator: {
+                                creator: item.creator || {
                                     id: 'community',
                                     name: 'Explorer',
                                     avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=' + item.id,

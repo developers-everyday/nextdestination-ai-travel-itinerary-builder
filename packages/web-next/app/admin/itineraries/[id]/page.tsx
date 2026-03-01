@@ -16,8 +16,17 @@ import {
   XCircle,
   ImageMinus,
   Link2,
+  ExternalLink,
 } from "lucide-react";
 import Link from "next/link";
+
+interface PinData {
+  pinId: string;
+  pinUrl: string;
+  boardId: string;
+  boardName: string;
+  publishedAt: string;
+}
 
 interface ItineraryDetail {
   id: string;
@@ -28,6 +37,7 @@ interface ItineraryDetail {
   userId: string | null;
   createdAt: string;
   updatedAt: string;
+  pinterest: { pins: PinData[] } | null;
 }
 
 export default function AdminItineraryEditPage() {
@@ -318,6 +328,16 @@ export default function AdminItineraryEditPage() {
                 )}
               </div>
               <div className="flex items-center justify-between">
+                <span className="text-slate-500">Pinterest</span>
+                {data.pinterest?.pins?.length ? (
+                  <span className="flex items-center gap-1 text-green-600">
+                    <CheckCircle className="h-4 w-4" /> Pinned ({data.pinterest.pins.length})
+                  </span>
+                ) : (
+                  <span className="text-slate-400">Not pinned</span>
+                )}
+              </div>
+              <div className="flex items-center justify-between">
                 <span className="text-slate-500">Creator</span>
                 <span className="text-slate-700">
                   {data.userId ? data.userId.slice(0, 8) + "..." : "anonymous"}
@@ -419,6 +439,52 @@ export default function AdminItineraryEditPage() {
                   : "Generate Infographic"}
               </button>
             </div>
+          </div>
+
+          {/* Pinterest */}
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <h3
+              className="mb-3 text-sm font-semibold text-slate-900"
+              style={{ fontFamily: "var(--font-jakarta), sans-serif" }}
+            >
+              Pinterest
+            </h3>
+            {data.pinterest?.pins?.length ? (
+              <div className="space-y-2">
+                {data.pinterest.pins.map((pin: PinData) => (
+                  <div
+                    key={pin.pinId}
+                    className="flex items-center justify-between text-xs"
+                  >
+                    <span className="rounded bg-slate-100 px-1.5 py-0.5 font-medium text-slate-600">
+                      {pin.boardName}
+                    </span>
+                    <a
+                      href={pin.pinUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-indigo-500 hover:text-indigo-600"
+                    >
+                      View <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                ))}
+                <Link
+                  href="/admin/marketing/pinterest"
+                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600 hover:bg-slate-50"
+                >
+                  Manage in Pinterest Tool
+                </Link>
+              </div>
+            ) : (
+              <Link
+                href={`/admin/marketing/pinterest?highlight=${data.id}`}
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+              >
+                <Globe className="h-4 w-4 text-red-500" />
+                Publish to Pinterest
+              </Link>
+            )}
           </div>
 
           {/* Privacy + Delete */}

@@ -27,6 +27,7 @@ export interface ItineraryRow {
   hasImage: boolean;
   imageUrl?: string | null;
   isPublic: boolean;
+  pinterestPins?: number;
   createdAt?: string;
 }
 
@@ -120,6 +121,7 @@ export default function ItinerariesTable({
                   Embedding
                 </th>
                 <th className="px-4 py-3 font-medium text-slate-600">Image</th>
+                <th className="px-4 py-3 font-medium text-slate-600">Pins</th>
                 <th className="px-4 py-3 font-medium text-slate-600">
                   Privacy
                 </th>
@@ -166,6 +168,15 @@ export default function ItinerariesTable({
                       </a>
                     ) : (
                       <XCircle className="h-4 w-4 text-red-400" />
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {itin.pinterestPins ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
+                        {itin.pinterestPins}
+                      </span>
+                    ) : (
+                      <span className="text-slate-300">—</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -288,7 +299,7 @@ export default function ItinerariesTable({
               {filtered.length === 0 && (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={9}
                     className="px-4 py-8 text-center text-slate-400"
                   >
                     No itineraries found.

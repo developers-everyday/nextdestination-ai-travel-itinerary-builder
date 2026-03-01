@@ -95,7 +95,7 @@ function mapApiItem(item: any): CommunityItinerary {
         ? "1476514525535-07fb3b4ae5f1"
         : "1503899036084-c55cdd92da26"
       }?q=80&w=800&auto=format&fit=crop`,
-    creator: {
+    creator: item.creator || {
       id: "community",
       name: "Explorer",
       avatar: "https://api.dicebear.com/7.x/initials/svg?seed=" + item.id,

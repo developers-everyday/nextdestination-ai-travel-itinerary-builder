@@ -150,24 +150,20 @@ router.post('/search', async (req, res) => {
 router.get('/trending', async (req, res) => {
     try {
         const { destination, category } = req.query;
-        const supabaseClient = getSupabase(req); // Keep using getSupabase for consistency
+        const supabaseClient = getSupabase(req);
 
         let query = supabaseClient
             .from('itineraries')
             .select('id, metadata, user_id')
-            .eq('is_public', true) // Explicitly only public
-            .order('id', { ascending: false }) // 'created_at' if exists, else 'id' uuid not sortable by time usually. 
-            // Better to sort by auto-generated timestamp if available, but for now ID is likely v4 random.
-            // If created_at exists (it usually does as default), assume it's there.
-            .limit(50); // Increased limit
+            .eq('is_public', true)
+            .order('id', { ascending: false })
+            .limit(50);
 
-        // If destination is provided, filter by it
         if (destination) {
             console.log(`Fetching trending itineraries for destination: ${destination}`);
             query = query.eq('metadata->>destination', destination);
         }
 
-        // If category is provided, filter by it
         if (category && category !== 'All') {
             console.log(`Fetching trending itineraries for category: ${category}`);
             query = query.eq('metadata->>category', category);
@@ -179,15 +175,36 @@ router.get('/trending', async (req, res) => {
             throw error;
         }
 
-        // Deduplicate by DB primary key; id: item.id must come after the spread
-        // so it overwrites any stale metadata.id stored inside the JSON column.
+        // Collect unique user IDs to batch-fetch profiles
+        const userIds = [...new Set(data.map(item => item.user_id).filter(Boolean))];
+
+        // Batch-fetch user profiles for all creators
+        let profileMap = new Map();
+        if (userIds.length > 0) {
+            const { data: profiles } = await anonClient
+                .from('user_profiles')
+                .select('user_id, display_name, avatar_url, is_verified')
+                .in('user_id', userIds);
+            if (profiles) {
+                profiles.forEach(p => profileMap.set(p.user_id, p));
+            }
+        }
+
+        // Deduplicate and enrich with creator info
         const uniqueMap = new Map();
         data.forEach(item => {
             if (!uniqueMap.has(item.id)) {
+                const profile = profileMap.get(item.user_id);
                 uniqueMap.set(item.id, {
                     ...item.metadata,
-                    id: item.id,        // DB primary key must win over metadata.id
+                    id: item.id,
                     userId: item.user_id,
+                    creator: profile ? {
+                        id: item.user_id,
+                        name: profile.display_name || 'Community Traveler',
+                        avatar: profile.avatar_url || null,
+                        verified: profile.is_verified || false,
+                    } : null,
                     metadata: item.metadata
                 });
             }
@@ -195,7 +212,6 @@ router.get('/trending', async (req, res) => {
         const results = Array.from(uniqueMap.values());
 
         // Trending content changes slowly — cache at the browser/CDN edge for 60s.
-        // This alone can cut repeated DB hits by ~90% for the community browse view.
         res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=30');
         res.json(results);
     } catch (error) {

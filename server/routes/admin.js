@@ -4,6 +4,7 @@ import { verifyAuth } from '../middleware/auth.js';
 import { requireRole } from '../middleware/roleAuth.js';
 import { generateGeneralInfo, generateAttractions, generateEmbedding, generateQuickItinerary } from '../services/gemini.js';
 import { generateAndSaveItineraryImage } from '../services/imageGenerationService.js';
+import * as pinterest from '../services/pinterestService.js';
 
 const router = express.Router();
 
@@ -281,6 +282,7 @@ router.get('/itineraries', async (req, res) => {
             hasImage: !!i.metadata?.image,
             imageUrl: i.metadata?.image || null,
             isPublic: i.is_public,
+            pinterestPins: i.metadata?.pinterest?.pins?.length || 0,
         }));
 
         res.json(itineraries);
@@ -311,6 +313,7 @@ router.get('/itineraries/:id', async (req, res) => {
             userId: data.user_id,
             createdAt: data.created_at,
             updatedAt: data.updated_at,
+            pinterest: data.metadata?.pinterest || null,
         });
     } catch (error) {
         console.error('[Admin] Get itinerary error:', error);
@@ -725,6 +728,310 @@ router.post('/itineraries/bulk-images', async (req, res) => {
                 });
             }
             await delay(2000);
+        }
+
+        sendEvent({ done: true, completed, failed, total });
+    } catch (error) {
+        sendEvent({ done: true, error: error.message });
+    }
+
+    res.end();
+});
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  PINTEREST
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const generatePinDescription = (metadata) => {
+    const parts = [];
+    if (metadata.destination) parts.push(`Explore ${metadata.destination} with this curated travel itinerary.`);
+    if (metadata.days?.length) {
+        const themes = metadata.days.map(d => d.theme).filter(Boolean).join(', ');
+        if (themes) parts.push(`Highlights: ${themes}.`);
+    }
+    if (metadata.tags?.length) parts.push(`Tags: ${metadata.tags.join(', ')}`);
+    parts.push('Plan your perfect trip at NextDestination.ai');
+    return parts.join(' ').slice(0, 500);
+};
+
+// GET /api/admin/pinterest/status — Connection status + pin count
+router.get('/pinterest/status', async (req, res) => {
+    try {
+        const configured = pinterest.isConfigured();
+        let pinCount = 0;
+
+        if (configured) {
+            const { data, error } = await supabase
+                .from('itineraries')
+                .select('metadata');
+            if (!error && data) {
+                pinCount = data.reduce((sum, i) => sum + (i.metadata?.pinterest?.pins?.length || 0), 0);
+            }
+        }
+
+        res.json({ configured, pinCount });
+    } catch (error) {
+        console.error('[Admin] Pinterest status error:', error);
+        res.status(500).json({ error: 'Failed to get Pinterest status' });
+    }
+});
+
+// GET /api/admin/pinterest/boards — List boards from Pinterest API
+router.get('/pinterest/boards', async (req, res) => {
+    try {
+        if (!pinterest.isConfigured()) {
+            return res.status(400).json({ error: 'Pinterest is not configured' });
+        }
+        const boards = await pinterest.listBoards();
+        res.json(boards);
+    } catch (error) {
+        console.error('[Admin] Pinterest boards error:', error);
+        res.status(500).json({ error: `Failed to fetch boards: ${error.message}` });
+    }
+});
+
+// POST /api/admin/itineraries/:id/pinterest — Publish pin to one or more boards
+router.post('/itineraries/:id/pinterest', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { boardIds } = req.body;
+
+        if (!boardIds || !Array.isArray(boardIds) || boardIds.length === 0) {
+            return res.status(400).json({ error: 'boardIds array is required' });
+        }
+
+        if (!pinterest.isConfigured()) {
+            return res.status(400).json({ error: 'Pinterest is not configured' });
+        }
+
+        // Fetch itinerary
+        const { data: itin, error: fetchErr } = await supabase
+            .from('itineraries')
+            .select('metadata, is_public')
+            .eq('id', id)
+            .single();
+
+        if (fetchErr) throw fetchErr;
+        if (!itin) return res.status(404).json({ error: 'Itinerary not found' });
+        if (!itin.metadata?.image) return res.status(400).json({ error: 'Itinerary has no image' });
+        if (!itin.is_public) return res.status(400).json({ error: 'Itinerary must be public' });
+
+        const frontendUrl = pinterest.getFrontendUrl();
+        const destination = itin.metadata.destination || 'Travel';
+        const days = itin.metadata.days?.length || 0;
+        const title = `${destination} — ${days}-Day Travel Itinerary`;
+        const description = generatePinDescription(itin.metadata);
+        const link = `${frontendUrl}/share/${id}`;
+        const imageUrl = itin.metadata.image;
+
+        // Fetch board names for tracking
+        let boardMap = {};
+        try {
+            const boards = await pinterest.listBoards();
+            boardMap = Object.fromEntries(boards.map(b => [b.id, b.name]));
+        } catch { /* continue without board names */ }
+
+        const newPins = [];
+        const errors = [];
+
+        for (const boardId of boardIds) {
+            try {
+                const pin = await pinterest.createPin({ boardId, title, description, link, imageUrl });
+                newPins.push({
+                    pinId: pin.id,
+                    pinUrl: pin.url,
+                    boardId,
+                    boardName: boardMap[boardId] || boardId,
+                    publishedAt: new Date().toISOString(),
+                });
+            } catch (err) {
+                errors.push({ boardId, error: err.message });
+            }
+        }
+
+        // Update metadata with new pins
+        const existingPins = itin.metadata?.pinterest?.pins || [];
+        const updatedMetadata = {
+            ...itin.metadata,
+            pinterest: {
+                ...itin.metadata?.pinterest,
+                pins: [...existingPins, ...newPins],
+            },
+        };
+
+        const { error: updateErr } = await supabase
+            .from('itineraries')
+            .update({ metadata: updatedMetadata, updated_at: new Date().toISOString() })
+            .eq('id', id);
+
+        if (updateErr) throw updateErr;
+
+        res.json({ success: true, pins: newPins, errors });
+    } catch (error) {
+        console.error('[Admin] Pinterest publish error:', error);
+        res.status(500).json({ error: `Failed to publish pin: ${error.message}` });
+    }
+});
+
+// DELETE /api/admin/itineraries/:id/pinterest/:pinId — Delete a pin
+router.delete('/itineraries/:id/pinterest/:pinId', async (req, res) => {
+    try {
+        const { id, pinId } = req.params;
+
+        if (!pinterest.isConfigured()) {
+            return res.status(400).json({ error: 'Pinterest is not configured' });
+        }
+
+        // Delete from Pinterest
+        try {
+            await pinterest.deletePin(pinId);
+        } catch (err) {
+            console.warn('[Admin] Pinterest delete API error (continuing):', err.message);
+        }
+
+        // Remove from metadata
+        const { data: itin, error: fetchErr } = await supabase
+            .from('itineraries')
+            .select('metadata')
+            .eq('id', id)
+            .single();
+
+        if (fetchErr) throw fetchErr;
+
+        const existingPins = itin.metadata?.pinterest?.pins || [];
+        const updatedPins = existingPins.filter(p => p.pinId !== pinId);
+        const updatedMetadata = {
+            ...itin.metadata,
+            pinterest: {
+                ...itin.metadata?.pinterest,
+                pins: updatedPins,
+            },
+        };
+
+        // Clean up pinterest key if no pins remain
+        if (updatedPins.length === 0) {
+            delete updatedMetadata.pinterest;
+        }
+
+        const { error: updateErr } = await supabase
+            .from('itineraries')
+            .update({ metadata: updatedMetadata, updated_at: new Date().toISOString() })
+            .eq('id', id);
+
+        if (updateErr) throw updateErr;
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[Admin] Pinterest delete error:', error);
+        res.status(500).json({ error: `Failed to delete pin: ${error.message}` });
+    }
+});
+
+// POST /api/admin/itineraries/bulk-pinterest — Bulk publish unpinned itineraries (SSE)
+router.post('/itineraries/bulk-pinterest', async (req, res) => {
+    const { boardIds } = req.body;
+    if (!boardIds || !Array.isArray(boardIds) || boardIds.length === 0) {
+        return res.status(400).json({ error: 'boardIds array is required' });
+    }
+
+    if (!pinterest.isConfigured()) {
+        return res.status(400).json({ error: 'Pinterest is not configured' });
+    }
+
+    // Set up SSE
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+    });
+
+    const sendEvent = (data) => {
+        res.write(`data: ${JSON.stringify(data)}\n\n`);
+    };
+
+    try {
+        // Fetch all public itineraries with images but no pinterest pins
+        const { data: allItineraries, error } = await supabase
+            .from('itineraries')
+            .select('id, metadata, is_public')
+            .eq('is_public', true);
+
+        if (error) throw error;
+
+        const itineraries = (allItineraries || []).filter(i =>
+            i.metadata?.image && (!i.metadata?.pinterest?.pins?.length)
+        );
+
+        const total = itineraries.length;
+        let completed = 0, failed = 0;
+
+        // Fetch board names
+        let boardMap = {};
+        try {
+            const boards = await pinterest.listBoards();
+            boardMap = Object.fromEntries(boards.map(b => [b.id, b.name]));
+        } catch { /* continue */ }
+
+        const frontendUrl = pinterest.getFrontendUrl();
+
+        for (let i = 0; i < total; i++) {
+            const itin = itineraries[i];
+            const destination = itin.metadata?.destination || 'Travel';
+            const days = itin.metadata?.days?.length || 0;
+            const title = `${destination} — ${days}-Day Travel Itinerary`;
+            const description = generatePinDescription(itin.metadata);
+            const link = `${frontendUrl}/share/${itin.id}`;
+            const imageUrl = itin.metadata.image;
+
+            const newPins = [];
+            let hadError = false;
+
+            for (const boardId of boardIds) {
+                try {
+                    const pin = await pinterest.createPin({ boardId, title, description, link, imageUrl });
+                    newPins.push({
+                        pinId: pin.id,
+                        pinUrl: pin.url,
+                        boardId,
+                        boardName: boardMap[boardId] || boardId,
+                        publishedAt: new Date().toISOString(),
+                    });
+                } catch (err) {
+                    hadError = true;
+                    console.error(`[Admin] Bulk pin error for ${itin.id} board ${boardId}:`, err.message);
+                }
+            }
+
+            if (newPins.length > 0) {
+                const existingPins = itin.metadata?.pinterest?.pins || [];
+                const updatedMetadata = {
+                    ...itin.metadata,
+                    pinterest: {
+                        ...itin.metadata?.pinterest,
+                        pins: [...existingPins, ...newPins],
+                    },
+                };
+
+                await supabase
+                    .from('itineraries')
+                    .update({ metadata: updatedMetadata, updated_at: new Date().toISOString() })
+                    .eq('id', itin.id);
+
+                completed++;
+                sendEvent({
+                    current: i + 1, total, id: itin.id, destination,
+                    status: 'completed', pinCount: newPins.length,
+                });
+            } else {
+                failed++;
+                sendEvent({
+                    current: i + 1, total, id: itin.id, destination,
+                    status: 'failed',
+                });
+            }
+
+            // Rate limit: Pinterest allows ~10 requests/second
+            await delay(1000);
         }
 
         sendEvent({ done: true, completed, failed, total });
