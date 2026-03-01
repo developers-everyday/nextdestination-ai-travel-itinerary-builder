@@ -15,6 +15,8 @@ import {
 interface PinterestStatus {
   configured: boolean;
   pinCount: number;
+  hasWriteAccess: boolean;
+  source: "oauth" | "env" | null;
 }
 
 export default function MarketingHubPage() {
@@ -94,9 +96,20 @@ export default function MarketingHubPage() {
               <div className="flex items-center justify-between">
                 <span className="text-slate-500">Status</span>
                 {pinterestStatus?.configured ? (
-                  <span className="flex items-center gap-1 text-green-600">
-                    <CheckCircle className="h-3.5 w-3.5" /> Connected
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="flex items-center gap-1 text-green-600">
+                      <CheckCircle className="h-3.5 w-3.5" /> Connected
+                    </span>
+                    {pinterestStatus.hasWriteAccess ? (
+                      <span className="rounded-full bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-700">
+                        Write
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                        Read Only
+                      </span>
+                    )}
+                  </div>
                 ) : (
                   <span className="flex items-center gap-1 text-red-500">
                     <XCircle className="h-3.5 w-3.5" /> Not configured
@@ -116,7 +129,7 @@ export default function MarketingHubPage() {
             href="/admin/marketing/pinterest"
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors"
           >
-            Manage Pins
+            {pinterestStatus?.configured ? "Manage Pins" : "Connect Pinterest"}
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>

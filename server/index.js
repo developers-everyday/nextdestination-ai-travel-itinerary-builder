@@ -156,6 +156,10 @@ app.use('/api/profile', profileRoutes);
 import destinationRoutes from './routes/destinations.js';
 app.use('/api/destinations', destinationRoutes);
 
+// Pinterest OAuth callback — must be before admin routes (no auth middleware)
+import pinterestOAuthRoutes from './routes/pinterestOAuth.js';
+app.use('/api/admin/pinterest/oauth', pinterestOAuthRoutes);
+
 import adminRoutes from './routes/admin.js';
 app.use('/api/admin', adminRoutes);
 

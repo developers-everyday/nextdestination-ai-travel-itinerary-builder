@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthContext";
 import Link from "next/link";
 import EnrichmentProgress, {
@@ -15,6 +15,10 @@ import {
   Trash2,
   ChevronDown,
   ChevronUp,
+  Unplug,
+  Shield,
+  ShieldAlert,
+  ShieldOff,
 } from "lucide-react";
 
 interface Board {
@@ -44,10 +48,24 @@ interface Itinerary {
   pinterestPins: number;
 }
 
+interface ConnectionStatus {
+  connected: boolean;
+  source: "oauth" | "env" | null;
+  hasWriteAccess: boolean;
+  accountName: string | null;
+  scopes: string[];
+  tokenExpired: boolean;
+  tokenExpiresAt: string | null;
+  connectedAt: string | null;
+}
+
 export default function PinterestMarketingPage() {
   const { session } = useAuth();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const highlightId = searchParams.get("highlight");
+  const oauthResult = searchParams.get("oauth");
+  const oauthReason = searchParams.get("reason");
 
   const [boards, setBoards] = useState<Board[]>([]);
   const [selectedBoards, setSelectedBoards] = useState<Set<string>>(new Set());
@@ -65,13 +83,53 @@ export default function PinterestMarketingPage() {
   const [pinnedDetails, setPinnedDetails] = useState<
     Map<string, { destination: string; pins: PinData[] }>
   >(new Map());
+  const [connection, setConnection] = useState<ConnectionStatus | null>(null);
+  const [connectionLoading, setConnectionLoading] = useState(true);
+  const [connecting, setConnecting] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
 
   const token = session?.access_token;
 
   const showToast = (msg: string) => {
     setToast(msg);
-    setTimeout(() => setToast(null), 3000);
+    setTimeout(() => setToast(null), 4000);
   };
+
+  const fetchConnection = useCallback(async () => {
+    if (!token) return;
+    setConnectionLoading(true);
+    try {
+      const res = await fetch("/api/admin/pinterest/connection", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setConnection(await res.json());
+      }
+    } catch (err) {
+      console.error("Connection status error:", err);
+    } finally {
+      setConnectionLoading(false);
+    }
+  }, [token]);
+
+  // Handle OAuth result from query params
+  useEffect(() => {
+    if (oauthResult) {
+      if (oauthResult === "success") {
+        showToast("Pinterest connected with write access!");
+        fetchConnection();
+      } else if (oauthResult === "error") {
+        const reasons: Record<string, string> = {
+          denied: "Authorization was denied on Pinterest",
+          missing_params: "Missing parameters in callback",
+          invalid_state: "Invalid or expired session — please try again",
+          exchange_failed: "Token exchange failed — check server logs",
+        };
+        showToast(reasons[oauthReason || ""] || "Pinterest connection failed");
+      }
+      router.replace("/admin/marketing/pinterest", { scroll: false });
+    }
+  }, [oauthResult, oauthReason, router, fetchConnection]);
 
   const fetchBoards = useCallback(async () => {
     if (!token) return;
@@ -138,9 +196,10 @@ export default function PinterestMarketingPage() {
   }, [token, highlightId]);
 
   useEffect(() => {
+    fetchConnection();
     fetchBoards();
     fetchItineraries();
-  }, [fetchBoards, fetchItineraries]);
+  }, [fetchConnection, fetchBoards, fetchItineraries]);
 
   // Filter to publishable itineraries (has image + public)
   const publishable = itineraries.filter((i) => i.hasImage && i.isPublic);
@@ -170,6 +229,46 @@ export default function PinterestMarketingPage() {
 
   const deselectAll = () => {
     setSelectedItineraries(new Set());
+  };
+
+  const handleConnect = async () => {
+    if (!token) return;
+    setConnecting(true);
+    try {
+      const res = await fetch("/api/admin/pinterest/oauth/start", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to get OAuth URL");
+      const { url } = await res.json();
+      window.location.href = url;
+    } catch (err) {
+      console.error("Connect error:", err);
+      showToast("Failed to start Pinterest connection");
+      setConnecting(false);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    if (!token) return;
+    if (!confirm("Disconnect Pinterest OAuth? You'll revert to read-only env token access.")) return;
+    setDisconnecting(true);
+    try {
+      const res = await fetch("/api/admin/pinterest/disconnect", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        showToast("Pinterest disconnected");
+        await fetchConnection();
+      } else {
+        showToast("Failed to disconnect");
+      }
+    } catch (err) {
+      console.error("Disconnect error:", err);
+      showToast("Failed to disconnect");
+    } finally {
+      setDisconnecting(false);
+    }
   };
 
   const handlePublish = async () => {
@@ -279,6 +378,8 @@ export default function PinterestMarketingPage() {
     }
   };
 
+  const canPublish = connection?.hasWriteAccess ?? false;
+
   return (
     <div>
       {/* Toast */}
@@ -307,6 +408,122 @@ export default function PinterestMarketingPage() {
             Publish itinerary infographics as pins to your boards.
           </p>
         </div>
+      </div>
+
+      {/* Connection Status Banner */}
+      <div className="mb-6 rounded-xl border border-slate-200 bg-white p-5">
+        <h2
+          className="mb-3 text-sm font-semibold text-slate-900"
+          style={{ fontFamily: "var(--font-jakarta), sans-serif" }}
+        >
+          Connection
+        </h2>
+        {connectionLoading ? (
+          <div className="flex justify-center py-4">
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-600" />
+          </div>
+        ) : connection?.connected && connection.source === "oauth" ? (
+          /* Connected via OAuth — full write access */
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-green-50">
+                <Shield className="h-4.5 w-4.5 text-green-600" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-slate-900">
+                    {connection.accountName || "Pinterest Account"}
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
+                    <CheckCircle className="h-3 w-3" />
+                    Write Access
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Connected via OAuth
+                  {connection.connectedAt &&
+                    ` on ${new Date(connection.connectedAt).toLocaleDateString()}`}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleDisconnect}
+              disabled={disconnecting}
+              className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors"
+            >
+              <Unplug className="h-3.5 w-3.5" />
+              {disconnecting ? "Disconnecting..." : "Disconnect"}
+            </button>
+          </div>
+        ) : connection?.connected && connection.source === "env" ? (
+          /* Connected via env token — read only */
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-50">
+                <ShieldAlert className="h-4.5 w-4.5 text-amber-600" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-slate-900">
+                    Environment Token
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
+                    Read Only
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Can read boards but cannot publish pins. Connect via OAuth for
+                  write access.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleConnect}
+              disabled={connecting}
+              className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+            >
+              {connecting ? (
+                <>
+                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  Connecting...
+                </>
+              ) : (
+                "Upgrade to Write Access"
+              )}
+            </button>
+          </div>
+        ) : (
+          /* Not connected */
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100">
+                <ShieldOff className="h-4.5 w-4.5 text-slate-400" />
+              </div>
+              <div>
+                <span className="text-sm font-medium text-slate-900">
+                  Not Connected
+                </span>
+                <p className="text-xs text-slate-500">
+                  Connect your Pinterest account to start publishing pins.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleConnect}
+              disabled={connecting}
+              className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+            >
+              {connecting ? (
+                <>
+                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  Connecting...
+                </>
+              ) : (
+                "Connect Pinterest"
+              )}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Section A — Boards */}
@@ -372,6 +589,12 @@ export default function PinterestMarketingPage() {
           </div>
         </div>
 
+        {!canPublish && connection && !connectionLoading && (
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+            Publishing requires write access. Connect your Pinterest account via OAuth above to enable pin creation.
+          </div>
+        )}
+
         {loading ? (
           <div className="flex justify-center py-8">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-600" />
@@ -431,6 +654,7 @@ export default function PinterestMarketingPage() {
               <button
                 onClick={handlePublish}
                 disabled={
+                  !canPublish ||
                   publishing ||
                   selectedBoards.size === 0 ||
                   selectedItineraries.size === 0
@@ -454,6 +678,11 @@ export default function PinterestMarketingPage() {
               {selectedBoards.size === 0 && (
                 <p className="text-xs text-amber-600">
                   Select at least one board above
+                </p>
+              )}
+              {!canPublish && selectedItineraries.size > 0 && selectedBoards.size > 0 && (
+                <p className="text-xs text-amber-600">
+                  Write access required — connect via OAuth above
                 </p>
               )}
             </div>

@@ -758,9 +758,10 @@ const generatePinDescription = (metadata) => {
 router.get('/pinterest/status', async (req, res) => {
     try {
         const configured = pinterest.isConfigured();
+        const connection = await pinterest.getConnectionStatus();
         let pinCount = 0;
 
-        if (configured) {
+        if (configured || connection.connected) {
             const { data, error } = await supabase
                 .from('itineraries')
                 .select('metadata');
@@ -769,7 +770,12 @@ router.get('/pinterest/status', async (req, res) => {
             }
         }
 
-        res.json({ configured, pinCount });
+        res.json({
+            configured: configured || connection.connected,
+            pinCount,
+            hasWriteAccess: connection.hasWriteAccess,
+            source: connection.source,
+        });
     } catch (error) {
         console.error('[Admin] Pinterest status error:', error);
         res.status(500).json({ error: 'Failed to get Pinterest status' });
@@ -779,7 +785,8 @@ router.get('/pinterest/status', async (req, res) => {
 // GET /api/admin/pinterest/boards — List boards from Pinterest API
 router.get('/pinterest/boards', async (req, res) => {
     try {
-        if (!pinterest.isConfigured()) {
+        const connection = await pinterest.getConnectionStatus();
+        if (!pinterest.isConfigured() && !connection.connected) {
             return res.status(400).json({ error: 'Pinterest is not configured' });
         }
         const boards = await pinterest.listBoards();
@@ -787,6 +794,41 @@ router.get('/pinterest/boards', async (req, res) => {
     } catch (error) {
         console.error('[Admin] Pinterest boards error:', error);
         res.status(500).json({ error: `Failed to fetch boards: ${error.message}` });
+    }
+});
+
+// GET /api/admin/pinterest/oauth/start — Generate OAuth URL for Pinterest authorization
+router.get('/pinterest/oauth/start', async (req, res) => {
+    try {
+        const serverUrl = process.env.SERVER_URL || 'http://localhost:3001';
+        const redirectUri = `${serverUrl}/api/admin/pinterest/oauth/callback`;
+        const url = pinterest.generateAuthorizationUrl(redirectUri);
+        res.json({ url });
+    } catch (error) {
+        console.error('[Admin] Pinterest OAuth start error:', error);
+        res.status(500).json({ error: `Failed to generate OAuth URL: ${error.message}` });
+    }
+});
+
+// GET /api/admin/pinterest/connection — Detailed connection status
+router.get('/pinterest/connection', async (req, res) => {
+    try {
+        const status = await pinterest.getConnectionStatus();
+        res.json(status);
+    } catch (error) {
+        console.error('[Admin] Pinterest connection status error:', error);
+        res.status(500).json({ error: 'Failed to get connection status' });
+    }
+});
+
+// POST /api/admin/pinterest/disconnect — Disconnect OAuth account
+router.post('/pinterest/disconnect', async (req, res) => {
+    try {
+        await pinterest.disconnectAccount();
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[Admin] Pinterest disconnect error:', error);
+        res.status(500).json({ error: `Failed to disconnect: ${error.message}` });
     }
 });
 
@@ -800,7 +842,8 @@ router.post('/itineraries/:id/pinterest', async (req, res) => {
             return res.status(400).json({ error: 'boardIds array is required' });
         }
 
-        if (!pinterest.isConfigured()) {
+        const pConn = await pinterest.getConnectionStatus();
+        if (!pinterest.isConfigured() && !pConn.connected) {
             return res.status(400).json({ error: 'Pinterest is not configured' });
         }
 
@@ -878,7 +921,8 @@ router.delete('/itineraries/:id/pinterest/:pinId', async (req, res) => {
     try {
         const { id, pinId } = req.params;
 
-        if (!pinterest.isConfigured()) {
+        const pConn = await pinterest.getConnectionStatus();
+        if (!pinterest.isConfigured() && !pConn.connected) {
             return res.status(400).json({ error: 'Pinterest is not configured' });
         }
 
@@ -934,7 +978,8 @@ router.post('/itineraries/bulk-pinterest', async (req, res) => {
         return res.status(400).json({ error: 'boardIds array is required' });
     }
 
-    if (!pinterest.isConfigured()) {
+    const pConn = await pinterest.getConnectionStatus();
+    if (!pinterest.isConfigured() && !pConn.connected) {
         return res.status(400).json({ error: 'Pinterest is not configured' });
     }
 
