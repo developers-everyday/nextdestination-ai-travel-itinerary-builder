@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "./AuthContext";
 
-// Download icon component
 const DownloadIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg
     className={className}
@@ -27,18 +26,17 @@ interface Props {
 }
 
 const ROLE_CONFIG: Record<string, { icon: string; label: string; color: string }> = {
-  agent: { icon: "🏷️", label: "Agent", color: "bg-amber-50 text-amber-700 border-amber-200" },
+  agent:      { icon: "🏷️", label: "Agent",   color: "bg-amber-50 text-amber-700 border-amber-200" },
   influencer: { icon: "⭐", label: "Creator", color: "bg-purple-50 text-purple-700 border-purple-200" },
-  explorer: { icon: "", label: "", color: "" },
+  explorer:   { icon: "",    label: "",        color: "" },
 };
 
 const PLAN_BADGE: Record<string, { icon: string; color: string }> = {
-  custom: { icon: "💎", color: "text-emerald-600" },
-  explorer: { icon: "✨", color: "text-indigo-600" },
-  starter: { icon: "", color: "" },
+  custom:   { icon: "💎", color: "text-emerald-600" },
+  explorer: { icon: "✨", color: "text-[#FF5A5A]" },
+  starter:  { icon: "",   color: "" },
 };
 
-// Type for beforeinstallprompt event
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
@@ -46,107 +44,100 @@ interface BeforeInstallPromptEvent extends Event {
 
 const Navbar: React.FC<Props> = ({ onOpenBuilder }) => {
   const { user, loading, userProfile } = useAuth();
-
-  // PWA Install state
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstalled, setIsInstalled] = useState(false);
+  const [isInstalled, setIsInstalled]     = useState(false);
   const [showIOSPrompt, setShowIOSPrompt] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
+  const [isIOS, setIsIOS]                 = useState(false);
+  const [scrolled, setScrolled]           = useState(false);
 
   useEffect(() => {
-    // Check if already installed (standalone mode)
-    if (window.matchMedia("(display-mode: standalone)").matches) {
-      setIsInstalled(true);
-    }
-
-    // Check if iOS
+    if (window.matchMedia("(display-mode: standalone)").matches) setIsInstalled(true);
     const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
     setIsIOS(iOS);
 
-    // Listen for install prompt (Chrome/Android)
     const handler = (e: Event) => {
       e.preventDefault();
       setInstallPrompt(e as BeforeInstallPromptEvent);
     };
     window.addEventListener("beforeinstallprompt", handler);
 
-    // Listen for app installed event
     const installedHandler = () => {
       setIsInstalled(true);
       setInstallPrompt(null);
     };
     window.addEventListener("appinstalled", installedHandler);
 
+    const scrollHandler = () => setScrolled(window.scrollY > 8);
+    window.addEventListener("scroll", scrollHandler, { passive: true });
+
     return () => {
       window.removeEventListener("beforeinstallprompt", handler);
       window.removeEventListener("appinstalled", installedHandler);
+      window.removeEventListener("scroll", scrollHandler);
     };
   }, []);
 
   const handleInstall = async () => {
-    if (isIOS) {
-      setShowIOSPrompt(true);
-      return;
-    }
-
+    if (isIOS) { setShowIOSPrompt(true); return; }
     if (installPrompt) {
       installPrompt.prompt();
       const result = await installPrompt.userChoice;
-      if (result.outcome === "accepted") {
-        setIsInstalled(true);
-      }
+      if (result.outcome === "accepted") setIsInstalled(true);
       setInstallPrompt(null);
     }
   };
 
-  const displayName = userProfile?.displayName || user?.email?.split("@")[0] || "User";
+  const displayName   = userProfile?.displayName || user?.email?.split("@")[0] || "User";
   const avatarInitial = displayName.charAt(0).toUpperCase();
-  const roleConfig = userProfile ? ROLE_CONFIG[userProfile.role] : null;
-  const planBadge = userProfile ? PLAN_BADGE[userProfile.plan] : null;
-
-  // Show install button if: iOS (always show for instructions) or has install prompt available
+  const roleConfig    = userProfile ? ROLE_CONFIG[userProfile.role] : null;
+  const planBadge     = userProfile ? PLAN_BADGE[userProfile.plan]  : null;
   const showInstallButton = !isInstalled && (isIOS || installPrompt);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-white/80 backdrop-blur-md shadow-sm py-3">
-      <div className="max-w-7xl mx-auto px-4 md:px-6 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 min-w-0 flex-1">
-          <div className="w-8 h-8 md:w-10 md:h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-lg md:text-xl shadow-lg shadow-indigo-200 flex-shrink-0">
+    <nav
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        scrolled
+          ? "bg-white/95 backdrop-blur-md shadow-[0_1px_0_0_rgba(0,0,0,0.08)]"
+          : "bg-white"
+      }`}
+    >
+      <div className="max-w-7xl mx-auto px-4 md:px-6 h-[68px] flex items-center justify-between gap-4">
+
+        {/* ── Logo ── */}
+        <Link href="/" className="flex items-center gap-2.5 shrink-0">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md flex-shrink-0"
+               style={{ background: "linear-gradient(135deg, #FF5A5A 0%, #FF8C00 100%)" }}>
             N
           </div>
-          <span className="text-xl md:text-2xl font-bold tracking-tight text-slate-900 truncate">
-            NextDestination<span className="opacity-70">.ai</span>
+          <span className="text-[1.1rem] font-bold tracking-tight text-[#1A1A1A] hidden sm:block">
+            Next<span className="text-[#FF5A5A]">Destination</span>
+            <span className="text-[#9C9891] font-medium">.ai</span>
           </span>
         </Link>
 
-        {/* Right Side - Links & Auth */}
-        <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
-          {/* Nav Links */}
-          <div className="hidden md:flex items-center gap-1 mr-2">
+        {/* ── Centre Nav Links ── */}
+        <div className="hidden md:flex items-center gap-1 flex-1 justify-center">
+          {[
+            { href: "/community", label: "Community" },
+            { href: "/creators",  label: "Creators"  },
+            { href: "/blog",      label: "Blog"       },
+          ].map(({ href, label }) => (
             <Link
-              href="/community"
-              className="relative px-3 py-2 text-sm font-medium text-slate-600 rounded-lg hover:text-indigo-600 hover:bg-indigo-50 transition-all duration-200"
+              key={href}
+              href={href}
+              className="px-4 py-2 text-sm font-semibold text-[#6B6863] rounded-full hover:text-[#1A1A1A] hover:bg-[#F0EFED] transition-all duration-150"
             >
-              Community
+              {label}
             </Link>
-            <Link
-              href="/creators"
-              className="relative px-3 py-2 text-sm font-medium text-slate-600 rounded-lg hover:text-indigo-600 hover:bg-indigo-50 transition-all duration-200"
-            >
-              Creators
-            </Link>
-            <Link
-              href="/blog"
-              className="relative px-3 py-2 text-sm font-medium text-slate-600 rounded-lg hover:text-indigo-600 hover:bg-indigo-50 transition-all duration-200"
-            >
-              Blog
-            </Link>
-          </div>
-          {/* Install App Button */}
+          ))}
+        </div>
+
+        {/* ── Right Side ── */}
+        <div className="flex items-center gap-2 md:gap-3 shrink-0">
           {showInstallButton && (
             <button
               onClick={handleInstall}
-              className="hidden md:flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-full text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200"
+              className="hidden md:flex items-center gap-1.5 px-4 py-2 bg-[#FFF0F0] text-[#FF5A5A] rounded-full text-sm font-semibold hover:bg-[#FFE4E4] transition-colors"
             >
               <DownloadIcon className="w-4 h-4" />
               Install App
@@ -154,58 +145,53 @@ const Navbar: React.FC<Props> = ({ onOpenBuilder }) => {
           )}
 
           {loading ? (
-            <div className="w-24 h-10 bg-slate-100 rounded-full animate-pulse"></div>
+            <div className="w-20 h-9 bg-[#F0EFED] rounded-full animate-pulse" />
           ) : user ? (
-            <div className="flex items-center gap-4">
-              {/* Role Badge (only for non-explorer roles) */}
-              {roleConfig && roleConfig.label && (
-                <span
-                  className={`hidden md:inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full border ${roleConfig.color}`}
-                >
+            <div className="flex items-center gap-3">
+              {roleConfig?.label && (
+                <span className={`hidden md:inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full border ${roleConfig.color}`}>
                   {roleConfig.icon} {roleConfig.label}
                 </span>
               )}
-
               <Link
                 href="/profile"
-                className="flex items-center gap-2 pl-2 pr-4 py-1.5 rounded-full hover:bg-slate-100 transition-all group"
+                className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full hover:bg-[#F0EFED] transition-all group"
               >
-                {/* Avatar */}
                 <div className="relative">
                   {userProfile?.avatarUrl ? (
                     <img
                       src={userProfile.avatarUrl}
                       alt={displayName}
-                      className="w-8 h-8 rounded-full border border-indigo-200 group-hover:border-indigo-300 transition-colors object-cover"
+                      className="w-8 h-8 rounded-full border-2 border-[#EEECE9] group-hover:border-[#FF5A5A]/30 transition-colors object-cover"
                     />
                   ) : (
-                    <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-700 font-bold border border-indigo-200 group-hover:bg-indigo-200 transition-colors">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm"
+                         style={{ background: "linear-gradient(135deg, #FF5A5A 0%, #FF8C00 100%)" }}>
                       {avatarInitial}
                     </div>
                   )}
-                  {/* Plan icon overlay */}
-                  {planBadge && planBadge.icon && (
+                  {planBadge?.icon && (
                     <span className={`absolute -bottom-0.5 -right-0.5 text-[10px] ${planBadge.color}`}>
                       {planBadge.icon}
                     </span>
                   )}
                 </div>
-                <span className="font-semibold text-slate-700 group-hover:text-slate-900 hidden md:inline max-w-[120px] truncate">
+                <span className="font-semibold text-[#1A1A1A] hidden md:inline max-w-[120px] truncate text-sm">
                   {displayName}
                 </span>
               </Link>
             </div>
           ) : (
-            <div className="flex items-center gap-2 md:gap-4">
+            <div className="flex items-center gap-2">
               <Link
                 href="/login"
-                className="px-3 py-2 md:px-5 md:py-2.5 rounded-full font-semibold transition-all text-slate-900 hover:bg-slate-100 text-sm md:text-base whitespace-nowrap"
+                className="px-4 py-2 rounded-full font-semibold text-[#1A1A1A] hover:bg-[#F0EFED] text-sm transition-all whitespace-nowrap"
               >
                 Log In
               </Link>
               <Link
                 href="/signup"
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 md:px-6 md:py-2.5 rounded-full font-semibold shadow-lg shadow-indigo-200 transition-all text-sm md:text-base whitespace-nowrap"
+                className="btn-brand px-5 py-2 text-sm whitespace-nowrap"
               >
                 Get Started
               </Link>
@@ -214,7 +200,7 @@ const Navbar: React.FC<Props> = ({ onOpenBuilder }) => {
         </div>
       </div>
 
-      {/* iOS Install Instructions Modal */}
+      {/* ── iOS Install Modal ── */}
       {showIOSPrompt && (
         <div
           className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 animate-fade-in"
@@ -224,58 +210,29 @@ const Navbar: React.FC<Props> = ({ onOpenBuilder }) => {
             className="bg-white rounded-t-3xl p-6 w-full max-w-md animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4"></div>
-            <h3 className="text-lg font-bold text-slate-900 mb-4">Install NextDestination</h3>
-            <p className="text-sm text-slate-600 mb-4">
-              Add this app to your home screen for quick access and a native app experience.
+            <div className="w-10 h-1 bg-[#EEECE9] rounded-full mx-auto mb-5" />
+            <h3 className="text-lg font-bold text-[#1A1A1A] mb-3">Install NextDestination</h3>
+            <p className="text-sm text-[#6B6863] mb-4">
+              Add to your home screen for quick access and a native app experience.
             </p>
-            <ol className="space-y-3 text-sm text-slate-600">
-              <li className="flex items-start gap-3">
-                <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center font-bold text-xs">
-                  1
-                </span>
-                <span>
-                  Tap the <strong className="text-slate-900">Share</strong> button{" "}
-                  <span className="inline-flex items-center justify-center w-5 h-5 bg-slate-100 rounded">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 12v.01M12 4v.01M20 12v.01M12 20v.01"
-                      />
-                    </svg>
-                  </span>{" "}
-                  in Safari&apos;s toolbar
-                </span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center font-bold text-xs">
-                  2
-                </span>
-                <span>
-                  Scroll down and tap{" "}
-                  <strong className="text-slate-900">&quot;Add to Home Screen&quot;</strong>
-                </span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center font-bold text-xs">
-                  3
-                </span>
-                <span>
-                  Tap <strong className="text-slate-900">Add</strong> to install
-                </span>
-              </li>
+            <ol className="space-y-3 text-sm text-[#6B6863]">
+              {[
+                <>Tap the <strong className="text-[#1A1A1A]">Share</strong> button in Safari&apos;s toolbar</>,
+                <>Scroll down and tap <strong className="text-[#1A1A1A]">&quot;Add to Home Screen&quot;</strong></>,
+                <>Tap <strong className="text-[#1A1A1A]">Add</strong> to install</>,
+              ].map((step, i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs text-white"
+                        style={{ background: "linear-gradient(135deg, #FF5A5A, #FF8C00)" }}>
+                    {i + 1}
+                  </span>
+                  <span>{step}</span>
+                </li>
+              ))}
             </ol>
             <button
               onClick={() => setShowIOSPrompt(false)}
-              className="mt-6 w-full py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-colors"
+              className="btn-brand mt-6 w-full py-3 text-sm"
             >
               Got it
             </button>

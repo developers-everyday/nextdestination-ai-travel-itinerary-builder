@@ -7,35 +7,33 @@ interface SearchHeaderProps {
   onSearch: (destination: string) => void;
 }
 
+const FEATURED_DESTINATIONS = [
+  { name: "Tokyo", emoji: "🗼" },
+  { name: "Bali",  emoji: "🌴" },
+  { name: "Paris", emoji: "🗺️" },
+  { name: "NYC",   emoji: "🗽" },
+  { name: "Santorini", emoji: "🏛️" },
+];
+
 const SearchHeader: React.FC<SearchHeaderProps> = ({ onSearch }) => {
-  const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<
-    google.maps.places.AutocompleteSuggestion[]
-  >([]);
+  const [query, setQuery]                   = useState("");
+  const [suggestions, setSuggestions]       = useState<google.maps.places.AutocompleteSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const isLoaded = useApiIsLoaded();
 
   React.useEffect(() => {
-    if (!query || !isLoaded) {
-      setSuggestions([]);
-      return;
-    }
-
+    if (!query || !isLoaded) { setSuggestions([]); return; }
     if (query.length > 2) {
       const timer = setTimeout(async () => {
         try {
-          const request = {
-            input: query,
-            includedPrimaryTypes: ["(regions)"],
-          };
           const { suggestions } =
-            await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions(
-              request
-            );
+            await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
+              input: query,
+              includedPrimaryTypes: ["(regions)"],
+            });
           setSuggestions(suggestions);
           setShowSuggestions(true);
-        } catch (error) {
-          console.error("Error fetching suggestions:", error);
+        } catch {
           setSuggestions([]);
         }
       }, 300);
@@ -45,135 +43,128 @@ const SearchHeader: React.FC<SearchHeaderProps> = ({ onSearch }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (query.trim()) {
-      onSearch(query);
-      setShowSuggestions(false);
-    }
+    if (query.trim()) { onSearch(query); setShowSuggestions(false); }
   };
 
-  const handleSelectSuggestion = (
-    suggestion: google.maps.places.AutocompleteSuggestion
-  ) => {
-    const placeText = suggestion.placePrediction?.text?.text;
-    if (placeText) {
-      setQuery(placeText);
-      onSearch(placeText);
-      setShowSuggestions(false);
-    }
+  const handleSelectSuggestion = (s: google.maps.places.AutocompleteSuggestion) => {
+    const text = s.placePrediction?.text?.text;
+    if (text) { setQuery(text); onSearch(text); setShowSuggestions(false); }
   };
 
   return (
-    <div className="bg-white border-b border-slate-100 pt-10 pb-10 px-6">
-      <div className="max-w-4xl mx-auto">
-        <form
-          onSubmit={handleSubmit}
-          className="relative z-40 max-w-3xl mx-auto"
-        >
-          <div className="bg-white p-2 rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-200/50 hover:shadow-2xl hover:shadow-indigo-200/30 transition-all duration-300 relative">
-            <div className="flex flex-col md:flex-row gap-2">
-              <div className="flex-1 flex items-center px-6 py-4 gap-4 bg-slate-50/50 rounded-2xl focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6 text-indigo-600 shrink-0"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                </svg>
-                <input
-                  type="text"
-                  placeholder="Where do you want to go? (e.g., Paris, Tokyo...)"
-                  className="w-full bg-transparent outline-none text-slate-900 font-bold text-lg placeholder:text-slate-400 placeholder:font-medium"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onFocus={() =>
-                    suggestions.length > 0 && setShowSuggestions(true)
-                  }
-                  onBlur={() =>
-                    setTimeout(() => setShowSuggestions(false), 200)
-                  }
-                />
-              </div>
-              <button
-                type="submit"
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-8 py-4 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 active:scale-95 shrink-0"
-              >
-                Generate Plan
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </button>
+    <section
+      className="relative overflow-hidden"
+      style={{
+        background: "linear-gradient(160deg, #FF5A5A 0%, #FF8C00 55%, #FFB347 100%)",
+        minHeight: "320px",
+      }}
+    >
+      {/* Decorative background bubbles */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
+        <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full opacity-20"
+             style={{ background: "rgba(255,255,255,0.25)" }} />
+        <div className="absolute top-1/2 -left-12 w-40 h-40 rounded-full opacity-10"
+             style={{ background: "rgba(255,255,255,0.3)" }} />
+        <div className="absolute bottom-0 right-1/4 w-32 h-32 rounded-full opacity-15"
+             style={{ background: "rgba(255,255,255,0.2)" }} />
+
+        {/* Floating destination emojis */}
+        <span className="absolute top-8 right-[12%] text-4xl opacity-25 animate-float" style={{ animationDelay: "0s" }}>✈️</span>
+        <span className="absolute bottom-10 right-[6%] text-3xl opacity-20 animate-float" style={{ animationDelay: "1.5s" }}>🌍</span>
+        <span className="absolute top-6 left-[8%] text-3xl opacity-20 animate-float" style={{ animationDelay: "0.8s" }}>🏝️</span>
+      </div>
+
+      <div className="relative z-10 max-w-5xl mx-auto px-5 pt-14 pb-10">
+        {/* Headline */}
+        <div className="text-center mb-8">
+          <p className="inline-flex items-center gap-2 text-white/80 text-sm font-semibold mb-3 bg-white/15 rounded-full px-4 py-1.5">
+            <span className="w-2 h-2 rounded-full bg-white animate-pulse-dot" />
+            AI-Powered Travel Planning
+          </p>
+          <h1 className="text-3xl md:text-5xl font-black text-white leading-tight tracking-tight mb-3">
+            Your next adventure<br className="hidden md:block" /> starts here
+          </h1>
+          <p className="text-white/80 text-base md:text-lg font-medium">
+            Tell us where you want to go — we'll build the perfect itinerary.
+          </p>
+        </div>
+
+        {/* Search bar */}
+        <form onSubmit={handleSubmit} className="relative max-w-2xl mx-auto">
+          <div className="flex items-center bg-white rounded-2xl shadow-2xl overflow-hidden p-1.5 gap-2">
+            {/* Location icon */}
+            <div className="pl-3 shrink-0">
+              <svg className="w-5 h-5 text-[#FF5A5A]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
+                      d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
+                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
             </div>
 
-            {showSuggestions && suggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden">
-                {suggestions.map((suggestion) => (
-                  <div
-                    key={suggestion.placePrediction?.placeId}
-                    onClick={() => handleSelectSuggestion(suggestion)}
-                    className="px-6 py-4 hover:bg-slate-50 cursor-pointer border-b border-slate-50 last:border-none group flex items-center gap-3"
-                  >
-                    <div className="p-2 bg-slate-100 rounded-full text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                        />
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                        />
-                      </svg>
-                    </div>
-                    <div>
-                      <div className="font-bold text-slate-800">
-                        {suggestion.placePrediction?.text?.text}
-                      </div>
-                      <div className="text-xs text-slate-500">
-                        {suggestion.placePrediction?.secondaryText?.text}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <input
+              type="text"
+              placeholder="Where do you want to go?"
+              className="flex-1 py-3 text-[#1A1A1A] text-base font-semibold placeholder:text-[#9C9891] placeholder:font-normal bg-transparent outline-none"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+            />
+
+            <button
+              type="submit"
+              className="btn-brand px-6 py-3 text-sm shrink-0"
+            >
+              Generate Plan
+            </button>
           </div>
+
+          {/* Autocomplete dropdown */}
+          {showSuggestions && suggestions.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-[#EEECE9] rounded-2xl shadow-2xl z-50 overflow-hidden animate-scale-in">
+              {suggestions.map((s) => (
+                <div
+                  key={s.placePrediction?.placeId}
+                  onClick={() => handleSelectSuggestion(s)}
+                  className="px-5 py-3.5 hover:bg-[#FFF0F0] cursor-pointer border-b border-[#F8F7F5] last:border-none flex items-center gap-3 group transition-colors"
+                >
+                  <div className="w-8 h-8 rounded-full bg-[#FFF0F0] flex items-center justify-center shrink-0 group-hover:bg-[#FFE4E4] transition-colors">
+                    <svg className="w-4 h-4 text-[#FF5A5A]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                            d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-bold text-[#1A1A1A] text-sm">{s.placePrediction?.text?.text}</p>
+                    {s.placePrediction?.secondaryText?.text && (
+                      <p className="text-xs text-[#9C9891]">{s.placePrediction.secondaryText.text}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </form>
+
+        {/* Quick destination pills */}
+        <div className="flex items-center justify-center gap-2 mt-5 flex-wrap">
+          <span className="text-white/60 text-xs font-medium">Popular:</span>
+          {FEATURED_DESTINATIONS.map((d) => (
+            <button
+              key={d.name}
+              onClick={() => onSearch(d.name)}
+              className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white text-xs font-semibold px-3 py-1.5 rounded-full transition-all backdrop-blur-sm border border-white/20 hover:border-white/40"
+            >
+              <span>{d.emoji}</span>
+              {d.name}
+            </button>
+          ))}
+        </div>
       </div>
-    </div>
+    </section>
   );
 };
 

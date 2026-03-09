@@ -278,31 +278,34 @@ const ItineraryGrid: React.FC<ItineraryGridProps> = ({
   }, [category, source, fetchedItineraries]);
 
   return (
-    <div className="max-w-7xl mx-auto px-6 pb-24 pt-6">
+    <div className="max-w-7xl mx-auto px-5 pb-24 pt-6" style={{ background: "var(--color-bg)" }}>
       {source === "model" && (
         <div className="flex justify-center mb-10">
           <button
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            className="px-8 py-4 bg-white border-2 border-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-50 hover:border-slate-200 transition-all flex items-center gap-2"
+            className="btn-brand px-7 py-3 text-sm flex items-center gap-2"
           >
             Generate Your Own Trip
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path
-                fillRule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z"
-                clipRule="evenodd"
-              />
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z"
+                    clipRule="evenodd" />
             </svg>
           </button>
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-10">
+      {/* Section heading */}
+      {source === "community" && (
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h2 className="text-xl font-black text-[#1A1A1A]">Trending Trips</h2>
+            <p className="text-sm text-[#6B6863] mt-0.5">Curated by our community of travellers</p>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {source === "community"
           ? displayItineraries.map((itinerary: any, index: number) => (
             <CommunityItineraryCard
@@ -320,40 +323,38 @@ const ItineraryGrid: React.FC<ItineraryGridProps> = ({
       {displayItineraries.length === 0 && !loading && (
         <div className="text-center py-20">
           <div className="text-4xl mb-4">🏝️</div>
-          <h3 className="text-xl font-bold text-slate-900 mb-2">
-            No trips found in this category yet.
-          </h3>
-          <p className="text-slate-500">
-            Try selecting a different category or search for a destination.
-          </p>
+          <h3 className="text-xl font-bold text-[#1A1A1A] mb-2">No trips found in this category yet.</h3>
+          <p className="text-[#6B6863]">Try a different category or search for a destination.</p>
         </div>
       )}
 
       {loading && source === "community" && displayItineraries.length === 0 && (
-        <div className="text-center py-20">
-          <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-500">Loading community trips...</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: "0 2px 12px 0 rgba(0,0,0,0.07)" }}>
+              <div className="aspect-[4/3] animate-shimmer" />
+              <div className="p-4 space-y-2">
+                <div className="h-4 animate-shimmer rounded-full w-3/4" />
+                <div className="h-3 animate-shimmer rounded-full w-1/2" />
+                <div className="h-3 animate-shimmer rounded-full w-1/3 mt-2" />
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
-      <div className="flex justify-center mt-16">
+      <div className="flex justify-center mt-12">
         {source === "community" && (
           <button
             onClick={() => router.push("/community")}
-            className="px-8 py-4 bg-white border-2 border-indigo-100 text-indigo-600 rounded-2xl font-bold hover:bg-indigo-50 hover:border-indigo-200 transition-all flex items-center gap-2"
+            className="flex items-center gap-2 px-6 py-3 bg-white border border-[#EEECE9] text-[#FF5A5A] rounded-full font-bold text-sm hover:bg-[#FFF0F0] hover:border-[#FFD0D0] transition-all"
+            style={{ boxShadow: "0 2px 8px 0 rgba(0,0,0,0.06)" }}
           >
             View all Community Itineraries
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path
-                fillRule="evenodd"
-                d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z"
-                clipRule="evenodd"
-              />
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd"
+                    d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z"
+                    clipRule="evenodd" />
             </svg>
           </button>
         )}

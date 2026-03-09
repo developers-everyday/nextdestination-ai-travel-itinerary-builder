@@ -1,11 +1,39 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+/* ── Design Tokens ──────────────────────────────────────────────────────────── */
+:root {
+  /* Brand Colors — warm coral/travel palette inspired by Klook */
+  --color-brand:        #FF5A5A;
+  --color-brand-dark:   #E04848;
+  --color-brand-light:  #FFF0F0;
+  --color-accent:       #FF8C00;
+  --color-accent-light: #FFF4E0;
+
+  /* Neutrals — warm off-white background system */
+  --color-bg:           #F8F7F5;
+  --color-surface:      #FFFFFF;
+  --color-border:       #EEECE9;
+  --color-border-dark:  #D9D6D0;
+
+  /* Text */
+  --color-text-primary:   #1A1A1A;
+  --color-text-secondary: #6B6863;
+  --color-text-muted:     #9C9891;
+
+  /* Shadows */
+  --shadow-card:    0 2px 16px 0 rgba(0,0,0,0.08);
+  --shadow-card-hover: 0 8px 40px 0 rgba(0,0,0,0.14);
+  --shadow-nav:     0 1px 0 0 rgba(0,0,0,0.08);
+}
+
 /* ── Fonts ─────────────────────────────────────────────────────────────────── */
 body {
   font-family: var(--font-jakarta), sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
 }
 
 h1,
@@ -15,62 +43,119 @@ h3,
   font-family: var(--font-playfair), serif;
 }
 
-/* ── Utilities (ported from Vite index.html) ────────────────────────────────── */
+/* ── Utilities ──────────────────────────────────────────────────────────────── */
 .glass {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.glass-dark {
+  background: rgba(26, 26, 26, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .text-gradient {
-  background: linear-gradient(to right, #1e3a8a, #9333ea);
+  background: linear-gradient(135deg, #FF5A5A 0%, #FF8C00 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-cool {
+  background: linear-gradient(135deg, #1e3a8a 0%, #9333ea 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Brand button */
+.btn-brand {
+  background: var(--color-brand);
+  color: white;
+  border-radius: 9999px;
+  font-weight: 700;
+  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+  box-shadow: 0 4px 14px 0 rgba(255, 90, 90, 0.35);
+}
+.btn-brand:hover {
+  background: var(--color-brand-dark);
+  box-shadow: 0 6px 20px 0 rgba(255, 90, 90, 0.45);
+}
+.btn-brand:active {
+  transform: scale(0.97);
+}
+
+/* Card base */
+.card {
+  background: var(--color-surface);
+  border-radius: 16px;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+  overflow: hidden;
+}
+.card:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-4px);
 }
 
 /* ── Animations ─────────────────────────────────────────────────────────────── */
 @keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
+  0%   { transform: translateY(0px); }
+  50%  { transform: translateY(-8px); }
   100% { transform: translateY(0px); }
 }
-
 .animate-float {
   animation: float 4s ease-in-out infinite;
 }
 
 @keyframes fade-in {
   from { opacity: 0; }
-  to { opacity: 1; }
+  to   { opacity: 1; }
 }
-
 .animate-fade-in {
   animation: fade-in 0.3s ease-out;
 }
 
 @keyframes slide-up {
   from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-
 .animate-slide-up {
   animation: slide-up 0.4s ease-out;
 }
 
 @keyframes scale-in {
   from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  to   { opacity: 1; transform: scale(1); }
 }
-
 .animate-scale-in {
   animation: scale-in 0.2s ease-out;
 }
 
-/* ── Scrollbar ──────────────────────────────────────────────────────────────── */
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.animate-shimmer {
+  background: linear-gradient(90deg, #f0efed 25%, #e8e6e3 50%, #f0efed 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }
 
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+.animate-pulse-dot {
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────────────────────── */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;

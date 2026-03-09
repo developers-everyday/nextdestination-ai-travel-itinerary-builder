@@ -15,242 +15,189 @@ const CommunityItineraryCard: React.FC<CommunityItineraryCardProps> = ({
   onClick,
   onRemix,
 }) => {
-  const [isSaved, setIsSaved] = useState(false);
+  const [isSaved,   setIsSaved]   = useState(false);
   const [saveCount, setSaveCount] = useState(itinerary.saveCount);
 
   useEffect(() => {
     const checkWishlistStatus = async () => {
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+        const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) return;
-
         const response = await fetch(
-          `${
-            process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
-          }/api/wishlist/check/${itinerary.id}`,
+          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/wishlist/check/${itinerary.id}`,
           { headers: { Authorization: `Bearer ${session.access_token}` } }
         );
-
         if (response.ok) {
           const { isWishlisted } = await response.json();
           setIsSaved(isWishlisted);
         }
-      } catch (error) {
-        console.error("Error checking wishlist status:", error);
-      }
+      } catch {}
     };
-
-    if (itinerary.id && !itinerary.id.startsWith("mock-")) {
-      checkWishlistStatus();
-    }
+    if (itinerary.id && !itinerary.id.startsWith("mock-")) checkWishlistStatus();
   }, [itinerary.id]);
 
   const handleToggleWishlist = async (e: React.MouseEvent) => {
     e.stopPropagation();
-
     try {
       const { data, error } = await supabase.auth.getUser();
-      if (error || !data?.user) {
-        alert("Please log in to save trips to your wishlist!");
-        return;
-      }
-    } catch {
-      alert("Please log in to save trips to your wishlist!");
+      if (error || !data?.user) { alert("Please log in to save trips!"); return; }
+    } catch { alert("Please log in to save trips!"); return; }
+
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!itinerary.id || itinerary.id.startsWith("mock-") || !uuidRegex.test(itinerary.id)) {
+      alert("This itinerary cannot be added to wishlist yet.");
       return;
     }
 
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (
-      !itinerary.id ||
-      itinerary.id.startsWith("mock-") ||
-      !uuidRegex.test(itinerary.id)
-    ) {
-      alert(
-        "This itinerary cannot be added to wishlist yet (Community/Mock item)."
-      );
-      return;
-    }
-
-    const newSavedState = !isSaved;
-    setIsSaved(newSavedState);
-    setSaveCount((prev) =>
-      newSavedState ? prev + 1 : Math.max(0, prev - 1)
-    );
+    const newState = !isSaved;
+    setIsSaved(newState);
+    setSaveCount((prev) => newState ? prev + 1 : Math.max(0, prev - 1));
 
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session?.access_token) throw new Error("No active session");
-
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("No session");
       const response = await fetch(
-        `${
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
-        }/api/wishlist/toggle`,
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/wishlist/toggle`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
           body: JSON.stringify({ itineraryId: itinerary.id }),
         }
       );
-
-      if (!response.ok) throw new Error("Failed to update wishlist");
-    } catch (error) {
-      console.error("Error toggling wishlist:", error);
-      setIsSaved(!newSavedState);
-      setSaveCount((prev) =>
-        !newSavedState ? prev + 1 : Math.max(0, prev - 1)
-      );
+      if (!response.ok) throw new Error("Failed");
+    } catch {
+      setIsSaved(!newState);
+      setSaveCount((prev) => !newState ? prev + 1 : Math.max(0, prev - 1));
     }
   };
 
   return (
     <div
       onClick={onClick}
-      className="group relative rounded-[2.5rem] overflow-hidden bg-white border border-slate-200 hover:border-indigo-400 transition-all duration-500 cursor-pointer hover:shadow-2xl hover:-translate-y-2 active:translate-y-0"
+      className="group relative bg-white rounded-2xl overflow-hidden cursor-pointer transition-all duration-300"
+      style={{
+        boxShadow: "0 2px 12px 0 rgba(0,0,0,0.07)",
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLDivElement).style.boxShadow = "0 8px 32px 0 rgba(0,0,0,0.14)";
+        (e.currentTarget as HTMLDivElement).style.transform = "translateY(-4px)";
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLDivElement).style.boxShadow = "0 2px 12px 0 rgba(0,0,0,0.07)";
+        (e.currentTarget as HTMLDivElement).style.transform = "translateY(0)";
+      }}
     >
-      <div className="aspect-[3/4] relative overflow-hidden">
+      {/* Image container */}
+      <div className="aspect-[4/3] relative overflow-hidden">
         <img
           src={itinerary.image}
           alt={itinerary.name}
           loading="lazy"
           decoding="async"
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/20 to-transparent" />
 
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+
+        {/* Top-left badge: Trending */}
         {itinerary.trending && (
-          <div className="absolute top-6 left-6">
-            <div className="bg-white/10 backdrop-blur-md px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 text-white">
-              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-              Trending Now
-            </div>
-          </div>
-        )}
-
-        <div className="absolute top-6 right-6 z-20">
-          <button
-            onClick={handleToggleWishlist}
-            className={`backdrop-blur-md px-4 py-2.5 rounded-2xl flex items-center gap-2 shadow-lg transition-all active:scale-95 ${
-              isSaved
-                ? "bg-white text-red-500"
-                : "bg-white/90 text-slate-900 hover:bg-white"
-            }`}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className={`h-5 w-5 transition-transform ${
-                isSaved ? "fill-current scale-110" : "text-red-500"
-              }`}
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path
-                fillRule="evenodd"
-                d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
-                clipRule="evenodd"
-              />
-            </svg>
-            <span
-              className={`text-sm font-black ${
-                isSaved ? "text-red-500" : "text-slate-900"
-              }`}
-            >
-              {saveCount.toLocaleString()}
+          <div className="absolute top-3 left-3 z-10">
+            <span className="flex items-center gap-1.5 bg-white/95 text-[#FF5A5A] text-[11px] font-bold px-2.5 py-1 rounded-full shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#FF5A5A] animate-pulse-dot" />
+              Trending
             </span>
-          </button>
-        </div>
-
-        <div className="absolute bottom-6 left-6">
-          <div className="bg-indigo-600/90 backdrop-blur-md px-4 py-2 rounded-xl text-xs font-bold text-white">
-            {itinerary.duration} {itinerary.duration === 1 ? "Day" : "Days"}
-          </div>
-        </div>
-
-        {onRemix && (
-          <div className="absolute bottom-6 right-6 z-20">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onRemix(e);
-              }}
-              className="bg-white/90 backdrop-blur-md px-4 py-2.5 rounded-2xl flex items-center gap-2 shadow-lg hover:bg-white hover:text-indigo-600 transition-all text-slate-900 font-bold"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-                />
-              </svg>
-              <span>Remix</span>
-            </button>
           </div>
         )}
-      </div>
 
-      <div className="p-8">
-        <h3 className="text-2xl font-black text-slate-900 group-hover:text-indigo-600 transition-colors mb-3">
-          {itinerary.name}
-        </h3>
-        <p className="text-slate-600 font-bold mb-4 flex items-center gap-2">
+        {/* Top-right: Save / Wishlist */}
+        <button
+          onClick={handleToggleWishlist}
+          className={`absolute top-3 right-3 z-10 w-9 h-9 rounded-full flex items-center justify-center shadow-md transition-all active:scale-90 ${
+            isSaved ? "bg-[#FF5A5A]" : "bg-white/90 hover:bg-white"
+          }`}
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5 text-indigo-500"
+            className={`w-4 h-4 transition-colors ${isSaved ? "text-white fill-white" : "text-[#1A1A1A]"}`}
             viewBox="0 0 20 20"
-            fill="currentColor"
+            fill={isSaved ? "currentColor" : "none"}
+            stroke="currentColor"
+            strokeWidth={isSaved ? 0 : 1.5}
           >
             <path
               fillRule="evenodd"
-              d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
+              d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
               clipRule="evenodd"
             />
           </svg>
+        </button>
+
+        {/* Bottom-left: Duration badge */}
+        <div className="absolute bottom-3 left-3 z-10">
+          <span
+            className="text-white text-[11px] font-bold px-2.5 py-1 rounded-full"
+            style={{ background: "linear-gradient(135deg, #FF5A5A, #FF8C00)" }}
+          >
+            {itinerary.duration} {itinerary.duration === 1 ? "Day" : "Days"}
+          </span>
+        </div>
+
+        {/* Bottom-right: Save count */}
+        <div className="absolute bottom-3 right-3 z-10">
+          <span className="flex items-center gap-1 bg-black/40 backdrop-blur-sm text-white text-[11px] font-semibold px-2 py-1 rounded-full">
+            <svg className="w-3 h-3 fill-white" viewBox="0 0 20 20">
+              <path fillRule="evenodd"
+                    d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
+                    clipRule="evenodd" />
+            </svg>
+            {saveCount.toLocaleString()}
+          </span>
+        </div>
+      </div>
+
+      {/* Card body */}
+      <div className="p-4">
+        {/* Destination name */}
+        <h3 className="font-bold text-[#1A1A1A] text-base leading-tight mb-1 line-clamp-1 group-hover:text-[#FF5A5A] transition-colors">
           {itinerary.location}
-        </p>
-        <div className="flex items-center justify-between pt-6 border-t border-slate-200">
-          <div className="flex items-center gap-3">
+        </h3>
+        <p className="text-[#6B6863] text-sm mb-3 line-clamp-1">{itinerary.name}</p>
+
+        {/* Footer: creator + remix */}
+        <div className="flex items-center justify-between pt-3 border-t border-[#F0EFED]">
+          <div className="flex items-center gap-2">
             <img
               src={itinerary.creator.avatar}
-              className="w-10 h-10 rounded-full border-2 border-indigo-500/30"
+              className="w-7 h-7 rounded-full border border-[#EEECE9] object-cover"
               alt={itinerary.creator.name}
             />
-            <div>
-              <p className="text-xs font-bold text-slate-500">Creator</p>
-              <div className="flex items-center gap-1">
-                <p className="text-sm font-black text-slate-900">
-                  {itinerary.creator.name}
-                </p>
-                {itinerary.creator.verified && (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4 text-indigo-600"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                )}
-              </div>
+            <div className="flex items-center gap-1">
+              <span className="text-xs font-semibold text-[#1A1A1A] max-w-[90px] truncate">
+                {itinerary.creator.name}
+              </span>
+              {itinerary.creator.verified && (
+                <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 20 20" fill="none">
+                  <circle cx="10" cy="10" r="10" fill="#FF5A5A" />
+                  <path d="M6.5 10l2.5 2.5 4.5-4.5" stroke="white" strokeWidth="1.5"
+                        strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
             </div>
           </div>
+
+          {onRemix && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onRemix(e); }}
+              className="flex items-center gap-1.5 text-xs font-bold text-[#FF5A5A] hover:bg-[#FFF0F0] px-2.5 py-1.5 rounded-full transition-colors border border-[#FFD0D0] hover:border-[#FF5A5A]"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
+                      d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+              </svg>
+              Remix
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -45,7 +45,7 @@ export default function HomeContent({ initialTrending }: HomeContentProps) {
       libraries={["places"]}
     >
       <Navbar />
-      <main className="pt-[72px]">
+      <main className="pt-[68px]" style={{ background: "var(--color-bg)", minHeight: "100vh" }}>
         <SearchHeader onSearch={handleSearch} />
         <CategoryBar
           selectedCategory={selectedCategory}
